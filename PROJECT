@@ -1,0 +1,20 @@
+domain: bpfman.io
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: bpfman-operator
+repo: bpfman-operator
+resources:
+- api:
+    crdVersion: v1
+  controller: true
+  domain: bpfman.io
+  kind: BpfApplication
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
+  version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
+version: "3"

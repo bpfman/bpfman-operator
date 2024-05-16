@@ -1,0 +1,48 @@
+apiVersion: bpfman.io.bpfman.io/v1alpha1
+kind: BpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfapplication
+    app.kubernetes.io/instance: bpfapplication-sample
+    app.kubernetes.io/part-of: bpfman-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bpfman-operator
+  name: bpfapplication-sample
+spec:
+  # Select all nodes
+  nodeselector: {}
+  globaldata:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
+  programs:
+  - type: XDP
+    xdp:
+      bpffunctionname: pass
+      interfaceselector:
+      primarynodeinterface: true
+      priority: 0
+      bytecode:
+        image:
+          url: quay.io/bpfman-bytecode/xdp_pass:latest
+  - type: TC
+    tc:
+      bpffunctionname: pass
+      interfaceselector:
+        primarynodeinterface: true
+      priority: 0
+      direction: ingress
+      bytecode:
+        image:
+          url: quay.io/bpfman-bytecode/tc_pass:latest
+  - type: Fentry
+    fentry:
+     bpffunctionname: pass
+     func_name: do_unlinkat
+     bytecode:
+      image:
+        url: quay.io/bpfman-bytecode/fentry:latest

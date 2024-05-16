@@ -1,0 +1,26 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-bpfman-io-v1alpha1-bpfapplication
+  failurePolicy: Fail
+  name: vbpfapplication.kb.io
+  rules:
+  - apiGroups:
+    - bpfman.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - bpfapplications
+  sideEffects: None
