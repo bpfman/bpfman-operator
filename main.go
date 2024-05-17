@@ -21,6 +21,9 @@ import (
 	"flag"
 	"os"
 
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	"github.com/bpfman/bpfman-operator/controllers"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -32,10 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	"github.com/bpfman/bpfman-operator/controllers"
-	//+kubebuilder:scaffold:imports
 )
 
 var (
@@ -120,7 +119,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "BpfApplication")
 		os.Exit(1)
 	}
-	if err = (&bpfmaniov1alpha1.BpfApplication{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&bpfmaniov1alpha1.BpfApplicationWebhook{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "BpfApplication")
 		os.Exit(1)
 	}

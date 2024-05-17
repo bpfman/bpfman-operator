@@ -19,12 +19,12 @@ package controllers
 import (
 	"context"
 
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 )
 
 // BpfApplicationReconciler reconciles a BpfApplication object
