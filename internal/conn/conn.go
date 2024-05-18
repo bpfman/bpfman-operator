@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bpfman/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/internal"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

@@ -115,6 +115,7 @@ func main() {
 	if err = (&controllers.BpfApplicationReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+		Logger: mgr.GetLogger(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BpfApplication")
 		os.Exit(1)

@@ -22,23 +22,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	bpfmaniov1alpha1 "github.com/bpfman/bpfman/bpfman-operator/apis/v1alpha1"
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 )
 
-// Only reconcile if a bpfprogram has been created for the controller's program type.
-func BpfProgramTypePredicate(kind string) predicate.Funcs {
+// Only reconcile if a bpfapplication has been created for the controller's program type.
+func BpfApplicationTypePredicate(kind string) predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {
-			return e.Object.(*bpfmaniov1alpha1.BpfProgram).Spec.Type == kind
+			return e.Object.(*bpfmaniov1alpha1.BpfApplication).Spec.Type == kind
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.(*bpfmaniov1alpha1.BpfProgram).Spec.Type == kind
+			return e.Object.(*bpfmaniov1alpha1.BpfApplication).Spec.Type == kind
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.(*bpfmaniov1alpha1.BpfProgram).Spec.Type == kind
+			return e.ObjectNew.(*bpfmaniov1alpha1.BpfApplication).Spec.Type == kind
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.(*bpfmaniov1alpha1.BpfProgram).Spec.Type == kind
+			return e.Object.(*bpfmaniov1alpha1.BpfApplication).Spec.Type == kind
 		},
 	}
 }
@@ -92,8 +92,8 @@ func StatusChangedPredicate() predicate.Funcs {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfProgram)
+			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfApplication)
+			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfApplication)
 			return !reflect.DeepEqual(oldObject.Status, newObject.Status)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {

@@ -89,53 +89,113 @@ func (in *BpfApplicationProgram) DeepCopyInto(out *BpfApplicationProgram) {
 	*out = *in
 	if in.XDP != nil {
 		in, out := &in.XDP, &out.XDP
-		*out = new(XdpProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]XdpProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]XdpProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.TC != nil {
 		in, out := &in.TC, &out.TC
-		*out = new(TcProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]TcProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]TcProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.TCX != nil {
 		in, out := &in.TCX, &out.TCX
-		*out = new(TcProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]TcProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]TcProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Fentry != nil {
 		in, out := &in.Fentry, &out.Fentry
-		*out = new(FentryProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]FentryProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]FentryProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Fexit != nil {
 		in, out := &in.Fexit, &out.Fexit
-		*out = new(FentryProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]FentryProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]FentryProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Kprobe != nil {
 		in, out := &in.Kprobe, &out.Kprobe
-		*out = new(KprobeProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]KprobeProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]KprobeProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Kretprobe != nil {
 		in, out := &in.Kretprobe, &out.Kretprobe
-		*out = new(KprobeProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]KprobeProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]KprobeProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Uprobe != nil {
 		in, out := &in.Uprobe, &out.Uprobe
-		*out = new(UprobeProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]UprobeProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]UprobeProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Uretprobe != nil {
 		in, out := &in.Uretprobe, &out.Uretprobe
-		*out = new(UprobeProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]UprobeProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]UprobeProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 	if in.Tracepoint != nil {
 		in, out := &in.Tracepoint, &out.Tracepoint
-		*out = new(TracepointProgramSpec)
-		(*in).DeepCopyInto(*out)
+		*out = new([]TracepointProgramSpec)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]TracepointProgramSpec, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
+		}
 	}
 }
 
