@@ -5,7 +5,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: bpfman-operator
-repo: github.com/bpfman/bpfman
+repo: github.com/bpfman
 resources:
 - api:
     crdVersion: v1
@@ -13,7 +13,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: BpfProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -21,7 +21,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: XdpProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -29,7 +29,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: TcProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -37,7 +37,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: TracePointProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -45,7 +45,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: KprobeProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -53,7 +53,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: UprobeProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -61,7 +61,7 @@ resources:
   controller: true
   domain: bpfman.io
   kind: FentryProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -69,6 +69,6 @@ resources:
   controller: true
   domain: bpfman.io
   kind: FexitProgram
-  path: github.com/bpfman/bpfman/api/v1alpha1
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 version: "3"

@@ -231,6 +231,11 @@ generate-typed-informers: informer-gen ## Generate typed informers code
 		--output-package "${PKG}/pkg/client/informers" \
 		${COMMON_FLAGS}
 
+.PHONY: vendors
+vendors: ## Refresh vendors directory.
+	@echo "### Checking vendors"
+	go mod tidy && go mod vendor
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
