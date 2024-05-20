@@ -111,7 +111,7 @@ OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.11.3
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
 OPERATOR_SDK_VERSION ?= v1.27.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -282,9 +282,8 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
-	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ../
-	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFMAN_IMG} -f ../Containerfile.bpfman.local ../
+	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ./
+	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ./
 
 .PHONY: push-images
 push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.

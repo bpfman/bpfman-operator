@@ -3,7 +3,7 @@ FROM golang:1.21 as bpfman-operator-build
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /usr/src/bpfman/
+WORKDIR /usr/src/bpfman-operator
 
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -21,7 +21,7 @@ COPY . .
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-WORKDIR /usr/src/bpfman/bpfman-operator
+WORKDIR /usr/src/bpfman-operator
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bpfman-operator ./cmd/bpfman-operator/main.go
 
 # Use the fedora minimal image to reduce the size of the final image but still
@@ -33,9 +33,9 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bp
 FROM quay.io/fedora/fedora-minimal
 ARG TARGETARCH
 WORKDIR /
-COPY --from=bpfman-operator-build /usr/src/bpfman/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman/bpfman-operator/bpfman-operator .
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/bpfman-operator .
 USER 65532:65532
 
 ENTRYPOINT ["/bpfman-operator"]
