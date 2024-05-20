@@ -1,9 +1,9 @@
-module github.com/bpfman/bpfman
+module github.com/bpfman/bpfman-operator
 
 go 1.21.0
 
 require (
-	github.com/cilium/ebpf v0.14.0
+	github.com/bpfman/bpfman v0.4.1
 	github.com/containers/image v3.0.2+incompatible
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-cmp v0.5.9
@@ -20,7 +20,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require golang.org/x/exp v0.0.0-20230224173230-c95f2b4c22f2 // indirect
+require (
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -60,7 +63,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.7.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
