@@ -1,0 +1,122 @@
+name: bpfman-image-build
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    tags:
+      - v*
+
+  pull_request:
+    paths: [.github/workflows/image-build.yaml]
+
+jobs:
+  build-and-push-images:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - registry: quay.io
+            build_language: go
+            repository: bpfman
+            image: bpfman-agent
+            dockerfile: ./Containerfile.bpfman-agent
+            context: .
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            repository: bpfman
+            image: bpfman-operator
+            dockerfile: ./Containerfile.bpfman-operator
+            context: .
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            repository: bpfman
+            image: bpfman-operator-bundle
+            context: .
+            dockerfile: ./Containerfile.bundle
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+    name: Build Image (${{ matrix.image.image }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        if: ${{ matrix.image.build_language == 'go' }}
+        with:
+          # prettier-ignore
+          go-version: '1.21' # yamllint disable-line rule:quoted-strings
+
+      - uses: sigstore/cosign-installer@v3.5.0
+
+      - name: Generate olm bundle on disk
+        if: ${{ matrix.image.image == 'bpfman-operator-bundle' }}
+        run: |
+          make bundle
+
+      - name: Login to quay.io/bpfman
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFMAN_USERNAME }}
+          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for image
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
+          tags: ${{ matrix.image.tags }}
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ matrix.image.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          containerfiles: ${{ matrix.image.dockerfile }}
+          build-args: ${{ matrix.image.build_args }}
+          context: ${{ matrix.image.context }}
+
+      - name: Push to registry
+        id: push-image
+        uses: redhat-actions/push-to-registry@v2
+        if: ${{ github.event_name == 'push' }}
+        with:
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Sign the images with GitHub OIDC Token
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
+          for tag in ${tags[@]}; do
+            cosign sign -y "${tag}@${{ steps.push-image.outputs.digest }}"
+          done
