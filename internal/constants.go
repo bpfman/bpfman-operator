@@ -81,6 +81,8 @@ const (
 	// FexitProgramControllerFinalizer is the finalizer that holds a Fexit
 	// BpfProgram object from deletion until cleanup can be performed.
 	FexitProgramControllerFinalizer = "bpfman.io.fexitprogramcontroller/finalizer"
+	// BpfApplicationFinalizer is the finalizer that holds a BpfApplication
+	BpfApplicationControllerFinalizer = "bpfman.io.bpfapplicationcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.

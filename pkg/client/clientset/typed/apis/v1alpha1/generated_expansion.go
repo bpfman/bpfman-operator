@@ -18,6 +18,8 @@ limitations under the License.
 
 package v1alpha1
 
+type BpfApplicationExpansion interface{}
+
 type BpfProgramExpansion interface{}
 
 type FentryProgramExpansion interface{}
