@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// BpfApplicationListerExpansion allows custom methods to be added to
+// BpfApplicationLister.
+type BpfApplicationListerExpansion interface{}
+
 // BpfProgramListerExpansion allows custom methods to be added to
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}

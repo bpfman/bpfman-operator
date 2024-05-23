@@ -28,6 +28,10 @@ type FakeBpfmanV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeBpfmanV1alpha1) BpfApplications() v1alpha1.BpfApplicationInterface {
+	return &FakeBpfApplications{c}
+}
+
 func (c *FakeBpfmanV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
 	return &FakeBpfPrograms{c}
 }
