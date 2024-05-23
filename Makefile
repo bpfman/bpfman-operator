@@ -231,6 +231,11 @@ generate-typed-informers: informer-gen ## Generate typed informers code
 		--output-package "${PKG}/pkg/client/informers" \
 		${COMMON_FLAGS}
 
+.PHONY: vendors
+vendors: ## Refresh vendors directory.
+	@echo "### Checking vendors"
+	go mod tidy && go mod vendor
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
@@ -274,8 +279,8 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 
 .PHONY: build
 build: fmt ## Build bpfman-operator and bpfman-agent binaries.
-	go build -o bin/bpfman-operator cmd/bpfman-operator/main.go
-	go build -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
+	go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
 
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.

@@ -22,3 +22,6 @@ go.work
 
 # Local bin
 /bin
+
+# make generate folder
+/github.com
