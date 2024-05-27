@@ -38,6 +38,7 @@ type Cluster struct {
 	addons     clusters.Addons
 	deployArgs []string
 	l          *sync.RWMutex
+	ipFamily   clusters.IPFamily
 }
 
 // New provides a new clusters.Cluster backed by a Kind based Kubernetes Cluster.
@@ -144,5 +145,21 @@ func (c *Cluster) DeleteAddon(ctx context.Context, addon clusters.Addon) error {
 // for diagnostics identification.
 // It returns the path to directory containing all the diagnostic files and an error.
 func (c *Cluster) DumpDiagnostics(ctx context.Context, meta string) (string, error) {
-	return clusters.DumpDiagnostics(ctx, c, meta)
+	// create a tempdir
+	outDir, err := os.MkdirTemp(os.TempDir(), clusters.DiagnosticOutDirectoryPrefix)
+	if err != nil {
+		return "", err
+	}
+
+	err = exportLogs(ctx, c.Name(), outDir)
+	if err != nil {
+		return "", err
+	}
+
+	err = clusters.DumpDiagnostics(ctx, c, meta, outDir)
+	return outDir, err
+}
+
+func (c *Cluster) IPFamily() clusters.IPFamily {
+	return c.ipFamily
 }

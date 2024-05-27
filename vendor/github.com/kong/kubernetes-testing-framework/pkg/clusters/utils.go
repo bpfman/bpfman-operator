@@ -104,7 +104,7 @@ func GetIngressLoadbalancerStatus(ctx context.Context, c Cluster, namespace stri
 // CreateNamespace creates a new namespace in the given cluster provided a name.
 func CreateNamespace(ctx context.Context, cluster Cluster, namespace string) error {
 	nsName := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
-	_, err := cluster.Client().CoreV1().Namespaces().Create(context.Background(), nsName, metav1.CreateOptions{})
+	_, err := cluster.Client().CoreV1().Namespaces().Create(ctx, nsName, metav1.CreateOptions{})
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
 			return err
@@ -209,53 +209,33 @@ func CleanupGeneratedResources(ctx context.Context, cluster Cluster, creatorID s
 }
 
 // KustomizeDeployForCluster applies a given kustomizeURL to the provided cluster
-func KustomizeDeployForCluster(ctx context.Context, cluster Cluster, kustomizeURL string) error {
-	// generate the kustomize YAML
-	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	cmd := exec.CommandContext(ctx, "kubectl", "-v9", "kustomize", kustomizeURL)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to deploy kong CRDs STDOUT=(%s) STDERR=(%s): %w", stdout.String(), stderr.String(), err)
-	}
-
-	// apply the kustomize YAML to the cluster
-	return ApplyManifestByYAML(ctx, cluster, stdout.String())
+func KustomizeDeployForCluster(ctx context.Context, cluster Cluster, kustomizeURL string, flags ...string) error {
+	return kubectlWithArgs(ctx, cluster, append([]string{"-v9", "apply", "-k", kustomizeURL}, flags...)...)
 }
 
 // KustomizeDeleteForCluster deletes the provided kustomize manafests from the cluster
-func KustomizeDeleteForCluster(ctx context.Context, cluster Cluster, kustomizeURL string) error {
-	// generate the kustomize YAML
-	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	cmd := exec.CommandContext(ctx, "kubectl", "-v9", "kustomize", kustomizeURL)
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to deploy kong CRDs STDOUT=(%s) STDERR=(%s): %w", stdout.String(), stderr.String(), err)
-	}
-
-	// apply the kustomize YAML to the cluster
-	return DeleteManifestByYAML(ctx, cluster, stdout.String())
+func KustomizeDeleteForCluster(ctx context.Context, cluster Cluster, kustomizeURL string, flags ...string) error {
+	return kubectlWithArgs(ctx, cluster, append([]string{"-v9", "delete", "-k", kustomizeURL}, flags...)...)
 }
 
 // ApplyManifestByURL applies a given manifest URL to the cluster provided
 func ApplyManifestByURL(ctx context.Context, cluster Cluster, url string) error {
-	return kubectlSubcommandWithYAML(ctx, cluster, "apply", url, true)
+	return kubectlWithArgs(ctx, cluster, "apply", "-f", url)
 }
 
 // DeleteManifestByURL deletes a given manifest URL on the cluster provided
 func DeleteManifestByURL(ctx context.Context, cluster Cluster, url string) error {
-	return kubectlSubcommandWithYAML(ctx, cluster, "delete", url, true)
+	return kubectlWithArgs(ctx, cluster, "delete", "-f", url)
 }
 
 // ApplyManifestByYAML applies a given YAML manifest to the cluster provided
 func ApplyManifestByYAML(ctx context.Context, cluster Cluster, yaml string) error {
-	return kubectlSubcommandWithYAML(ctx, cluster, "apply", yaml, false)
+	return kubectlSubcommandWithYAML(ctx, cluster, "apply", yaml)
 }
 
 // DeleteManifestByYAML deletes a given YAML manifest on the cluster provided
 func DeleteManifestByYAML(ctx context.Context, cluster Cluster, yaml string) error {
-	return kubectlSubcommandWithYAML(ctx, cluster, "delete", yaml, false)
+	return kubectlSubcommandWithYAML(ctx, cluster, "delete", yaml)
 }
 
 // WaitForCondition waits for a condition to be true for an object on the
@@ -292,7 +272,7 @@ func WaitForCondition(ctx context.Context, cluster Cluster, namespace, objectTyp
 // Private Functions
 // -----------------------------------------------------------------------------
 
-func kubectlSubcommandWithYAML(ctx context.Context, cluster Cluster, subcommand, yaml string, isURL bool) error {
+func kubectlWithArgs(ctx context.Context, cluster Cluster, args ...string) error {
 	// generate a kubeconfig tempfile since we'll be using kubectl
 	kubeconfig, err := TempKubeconfig(cluster)
 	if err != nil {
@@ -300,15 +280,27 @@ func kubectlSubcommandWithYAML(ctx context.Context, cluster Cluster, subcommand,
 	}
 	defer os.Remove(kubeconfig.Name())
 
-	// if the provided YAML comes from a URL, we can short circuit as kubectl
-	// will allow a URL to be provided directly.
-	if isURL {
-		stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-		cmd := exec.CommandContext(ctx, "kubectl", "--kubeconfig", kubeconfig.Name(), subcommand, "-f", yaml) //nolint:gosec
-		cmd.Stdout = stdout
-		cmd.Stderr = stderr
-		return cmd.Run()
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	args = append([]string{"--kubeconfig", kubeconfig.Name()},
+		args...,
+	)
+	cmd := exec.CommandContext(ctx, "kubectl", args...)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("command %q failed STDERR=(%s) STDERR=(%s): %w", cmd.String(), stdout.String(), stderr.String(), err)
 	}
+
+	return nil
+}
+
+func kubectlSubcommandWithYAML(ctx context.Context, cluster Cluster, subcommand, yaml string) error {
+	// generate a kubeconfig tempfile since we'll be using kubectl
+	kubeconfig, err := TempKubeconfig(cluster)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(kubeconfig.Name())
 
 	// configure the command to read YAML from STDIN
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
