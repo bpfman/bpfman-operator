@@ -18,28 +18,30 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"os"
-
-	"go.uber.org/zap/zapcore"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
-	"google.golang.org/grpc/credentials/insecure"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagent "github.com/bpfman/bpfman-operator/controllers/bpfman-agent"
 
 	"github.com/bpfman/bpfman-operator/internal/conn"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
+
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -59,8 +61,11 @@ func main() {
 	var metricsAddr string
 	var probeAddr string
 	var opts zap.Options
+	var enableHTTP2 bool
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8174", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.Parse()
 
 	// Get the Log level for bpfman deployment where this pod is running
@@ -85,16 +90,32 @@ func main() {
 		}
 	}
 
+	disableHTTP2 := func(c *tls.Config) {
+		if enableHTTP2 {
+			return
+		}
+		c.NextProtos = []string{"http/1.1"}
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Scheme: scheme,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+			TLSOpts:     []func(*tls.Config){disableHTTP2},
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port:    9443,
+			TLSOpts: []func(*tls.Config){disableHTTP2},
+		}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         false,
 		// Specify that Secrets's should not be cached.
-		ClientDisableCacheFor: []client.Object{&v1.Secret{}},
+		Client: client.Options{Cache: &client.CacheOptions{
+			DisableFor: []client.Object{&v1.Secret{}},
+		},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

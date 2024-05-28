@@ -155,10 +155,9 @@ func isProgLoaded(conditions *[]metav1.Condition) (bool, string) {
 	return true, condition.Type
 }
 
-func isKprobebpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
-	ctx := context.Background()
+func isKprobebpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionWithContextFunc {
 
-	return func() (bool, error) {
+	return func(ctx context.Context) (bool, error) {
 		log.Info(".") // progress bar!
 		bpfProgConfig, err := c.BpfmanV1alpha1().KprobePrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
@@ -176,10 +175,9 @@ func isKprobebpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string)
 	}
 }
 
-func isFentrybpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
-	ctx := context.Background()
+func isFentrybpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionWithContextFunc {
 
-	return func() (bool, error) {
+	return func(ctx context.Context) (bool, error) {
 		log.Info(".") // progress bar!
 		bpfProgConfig, err := c.BpfmanV1alpha1().FentryPrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
@@ -197,10 +195,9 @@ func isFentrybpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string)
 	}
 }
 
-func isTcbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
-	ctx := context.Background()
+func isTcbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionWithContextFunc {
 
-	return func() (bool, error) {
+	return func(ctx context.Context) (bool, error) {
 		log.Info(".") // progress bar!
 		bpfProgConfig, err := c.BpfmanV1alpha1().TcPrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
@@ -218,10 +215,9 @@ func isTcbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wai
 	}
 }
 
-func isTracepointbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
-	ctx := context.Background()
+func isTracepointbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionWithContextFunc {
 
-	return func() (bool, error) {
+	return func(ctx context.Context) (bool, error) {
 		log.Info(".") // progress bar!
 		bpfProgConfig, err := c.BpfmanV1alpha1().TracepointPrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
@@ -239,10 +235,9 @@ func isTracepointbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName str
 	}
 }
 
-func isXdpbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
-	ctx := context.Background()
+func isXdpbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionWithContextFunc {
 
-	return func() (bool, error) {
+	return func(ctx context.Context) (bool, error) {
 		log.Info(".") // progress bar!
 		bpfProgConfig, err := c.BpfmanV1alpha1().XdpPrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
@@ -263,17 +258,18 @@ func isXdpbpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wa
 // WaitForBpfProgConfLoad ensures the Program object is loaded and deployed successfully, specifically
 // it checks the config objects' conditions to look for the `Loaded` state.
 func WaitForBpfProgConfLoad(c *bpfmanclientset.Clientset, progName string, timeout time.Duration, progType ProgramType) error {
+	ctx := context.Background()
 	switch progType {
 	case Kprobe:
-		return wait.PollImmediate(time.Second, timeout, isKprobebpfmanProgLoaded(c, progName))
+		return wait.PollUntilContextTimeout(ctx, time.Second, timeout, true, isKprobebpfmanProgLoaded(c, progName))
 	case Tc:
-		return wait.PollImmediate(time.Second, timeout, isTcbpfmanProgLoaded(c, progName))
+		return wait.PollUntilContextTimeout(ctx, time.Second, timeout, true, isTcbpfmanProgLoaded(c, progName))
 	case Xdp:
-		return wait.PollImmediate(time.Second, timeout, isXdpbpfmanProgLoaded(c, progName))
+		return wait.PollUntilContextTimeout(ctx, time.Second, timeout, true, isXdpbpfmanProgLoaded(c, progName))
 	case Tracepoint:
-		return wait.PollImmediate(time.Second, timeout, isTracepointbpfmanProgLoaded(c, progName))
+		return wait.PollUntilContextTimeout(ctx, time.Second, timeout, true, isTracepointbpfmanProgLoaded(c, progName))
 	case Tracing:
-		return wait.PollImmediate(time.Second, timeout, isFentrybpfmanProgLoaded(c, progName))
+		return wait.PollUntilContextTimeout(ctx, time.Second, timeout, true, isFentrybpfmanProgLoaded(c, progName))
 	// TODO: case Uprobe: not covered.  Since Uprobe has the same ProgramType as
 	// Kprobe, we need a different way to distinguish them.  Options include
 	// creating an internal ProgramType for Uprobe or using a different
