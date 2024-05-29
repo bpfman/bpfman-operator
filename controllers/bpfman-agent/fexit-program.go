@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=fexitprograms,verbs=get;list;watch
@@ -98,7 +97,7 @@ func (r *FexitProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// make the FexitProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
 		Watches(
-			&source.Kind{Type: &v1.Node{}},
+			&v1.Node{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).

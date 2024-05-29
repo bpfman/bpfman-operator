@@ -220,7 +220,7 @@ func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Objec
 
 	meta.SetStatusCondition(conditions, cond.Condition(message))
 
-	if err := r.Status().Update(ctx, obj); err != nil {
+	if err := r.Update(ctx, obj); err != nil {
 		r.Logger.V(1).Info("failed to set *Program object status...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}

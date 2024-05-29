@@ -22,17 +22,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
+	"github.com/bpfman/bpfman-operator/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
-	"github.com/bpfman/bpfman-operator/internal"
 
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	v1 "k8s.io/api/core/v1"
@@ -145,7 +143,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// make the TcProgram no longer select the Node. Additionally only
 		// care about events specific to our node
 		Watches(
-			&source.Kind{Type: &v1.Node{}},
+			&v1.Node{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).

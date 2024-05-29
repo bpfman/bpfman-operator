@@ -2,6 +2,7 @@ package environments
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -25,6 +26,7 @@ type Builder struct {
 	clusterBuilder    clusters.Builder
 	kubernetesVersion *semver.Version
 	calicoCNI         bool
+	ipv6Only          bool
 }
 
 // NewBuilder generates a new empty Builder for creating Environments.
@@ -77,14 +79,24 @@ func (b *Builder) WithCalicoCNI() *Builder {
 	return b
 }
 
+// WithIPv6Only configures KIND to only use IPv6.
+func (b *Builder) WithIPv6Only() *Builder {
+	b.ipv6Only = true
+	return b
+}
+
 // Build is a blocking call to construct the configured Environment and it's
 // underlying Kubernetes cluster. The amount of time that it blocks depends
 // entirely on the underlying clusters.Cluster implementation that was requested.
-func (b *Builder) Build(ctx context.Context) (Environment, error) {
+func (b *Builder) Build(ctx context.Context) (env Environment, err error) {
 	var cluster clusters.Cluster
 
 	if b.calicoCNI && b.existingCluster != nil {
 		return nil, fmt.Errorf("trying to deploy Calico CNI on an existing cluster is not currently supported")
+	}
+
+	if b.ipv6Only && b.existingCluster != nil {
+		return nil, fmt.Errorf("trying to configure IPv6 only on an existing cluster is not currently supported")
 	}
 
 	if b.existingCluster != nil && b.clusterBuilder != nil {
@@ -92,7 +104,6 @@ func (b *Builder) Build(ctx context.Context) (Environment, error) {
 	}
 
 	// determine if an existing cluster has been configured for deployment
-	var err error
 	if b.existingCluster != nil {
 		if b.kubernetesVersion != nil {
 			return nil, fmt.Errorf("can't provide kubernetes version when using an existing cluster")
@@ -114,11 +125,22 @@ func (b *Builder) Build(ctx context.Context) (Environment, error) {
 		if b.calicoCNI {
 			builder.WithCalicoCNI()
 		}
+		if b.ipv6Only {
+			builder.WithIPv6Only()
+		}
 		cluster, err = builder.Build(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
+	// Ensure that whole cluster is cleaned up if error is returned somewhere from this method.
+	defer func() {
+		if b.existingCluster == nil && err != nil {
+			if errCleanup := cluster.Cleanup(ctx); err != nil {
+				err = errors.Join(err, errCleanup)
+			}
+		}
+	}()
 
 	// determine the addon dependencies of the cluster before building
 	requiredAddons := make(map[string][]string)

@@ -24,13 +24,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	"github.com/bpfman/bpfman-operator/internal"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	"github.com/bpfman/bpfman-operator/internal"
 )
 
 type TcProgramReconciler struct {
@@ -51,7 +49,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&bpfmaniov1alpha1.TcProgram{}).
 		// Watch bpfPrograms which are owned by TcPrograms
 		Watches(
-			&source.Kind{Type: &bpfmaniov1alpha1.BpfProgram{}},
+			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.Tc.String()))),
 		).
