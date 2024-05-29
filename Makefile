@@ -302,14 +302,13 @@ build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
 	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ./
 
 .PHONY: push-images
-push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.
+push-images: ## Push bpfman-agent, bpfman-operator images.
 	docker push ${BPFMAN_OPERATOR_IMG}
 	docker push ${BPFMAN_AGENT_IMG}
-	docker push ${BPFMAN_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: ## Load bpfman, bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	kind load docker-image  ${BPFMAN_IMG} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
+load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
+	kind load docker-image ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -360,6 +359,10 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: setup-kind
 setup-kind: ## Setup Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
+
+.PHONY: destroy-kind
+destroy-kind: ## Destroy Kind cluster
+	kind delete cluster --name ${KIND_CLUSTER_NAME}
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy

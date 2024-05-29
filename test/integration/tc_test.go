@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	tcGoCounterKustomize       = "../../../examples/config/default/go-tc-counter"
+	tcGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-tc-counter/?timeout=120&ref=main"
 	tcGoCounterUserspaceNs     = "go-tc-counter"
 	tcGoCounterUserspaceDsName = "go-tc-counter-ds"
 )
@@ -36,9 +36,9 @@ func TestTcGoCounter(t *testing.T) {
 		daemon, err := env.Cluster().Client().AppsV1().DaemonSets(tcGoCounterUserspaceNs).Get(ctx, tcGoCounterUserspaceDsName, metav1.GetOptions{})
 		require.NoError(t, err)
 		return daemon.Status.DesiredNumberScheduled == daemon.Status.NumberAvailable
-	}, 
-	// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
-	5 * time.Minute, 10 * time.Second)
+	},
+		// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
+		5*time.Minute, 10*time.Second)
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tc-counter"})
 	require.NoError(t, err)

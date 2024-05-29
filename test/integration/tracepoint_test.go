@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	tracepointGoCounterKustomize       = "../../../examples/config/default/go-tracepoint-counter"
+	tracepointGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-tracepoint-counter/?timeout=120&ref=main"
 	tracepointGoCounterUserspaceNs     = "go-tracepoint-counter"
 	tracepointGoCounterUserspaceDsName = "go-tracepoint-counter-ds"
 )
@@ -38,9 +38,9 @@ func TestTracepointGoCounter(t *testing.T) {
 		require.NoError(t, err)
 		return daemon.Status.DesiredNumberScheduled == daemon.Status.NumberAvailable
 	},
-	// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
-	5 * time.Minute, 10 * time.Second)
-	
+		// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
+		5*time.Minute, 10*time.Second)
+
 	pods, err := env.Cluster().Client().CoreV1().Pods(tracepointGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tracepoint-counter"})
 	require.NoError(t, err)
 	goTracepointCounterPod := pods.Items[0]

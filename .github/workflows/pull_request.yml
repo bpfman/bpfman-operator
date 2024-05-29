@@ -37,3 +37,61 @@ jobs:
         fail_ci_if_error: true
         verbose: true   
 
+  kubernetes-integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.21']
+    env:
+      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
+      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+
+      - name: Check disk space again
+        run: df -h
+
+      - name: set up go 1.x
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: cache go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-build-codegen-
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: build images
+        run: make build-images
+
+      - name: run integration tests
+        run: make test-integration
+
+      - name: Check disk space
+        run: df -h
+
+      ## Upload diagnostics if integration test step failed.
+      - name: upload diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubernetes-integration-test-diag
+          path: /tmp/ktf-diag*
+          if-no-files-found: ignore

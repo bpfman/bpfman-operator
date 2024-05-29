@@ -478,7 +478,7 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmani
 	meta.SetStatusCondition(&bpfProgram.Status.Conditions, cond.Condition())
 
 	r.Logger.V(1).Info("Updating bpfProgram condition", "bpfProgram", bpfProgram.Name, "condition", cond.Condition().Type)
-	if err := r.Update(ctx, bpfProgram); err != nil {
+	if err := r.Status().Update(ctx, bpfProgram); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgram object status")
 	}
 
