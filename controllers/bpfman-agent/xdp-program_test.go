@@ -106,7 +106,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgramList{})
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	cl := fake.NewClientBuilder().WithStatusSubresource(xdp).WithStatusSubresource(&bpfmaniov1alpha1.BpfProgram{}).WithRuntimeObjects(objs...).Build()
 
 	cli := agenttestutils.NewBpfmanClientFake()
 

@@ -16,9 +16,11 @@ import (
 	"github.com/kong/kubernetes-testing-framework/pkg/environments"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/bpfman/bpfman-operator/internal"
-	"github.com/bpfman/bpfman-operator/pkg/client/clientset/versioned"
+	"github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 )
 
@@ -26,7 +28,7 @@ var (
 	ctx          context.Context
 	cancel       context.CancelFunc
 	env          environments.Environment
-	bpfmanClient *versioned.Clientset
+	bpfmanClient *clientset.Clientset
 
 	// These images should already be built on the node so they can
 	// be loaded into kind.
@@ -46,6 +48,8 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	logf.SetLogger(zap.New())
+
 	// check that we have the bpfman-agent, and bpfman-operator images to use for the tests.
 	// generally the runner of the tests should have built these from the latest
 	// changes prior to the tests and fed them to the test suite.

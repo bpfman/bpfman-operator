@@ -98,12 +98,11 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, Kprobe)
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.TcProgramList{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgram{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgramList{})
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	cl := fake.NewClientBuilder().WithStatusSubresource(Kprobe).WithRuntimeObjects(objs...).Build()
 
 	rc := ReconcilerCommon{
 		Client: cl,
