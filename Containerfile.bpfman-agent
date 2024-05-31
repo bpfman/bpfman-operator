@@ -1,6 +1,9 @@
 # Build the manager binary
-FROM golang:1.22 as bpfman-agent-build
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+FROM docker.io/library/golang:1.22 as bpfman-agent-build
 ARG TARGETOS
+ARG TARGETPLATFORM
 ARG TARGETARCH
 
 WORKDIR /usr/src/bpfman-operator
