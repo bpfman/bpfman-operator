@@ -5,6 +5,6 @@ metadata:
   namespace: kube-system
 data:
   bpfman.agent.image: quay.io/bpfman/bpfman-agent:int-test
-  bpfman.image: quay.io/bpfman/bpfman:int-test
+  bpfman.image: quay.io/bpfman/bpfman:latest
   bpfman.log.level: bpfman=debug
   bpfman.agent.log.level: debug

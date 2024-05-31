@@ -45,7 +45,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(bpfmaniov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(bpfmaniov1alpha1.Install(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

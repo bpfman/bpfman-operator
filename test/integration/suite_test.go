@@ -16,9 +16,11 @@ import (
 	"github.com/kong/kubernetes-testing-framework/pkg/environments"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/bpfman/bpfman-operator/internal"
-	"github.com/bpfman/bpfman-operator/pkg/client/clientset/versioned"
+	"github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 )
 
@@ -26,16 +28,12 @@ var (
 	ctx          context.Context
 	cancel       context.CancelFunc
 	env          environments.Environment
-	bpfmanClient *versioned.Clientset
+	bpfmanClient *clientset.Clientset
 
 	// These images should already be built on the node so they can
 	// be loaded into kind.
-	bpfmanImage         = os.Getenv("BPFMAN_IMG")
 	bpfmanAgentImage    = os.Getenv("BPFMAN_AGENT_IMG")
 	bpfmanOperatorImage = os.Getenv("BPFMAN_OPERATOR_IMG")
-	tcExampleUsImage    = "quay.io/bpfman-userspace/go-tc-counter:latest"
-	xdpExampleUsImage   = "quay.io/bpfman-userspace/go-xdp-counter:latest"
-	tpExampleUsImage    = "quay.io/bpfman-userspace/go-tracepoint-counter:latest"
 
 	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
 	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
@@ -50,29 +48,23 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	// check that we have the bpfman, bpfman-agent, and bpfman-operator images to use for the tests.
+	logf.SetLogger(zap.New())
+
+	// check that we have the bpfman-agent, and bpfman-operator images to use for the tests.
 	// generally the runner of the tests should have built these from the latest
 	// changes prior to the tests and fed them to the test suite.
-	if bpfmanImage == "" || bpfmanAgentImage == "" || bpfmanOperatorImage == "" {
-		exitOnErr(fmt.Errorf("BPFMAN_IMG, BPFMAN_AGENT_IMG, and BPFMAN_OPERATOR_IMG must be provided"))
+	if bpfmanAgentImage == "" || bpfmanOperatorImage == "" {
+		exitOnErr(fmt.Errorf("BPFMAN_AGENT_IMG, and BPFMAN_OPERATOR_IMG must be provided"))
 	}
 
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	// to use the provided bpfman, bpfman-agent, and bpfman-operator images we will need to add
+	// to use the provided bpfman-agent, and bpfman-operator images we will need to add
 	// them as images to load in the test cluster via an addon.
-	loadImages, err := loadimage.NewBuilder().WithImage(bpfmanImage)
-	exitOnErr(err)
-	loadImages, err = loadImages.WithImage(bpfmanAgentImage)
+	loadImages, err := loadimage.NewBuilder().WithImage(bpfmanAgentImage)
 	exitOnErr(err)
 	loadImages, err = loadImages.WithImage(bpfmanOperatorImage)
-	exitOnErr(err)
-	loadImages, err = loadImages.WithImage(tcExampleUsImage)
-	exitOnErr(err)
-	loadImages, err = loadImages.WithImage(xdpExampleUsImage)
-	exitOnErr(err)
-	loadImages, err = loadImages.WithImage(tpExampleUsImage)
 	exitOnErr(err)
 
 	if existingCluster != "" {

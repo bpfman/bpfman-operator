@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	xdpGoCounterKustomize       = "../../../examples/config/default/go-xdp-counter"
+	xdpGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-xdp-counter/?timeout=120&ref=main"
 	xdpGoCounterUserspaceNs     = "go-xdp-counter"
 	xdpGoCounterUserspaceDsName = "go-xdp-counter-ds"
 )

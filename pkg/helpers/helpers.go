@@ -22,7 +22,7 @@ import (
 	"time"
 
 	//bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanclientset "github.com/bpfman/bpfman-operator/pkg/client/clientset/versioned"
+	bpfmanclientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	//"k8s.io/apimachinery/pkg/api/errors"
 	//"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"

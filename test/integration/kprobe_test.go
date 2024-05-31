@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	kprobeGoCounterKustomize       = "../../../examples/config/default/go-kprobe-counter"
+	kprobeGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-kprobe-counter/?timeout=120&ref=main"
 	kprobeGoCounterUserspaceNs     = "go-kprobe-counter"
 	kprobeGoCounterUserspaceDsName = "go-kprobe-counter-ds"
 )
@@ -38,8 +38,8 @@ func TestKprobeGoCounter(t *testing.T) {
 		require.NoError(t, err)
 		return daemon.Status.DesiredNumberScheduled == daemon.Status.NumberAvailable
 	},
-	// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
-	5*time.Minute, 10*time.Second)
+		// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
+		5*time.Minute, 10*time.Second)
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(kprobeGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-kprobe-counter"})
 	require.NoError(t, err)

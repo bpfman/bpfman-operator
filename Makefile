@@ -55,7 +55,7 @@ KIND_CLUSTER_NAME ?= bpfman-deployment
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
-K8S_CODEGEN_VERSION = v0.25.0
+K8S_CODEGEN_VERSION = v0.30.1
 
 .DEFAULT_GOAL := help
 
@@ -197,8 +197,9 @@ generate: manifests generate-register generate-deepcopy generate-typed-clients g
 .PHONY: generate-register
 generate-register: register-gen ## Generate register code see all `zz_generated.register.go` files.
 	$(REGISTER_GEN) \
-		--input-dirs "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/apis/" \
+		"${PKG}/apis/v1alpha1" \
+		--output-file zz_generated.register.go \
+		--go-header-file ./hack/boilerplate.go.txt \
 		${COMMON_FLAGS}
 
 .PHONY: generate-deepcopy
@@ -208,28 +209,29 @@ generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepC
 .PHONY: generate-typed-clients
 generate-typed-clients: client-gen ## Generate typed client code
 	$(CLIENT_GEN) \
-		--clientset-name "versioned" \
+		--clientset-name "clientset" \
 		--input-base "" \
 		--input "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/pkg/client/clientset" \
+		--output-pkg "${PKG}/pkg/client" \
+		--output-dir "./pkg/client" \
 		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-listers
 generate-typed-listers: lister-gen ## Generate typed listers code
-	$(LISTER_GEN) \
-		--input-dirs "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/pkg/client/listers" \
+	$(LISTER_GEN) "${PKG}/apis/v1alpha1" \
+		--output-pkg "${PKG}/pkg/client" \
+		--output-dir "./pkg/client" \
 		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-informers
 generate-typed-informers: informer-gen ## Generate typed informers code
-	$(INFORMER_GEN) \
-		--input-dirs "${PKG}/apis/v1alpha1" \
-		--versioned-clientset-package "${PKG}/pkg/client/clientset/versioned" \
-		--listers-package "${PKG}/pkg/client/listers" \
-		--output-package "${PKG}/pkg/client/informers" \
+	$(INFORMER_GEN) "${PKG}/apis/v1alpha1" \
+		--versioned-clientset-package "${PKG}/pkg/client/clientset" \
+		--listers-package "${PKG}/pkg/client" \
+		--output-pkg "${PKG}/pkg/client" \
+		--output-dir "./pkg/client" \
 		${COMMON_FLAGS}
 
 .PHONY: vendors
@@ -302,14 +304,13 @@ build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
 	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ./
 
 .PHONY: push-images
-push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.
+push-images: ## Push bpfman-agent, bpfman-operator images.
 	docker push ${BPFMAN_OPERATOR_IMG}
 	docker push ${BPFMAN_AGENT_IMG}
-	docker push ${BPFMAN_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: ## Load bpfman, bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	kind load docker-image  ${BPFMAN_IMG} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
+load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
+	kind load docker-image ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -360,6 +361,10 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: setup-kind
 setup-kind: ## Setup Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
+
+.PHONY: destroy-kind
+destroy-kind: ## Destroy Kind cluster
+	kind delete cluster --name ${KIND_CLUSTER_NAME}
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy

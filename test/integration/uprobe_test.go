@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	uprobeGoCounterKustomize       = "../../../examples/config/default/go-uprobe-counter"
+	uprobeGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-uprobe-counter/?timeout=120&ref=main"
 	uprobeGoCounterUserspaceNs     = "go-uprobe-counter"
 	uprobeGoCounterUserspaceDsName = "go-uprobe-counter-ds"
-	targetKustomize                = "../../../examples/config/default/go-target"
+	targetKustomize                = "https://github.com/bpfman/bpfman/examples/config/default/go-target/?timeout=120&ref=main"
 	targetUserspaceNs              = "go-target"
 	targetUserspaceDsName          = "go-target-ds"
 )
@@ -41,8 +41,8 @@ func TestUprobeGoCounter(t *testing.T) {
 		require.NoError(t, err)
 		return daemon.Status.DesiredNumberScheduled == daemon.Status.NumberAvailable
 	},
-	// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
-	5*time.Minute, 10*time.Second)
+		// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
+		5*time.Minute, 10*time.Second)
 
 	t.Log("deploying uprobe counter program")
 	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), uprobeGoCounterKustomize))
