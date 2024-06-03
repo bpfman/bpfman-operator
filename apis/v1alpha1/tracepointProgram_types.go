@@ -45,6 +45,12 @@ type TracepointProgram struct {
 // TracepointProgramSpec defines the desired state of TracepointProgram
 // +kubebuilder:printcolumn:name="TracePoint",type=string,JSONPath=`.spec.name`
 type TracepointProgramSpec struct {
+	TracepointProgramInfo `json:",inline"`
+	BpfAppCommon          `json:",inline"`
+}
+
+// TracepointProgramInfo defines the Tracepoint program details
+type TracepointProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
 
 	// Names refers to the names of kernel tracepoints to attach the
@@ -54,13 +60,7 @@ type TracepointProgramSpec struct {
 
 // TracepointProgramStatus defines the observed state of TracepointProgram
 type TracepointProgramStatus struct {
-	// Conditions houses the global cluster state for the TracepointProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

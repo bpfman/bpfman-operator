@@ -64,21 +64,25 @@ func TestTcProgramControllerCreate(t *testing.T) {
 			Name: name,
 		},
 		Spec: bpfmaniov1alpha1.TcProgramSpec{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName: bpfFunctionName,
-				NodeSelector:    metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
+			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+				NodeSelector: metav1.LabelSelector{},
+			},
+			TcProgramInfo: bpfmaniov1alpha1.TcProgramInfo{
+				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+					BpfFunctionName: bpfFunctionName,
+					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+						Path: &bytecodePath,
+					},
 				},
-			},
-			InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-				Interfaces: &[]string{fakeInt},
-			},
-			Priority:  0,
-			Direction: direction,
-			ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-				bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-				bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+					Interfaces: &[]string{fakeInt},
+				},
+				Priority:  0,
+				Direction: direction,
+				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				},
 			},
 		},
 	}
@@ -231,21 +235,25 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 			Name: name,
 		},
 		Spec: bpfmaniov1alpha1.TcProgramSpec{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName: bpfFunctionName,
-				NodeSelector:    metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
+			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+				NodeSelector: metav1.LabelSelector{},
+			},
+			TcProgramInfo: bpfmaniov1alpha1.TcProgramInfo{
+				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+					BpfFunctionName: bpfFunctionName,
+					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+						Path: &bytecodePath,
+					},
 				},
-			},
-			InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-				Interfaces: &fakeInts,
-			},
-			Priority:  0,
-			Direction: direction,
-			ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-				bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-				bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+					Interfaces: &fakeInts,
+				},
+				Priority:  0,
+				Direction: direction,
+				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				},
 			},
 		},
 	}

@@ -27,6 +27,7 @@ import (
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -67,6 +68,14 @@ func (r *FentryProgramReconciler) getNode() *v1.Node {
 
 func (r *FentryProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
 	return &r.currentFentryProgram.Spec.BpfProgramCommon
+}
+
+func (r *FentryProgramReconciler) getNodeSelector() *metav1.LabelSelector {
+	return &r.currentFentryProgram.Spec.NodeSelector
+}
+
+func (r *FentryProgramReconciler) getBpfGlobalData() map[string][]byte {
+	return r.currentFentryProgram.Spec.GlobalData
 }
 
 func (r *FentryProgramReconciler) setCurrentProgram(program client.Object) error {

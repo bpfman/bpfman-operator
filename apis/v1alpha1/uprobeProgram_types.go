@@ -53,6 +53,12 @@ type UprobeProgram struct {
 // +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`
 // +kubebuilder:printcolumn:name="Pid",type=integer,JSONPath=`.spec.pid`
 type UprobeProgramSpec struct {
+	UprobeProgramInfo `json:",inline"`
+	BpfAppCommon      `json:",inline"`
+}
+
+// UprobeProgramInfo contains the information about the uprobe program
+type UprobeProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
 
 	// Function to attach the uprobe to.
@@ -89,13 +95,7 @@ type UprobeProgramSpec struct {
 
 // UprobeProgramStatus defines the observed state of UprobeProgram
 type UprobeProgramStatus struct {
-	// Conditions houses the global cluster state for the UprobeProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

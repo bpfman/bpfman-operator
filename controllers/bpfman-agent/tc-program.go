@@ -20,20 +20,20 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	"github.com/bpfman/bpfman-operator/internal"
+	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=tcprograms,verbs=get;list;watch
@@ -69,6 +69,14 @@ func (r *TcProgramReconciler) getNode() *v1.Node {
 
 func (r *TcProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
 	return &r.currentTcProgram.Spec.BpfProgramCommon
+}
+
+func (r *TcProgramReconciler) getNodeSelector() *metav1.LabelSelector {
+	return &r.currentTcProgram.Spec.NodeSelector
+}
+
+func (r *TcProgramReconciler) getBpfGlobalData() map[string][]byte {
+	return r.currentTcProgram.Spec.GlobalData
 }
 
 func (r *TcProgramReconciler) setCurrentProgram(program client.Object) error {

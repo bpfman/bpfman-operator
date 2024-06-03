@@ -45,21 +45,20 @@ type FexitProgram struct {
 // FexitProgramSpec defines the desired state of FexitProgram
 // +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`
 type FexitProgramSpec struct {
-	BpfProgramCommon `json:",inline"`
+	FexitProgramInfo `json:",inline"`
+	BpfAppCommon     `json:",inline"`
+}
 
+// FexitProgramInfo defines the Fexit program details
+type FexitProgramInfo struct {
+	BpfProgramCommon `json:",inline"`
 	// Function to attach the fexit to.
 	FunctionName string `json:"func_name"`
 }
 
 // FexitProgramStatus defines the observed state of FexitProgram
 type FexitProgramStatus struct {
-	// Conditions houses the global cluster state for the FexitProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

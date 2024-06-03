@@ -62,14 +62,18 @@ func TestFentryProgramControllerCreate(t *testing.T) {
 			Name: name,
 		},
 		Spec: bpfmaniov1alpha1.FentryProgramSpec{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName: bpfFunctionName,
-				NodeSelector:    metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
-				},
+			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+				NodeSelector: metav1.LabelSelector{},
 			},
-			FunctionName: functionName,
+			FentryProgramInfo: bpfmaniov1alpha1.FentryProgramInfo{
+				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+					BpfFunctionName: bpfFunctionName,
+					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+						Path: &bytecodePath,
+					},
+				},
+				FunctionName: functionName,
+			},
 		},
 	}
 

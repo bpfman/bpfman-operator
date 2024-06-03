@@ -49,8 +49,13 @@ type XdpProceedOnValue string
 
 // XdpProgramSpec defines the desired state of XdpProgram
 type XdpProgramSpec struct {
-	BpfProgramCommon `json:",inline"`
+	XdpProgramInfo `json:",inline"`
+	BpfAppCommon   `json:",inline"`
+}
 
+// XdpProgramInfo defines the common fields for all XdpProgram types
+type XdpProgramInfo struct {
+	BpfProgramCommon `json:",inline"`
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -72,13 +77,7 @@ type XdpProgramSpec struct {
 
 // XdpProgramStatus defines the observed state of XdpProgram
 type XdpProgramStatus struct {
-	// Conditions houses the global cluster state for the XdpProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
