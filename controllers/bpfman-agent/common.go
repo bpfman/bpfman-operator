@@ -255,7 +255,7 @@ func (r *ReconcilerCommon) reconcileBpfProgram(ctx context.Context,
 		}
 	}
 
-	// The BPF program was sucessfully reconciled.
+	// The BPF program was successfully reconciled.
 	return r.reconcileBpfProgramSuccessCondition(
 		isLoaded,
 		shouldBeLoaded,

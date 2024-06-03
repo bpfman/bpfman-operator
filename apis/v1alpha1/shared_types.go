@@ -143,7 +143,7 @@ const (
 	// yet been loaded on all nodes in the cluster.
 	ProgramNotYetLoaded ProgramConditionType = "NotYetLoaded"
 
-	// ProgramReconcileError indicates that an unforseen situation has
+	// ProgramReconcileError indicates that an unforeseen situation has
 	// occurred in the controller logic, and the controller will retry.
 	ProgramReconcileError ProgramConditionType = "ReconcileError"
 
@@ -257,7 +257,7 @@ const (
 	// eBPF program and that program is not loaded.
 	BpfProgCondMapOwnerNotLoaded BpfProgramConditionType = "MapOwnerNotLoaded"
 
-	// BpfProgCondByteCodeError indicates that an error occured when trying to
+	// BpfProgCondBytecodeSelectorError indicates that an error occurred when trying to
 	// process the bytecode selector.
 	BpfProgCondBytecodeSelectorError BpfProgramConditionType = "BytecodeSelectorError"
 
