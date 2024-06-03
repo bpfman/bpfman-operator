@@ -46,4 +46,4 @@ resources:
 images:
   - name: quay.io/bpfman/bpfman-operator
     newName: quay.io/bpfman/bpfman-operator
-    newTag: int-test
+    newTag: int-test-amd64

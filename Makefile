@@ -4,6 +4,7 @@
 # - use the VERSION as arg of the bundle target (e.g make bundle VERSION=0.0.2)
 # - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
 VERSION ?= 0.4.1
+MULTIARCH_TARGETS ?= amd64
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
@@ -45,12 +46,12 @@ USE_IMAGE_DIGESTS ?= false
 ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
 endif
-
+IMAGE_TAG ?= latest
 # Image URL to use all building/pushing image targets
-BPFMAN_IMG ?= quay.io/bpfman/bpfman:latest
-BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:latest
-BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:latest
-BPFMAN_OPERATOR_BUNDLE_IMG ?= quay.io/bpfman/bpfman-operator-bundle:latest
+BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
+BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
+BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
+BPFMAN_OPERATOR_BUNDLE_IMG ?= quay.io/bpfman/bpfman-operator-bundle:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -70,6 +71,23 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
+
+# Image building tool (docker / podman) - docker is preferred in CI
+OCI_BIN_PATH := $(shell which docker 2>/dev/null || which podman)
+OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
+
+# build a single arch target provided as argument
+define build_target
+	echo 'building $(1) for arch $(2)'; \
+	$(OCI_BIN) buildx build --load --build-arg TARGETPLATFORM=linux/$(2)\
+	 --build-arg TARGETARCH=$(2) --build-arg BUILDPLATFORM=linux/amd64 -t  $(1)-$(2) -f $(3) .;
+endef
+
+# push a single arch target image
+define push_target
+	echo 'pushing image $(1)-$(2)'; \
+	$(OCI_BIN) push $(1)-$(2);
+endef
 
 .PHONY: all
 all: build
@@ -126,7 +144,8 @@ OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/
 .PHONY: operator-sdk
 operator-sdk: $(OPERATOR_SDK)
 $(OPERATOR_SDK): $(LOCALBIN)
-	test -s $(LOCALBIN)/operator_sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} && mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
+	test -s $(LOCALBIN)/operator_sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
+	 mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -219,7 +238,8 @@ generate-typed-clients: client-gen ## Generate typed client code
 
 .PHONY: generate-typed-listers
 generate-typed-listers: lister-gen ## Generate typed listers code
-	$(LISTER_GEN) "${PKG}/apis/v1alpha1" \
+	$(LISTER_GEN) \
+		"${PKG}/apis/v1alpha1" \
 		--output-pkg "${PKG}/pkg/client" \
 		--output-dir "./pkg/client" \
 		${COMMON_FLAGS}
@@ -227,7 +247,8 @@ generate-typed-listers: lister-gen ## Generate typed listers code
 
 .PHONY: generate-typed-informers
 generate-typed-informers: informer-gen ## Generate typed informers code
-	$(INFORMER_GEN) "${PKG}/apis/v1alpha1" \
+	$(INFORMER_GEN) \
+		"${PKG}/apis/v1alpha1" \
 		--versioned-clientset-package "${PKG}/pkg/client/clientset" \
 		--listers-package "${PKG}/pkg/client" \
 		--output-pkg "${PKG}/pkg/client" \
@@ -279,7 +300,8 @@ test-integration: ## Run Integration tests.
 .PHONY: bundle
 bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests and metadata, then validate generated files.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} &&\
+	 $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	cp config/manifests/dependencies.yaml bundle/metadata/
 	$(OPERATOR_SDK) bundle validate ./bundle
@@ -298,15 +320,79 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+.PHONY: build-operator-images
+build-operator-images: ## Build bpfman-operator images.
+	trap 'exit' INT; \
+	$(foreach target,$(MULTIARCH_TARGETS),$(call build_target,${BPFMAN_OPERATOR_IMG},$(target),Containerfile.bpfman-operator))
+
+.PHONY: build-agent-images
+build-agent-images: ## Build bpfman-agent images.
+	trap 'exit' INT; \
+	$(foreach target,$(MULTIARCH_TARGETS),$(call build_target,${BPFMAN_AGENT_IMG},$(target),Containerfile.bpfman-agent))
+
 .PHONY: build-images
-build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
-	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ./
-	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ./
+build-images: build-operator-images build-agent-images ## Build bpfman-agent, and bpfman-operator images.
+
+.PHONY: push-operator-images
+push-operator-images: ## Push bpfman-operator images.
+	trap 'exit' INT; \
+	$(foreach target,$(MULTIARCH_TARGETS),$(call push_target,${BPFMAN_OPERATOR_IMG},$(target)))
+
+.PHONY: push-agent-images
+push-agent-images: ## Push bpfman-agent images.
+	trap 'exit' INT; \
+	$(foreach target,$(MULTIARCH_TARGETS),$(call push_target,${BPFMAN_AGENT_IMG},$(target)))
+
 
 .PHONY: push-images
-push-images: ## Push bpfman-agent, bpfman-operator images.
-	docker push ${BPFMAN_OPERATOR_IMG}
-	docker push ${BPFMAN_AGENT_IMG}
+push-images: push-operator-images push-agent-images ## Push bpfman-agent, bpfman-operator images.
+
+.PHONY: manifest-operator-build
+manifest-operator-build: ## Build MULTIARCH_TARGETS manifest for bpfman-operator.
+	echo 'building manifest for $(BPFMAN_OPERATOR_IMG)'
+	$(OCI_BIN) rmi ${BPFMAN_OPERATOR_IMG} -f
+	$(OCI_BIN) manifest create ${BPFMAN_OPERATOR_IMG} \
+		$(foreach target,$(MULTIARCH_TARGETS), --amend ${BPFMAN_OPERATOR_IMG}-$(target));
+
+.PHONY: manifest-agent-build
+manifest-agent-build: ## Build MULTIARCH_TARGETS manifest for bpfman-agent.
+	echo 'building manifest for $(BPFMAN_AGENT_IMG)'
+	$(OCI_BIN) rmi ${BPFMAN_AGENT_IMG} -f
+	$(OCI_BIN) manifest create ${BPFMAN_AGENT_IMG} \
+		$(foreach target,$(MULTIARCH_TARGETS), --amend ${BPFMAN_AGENT_IMG}-$(target));
+
+.PHONY: manifest-build
+manifest-build: manifest-operator-build manifest-agent-build ## Build MULTIARCH_TARGETS manifest for bpfman-operator and bpfman-agent.
+
+.PHONY: manifest-operator-push
+manifest-operator-push: ## Push MULTIARCH_TARGETS manifest for bpfman-operator.
+	@echo 'publish manifest for $(BPFMAN_OPERATOR_IMG)'
+ifeq (${OCI_BIN}, docker)
+	$(OCI_BIN) manifest push ${BPFMAN_OPERATOR_IMG};
+else
+	$(OCI_BIN) manifest push ${BPFMAN_OPERATOR_IMG} docker://${BPFMAN_OPERATOR_IMG};
+endif
+
+.PHONY: manifest-agent-push
+manifest-agent-push: ## Push MULTIARCH_TARGETS manifest for bpfman-agent.
+	@echo 'publish manifest for $(BPFMAN_AGENT_IMG)'
+ifeq (${OCI_BIN}, docker)
+	$(OCI_BIN) manifest push ${BPFMAN_AGENT_IMG};
+else
+	$(OCI_BIN) manifest push ${BPFMAN_AGENT_IMG} docker://${BPFMAN_AGENT_IMG};
+endif
+
+.PHONY: manifest-push
+manifest-push: manifest-operator-push manifest-agent-push ## Push MULTIARCH_TARGETS manifest for bpfman-operator and bpfman-agent.
+
+.PHONY: operator-images
+operator-images: build-operator-images push-operator-images manifest-operator-build manifest-operator-push ## Build and push bpfman-operator images and manifest
+
+.PHONY: agent-images
+agent-images: build-agent-images push-agent-images manifest-agent-build manifest-agent-push ## Build and push bpfman-agent images and manifest
+
+.PHONY: images
+images: operator-images agent-images ## Build and push bpfman-agent, and bpfman-operator images and manifest
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
@@ -370,7 +456,8 @@ destroy-kind: ## Destroy Kind cluster
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && \
+	$(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -392,7 +479,8 @@ run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind D
 .PHONY: deploy-openshift
 deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} \
+	&& $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
 	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
 
 .PHONY: undeploy-openshift
