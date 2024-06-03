@@ -25,3 +25,6 @@ go.work
 
 # make generate folder
 /github.com
+
+# Temporary Kustomize file
+config/bpfman-deployment/kustomization.yaml
