@@ -5,6 +5,16 @@ on:
     branches: ['*']
 
 jobs:
+
+  check-license:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check License Header
+        uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
+
   build-lint-test:
     name: Build, lint, test
     runs-on: ubuntu-latest
@@ -97,3 +107,15 @@ jobs:
           name: kubernetes-integration-test-diag
           path: /tmp/ktf-diag*
           if-no-files-found: ignore
+
+  build-workflow-complete:
+    needs:
+      [
+        check-license,
+        build-lint-test,
+        kubernetes-integration-tests,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Complete
+        run: echo "Build Complete"
