@@ -29,7 +29,7 @@ import (
 
 func CreateConnection(ctx context.Context, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	addr := fmt.Sprintf("unix://%s", internal.DefaultPath)
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds), grpc.WithBlock())
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("unable to establish connection to %s: %w", addr, err)
 	}
