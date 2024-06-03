@@ -30,7 +30,7 @@ const (
 var xdpPassPrivateImageCreds = os.Getenv("XDP_PASS_PRIVATE_IMAGE_CREDS")
 
 func TestXdpPassPrivate(t *testing.T) {
-	t.Log("deploying secret for privated xdp bytecode image in the bpfman namespace")
+	t.Log("deploying secret for private xdp bytecode image in the bpfman namespace")
 	// Generated from
 	/*
 		kubectl create secret -n bpfman docker-registry regcred --docker-server=quay.io --docker-username=<USERNAME> --docker-password=<CREDS>
@@ -59,6 +59,8 @@ func TestXdpPassPrivate(t *testing.T) {
 
 	yamlData, err := yaml.Marshal(xdpPassPrivateSecret)
 	require.NoError(t, err)
+
+	t.Logf("Built secret: %+v", yamlData)
 
 	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), string(yamlData)))
 	addCleanup(func(ctx context.Context) error {
