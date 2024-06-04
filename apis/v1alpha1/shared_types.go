@@ -59,21 +59,9 @@ type BpfProgramCommon struct {
 	// program
 	BpfFunctionName string `json:"bpffunctionname"`
 
-	// NodeSelector allows the user to specify which nodes to deploy the
-	// bpf program to.  This field must be specified, to select all nodes
-	// use standard metav1.LabelSelector semantics and make it empty.
-	NodeSelector metav1.LabelSelector `json:"nodeselector"`
-
 	// Bytecode configures where the bpf program's bytecode should be loaded
 	// from.
 	ByteCode BytecodeSelector `json:"bytecode"`
-
-	// GlobalData allows the user to to set global variables when the program is loaded
-	// with an array of raw bytes. This is a very low level primitive. The caller
-	// is responsible for formatting the byte string appropriately considering
-	// such things as size, endianness, alignment and packing of data structures.
-	// +optional
-	GlobalData map[string][]byte `json:"globaldata,omitempty"`
 
 	// MapOwnerSelector is used to select the loaded eBPF program this eBPF program
 	// will share a map with. The value is a label applied to the BpfProgram to select.
@@ -81,6 +69,32 @@ type BpfProgramCommon struct {
 	// or the eBPF program will not load.
 	// +optional
 	MapOwnerSelector metav1.LabelSelector `json:"mapownerselector"`
+}
+
+// BpfAppCommon defines the common attributes for all BpfApp programs
+type BpfAppCommon struct {
+	// NodeSelector allows the user to specify which nodes to deploy the
+	// bpf program to. This field must be specified, to select all nodes
+	// use standard metav1.LabelSelector semantics and make it empty.
+	NodeSelector metav1.LabelSelector `json:"nodeselector"`
+
+	// GlobalData allows the user to set global variables when the program is loaded
+	// with an array of raw bytes. This is a very low level primitive. The caller
+	// is responsible for formatting the byte string appropriately considering
+	// such things as size, endianness, alignment and packing of data structures.
+	// +optional
+	GlobalData map[string][]byte `json:"globaldata,omitempty"`
+}
+
+// BpfProgramStatusCommon defines the BpfProgram status
+type BpfProgramStatusCommon struct {
+	// Conditions houses the global cluster state for the eBPFProgram. The explicit
+	// condition types are defined internally.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image

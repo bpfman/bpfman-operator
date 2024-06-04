@@ -58,16 +58,21 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 			Name: name,
 		},
 		Spec: bpfmaniov1alpha1.KprobeProgramSpec{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName: bpfFunctionName,
-				NodeSelector:    metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
-				},
+			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+				NodeSelector: metav1.LabelSelector{},
 			},
-			FunctionName: functionName,
-			Offset:       uint64(offset),
-			RetProbe:     retprobe,
+			KprobeProgramInfo: bpfmaniov1alpha1.KprobeProgramInfo{
+
+				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+					BpfFunctionName: bpfFunctionName,
+					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+						Path: &bytecodePath,
+					},
+				},
+				FunctionName: functionName,
+				Offset:       uint64(offset),
+				RetProbe:     retprobe,
+			},
 		},
 	}
 

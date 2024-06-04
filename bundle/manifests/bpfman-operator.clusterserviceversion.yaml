@@ -215,7 +215,7 @@ metadata:
       ]
     capabilities: Basic Install
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-05-23T11:40:06Z"
+    createdAt: "2024-06-04T18:15:26Z"
     operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/bpfman/bpfman

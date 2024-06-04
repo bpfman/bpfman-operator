@@ -45,21 +45,20 @@ type FentryProgram struct {
 // FentryProgramSpec defines the desired state of FentryProgram
 // +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`
 type FentryProgramSpec struct {
-	BpfProgramCommon `json:",inline"`
+	FentryProgramInfo `json:",inline"`
+	BpfAppCommon      `json:",inline"`
+}
 
+// FentryProgramInfo defines the Fentry program details
+type FentryProgramInfo struct {
+	BpfProgramCommon `json:",inline"`
 	// Function to attach the fentry to.
 	FunctionName string `json:"func_name"`
 }
 
 // FentryProgramStatus defines the observed state of FentryProgram
 type FentryProgramStatus struct {
-	// Conditions houses the global cluster state for the FentryProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

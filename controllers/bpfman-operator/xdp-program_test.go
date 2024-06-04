@@ -53,19 +53,24 @@ func TestXdpProgramReconcile(t *testing.T) {
 			Name: name,
 		},
 		Spec: bpfmaniov1alpha1.XdpProgramSpec{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName: bpfFunctionName,
-				NodeSelector:    metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
+			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+				NodeSelector: metav1.LabelSelector{},
+			},
+			XdpProgramInfo: bpfmaniov1alpha1.XdpProgramInfo{
+
+				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+					BpfFunctionName: bpfFunctionName,
+					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+						Path: &bytecodePath,
+					},
 				},
-			},
-			InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-				Interfaces: &[]string{fakeInt},
-			},
-			Priority: 0,
-			ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
-				bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+					Interfaces: &[]string{fakeInt},
+				},
+				Priority: 0,
+				ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
+					bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+				},
 			},
 		},
 	}

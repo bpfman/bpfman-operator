@@ -50,6 +50,12 @@ type TcProceedOnValue string
 
 // TcProgramSpec defines the desired state of TcProgram
 type TcProgramSpec struct {
+	TcProgramInfo `json:",inline"`
+	BpfAppCommon  `json:",inline"`
+}
+
+// TcProgramInfo defines the tc program details
+type TcProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
 
 	// Selector to determine the network interface (or interfaces)
@@ -77,13 +83,7 @@ type TcProgramSpec struct {
 
 // TcProgramStatus defines the observed state of TcProgram
 type TcProgramStatus struct {
-	// Conditions houses the global cluster state for the TcProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

@@ -50,6 +50,12 @@ type KprobeProgram struct {
 // +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`
 // +kubebuilder:validation:XValidation:message="offset cannot be set for kretprobes",rule="self.retprobe == false || self.offset == 0"
 type KprobeProgramSpec struct {
+	KprobeProgramInfo `json:",inline"`
+	BpfAppCommon      `json:",inline"`
+}
+
+// KprobeProgramInfo defines the common fields for KprobeProgram
+type KprobeProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
 
 	// Functions to attach the kprobe to.
@@ -73,13 +79,7 @@ type KprobeProgramSpec struct {
 
 // KprobeProgramStatus defines the observed state of KprobeProgram
 type KprobeProgramStatus struct {
-	// Conditions houses the global cluster state for the KprobeProgram. The explicit
-	// condition types are defined internally.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

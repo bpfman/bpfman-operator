@@ -116,7 +116,7 @@ spec:
                   format: byte
                   type: string
                 description: |-
-                  GlobalData allows the user to to set global variables when the program is loaded
+                  GlobalData allows the user to set global variables when the program is loaded
                   with an array of raw bytes. This is a very low level primitive. The caller
                   is responsible for formatting the byte string appropriately considering
                   such things as size, endianness, alignment and packing of data structures.
@@ -191,7 +191,7 @@ spec:
               nodeselector:
                 description: |-
                   NodeSelector allows the user to specify which nodes to deploy the
-                  bpf program to.  This field must be specified, to select all nodes
+                  bpf program to. This field must be specified, to select all nodes
                   use standard metav1.LabelSelector semantics and make it empty.
                 properties:
                   matchExpressions:
@@ -273,7 +273,7 @@ spec:
             properties:
               conditions:
                 description: |-
-                  Conditions houses the global cluster state for the XdpProgram. The explicit
+                  Conditions houses the global cluster state for the eBPFProgram. The explicit
                   condition types are defined internally.
                 items:
                   description: "Condition contains details for one aspect of the current

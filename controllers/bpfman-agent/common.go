@@ -112,6 +112,10 @@ type bpfmanReconciler interface {
 	// setCurrentProgram sets the current *Program for the reconciler as well as
 	// any other related state needed.
 	setCurrentProgram(program client.Object) error
+	// getNodeSelector returns the node selector for the nodes where bpf programs will be deployed.
+	getNodeSelector() *metav1.LabelSelector
+	// getBpfGlobalData returns the Bpf program global variables.
+	getBpfGlobalData() map[string][]byte
 }
 
 // reconcileCommon is the common reconciler loop called by each bpfman
@@ -729,7 +733,7 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 
 	// Determine which node local actions should be taken based on whether the node is selected
 	// OR if the *Program is being deleted.
-	isNodeSelected, err := isNodeSelected(&rec.getBpfProgramCommon().NodeSelector, rec.getNode().Labels)
+	isNodeSelected, err := isNodeSelected(rec.getNodeSelector(), rec.getNode().Labels)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to check if node is selected: %v", err)
 	}

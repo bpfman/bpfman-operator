@@ -21,20 +21,20 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
+	internal "github.com/bpfman/bpfman-operator/internal"
+	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	internal "github.com/bpfman/bpfman-operator/internal"
-	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=tracepointprograms,verbs=get;list;watch
@@ -68,6 +68,14 @@ func (r *TracepointProgramReconciler) getNode() *v1.Node {
 
 func (r *TracepointProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
 	return &r.currentTracepointProgram.Spec.BpfProgramCommon
+}
+
+func (r *TracepointProgramReconciler) getNodeSelector() *metav1.LabelSelector {
+	return &r.currentTracepointProgram.Spec.NodeSelector
+}
+
+func (r *TracepointProgramReconciler) getBpfGlobalData() map[string][]byte {
+	return r.currentTracepointProgram.Spec.GlobalData
 }
 
 func (r *TracepointProgramReconciler) setCurrentProgram(program client.Object) error {
