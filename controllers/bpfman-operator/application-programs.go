@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The bpfman Authors.
+Copyright 2024 The bpfman Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,62 +86,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	return r.reconcileAppPrograms(ctx, appProgram)
-}
-
-func (r *BpfApplicationReconciler) reconcileAppPrograms(ctx context.Context, application *bpfmaniov1alpha1.BpfApplication) (ctrl.Result, error) {
-	var result ctrl.Result
-	var err error
-
-	for _, prog := range application.Spec.Programs {
-		switch prog.Type {
-		case bpfmaniov1alpha1.ProgTypeXDP:
-			r.Logger.Info("Reconciling Application XDP Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.XDP)
-
-		case bpfmaniov1alpha1.ProgTypeTC:
-			r.Logger.Info("Reconciling Application TC Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.TC)
-
-		case bpfmaniov1alpha1.ProgTypeFentry:
-			r.Logger.Info("Reconciling Application Fentry/Fexit Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Fentry)
-
-		case bpfmaniov1alpha1.ProgTypeFexit:
-			r.Logger.Info("Reconciling Application Fexit Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Fexit)
-
-		case bpfmaniov1alpha1.ProgTypeKprobe:
-			r.Logger.Info("Reconciling Application Kprobe Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Kprobe)
-
-		case bpfmaniov1alpha1.ProgTypeKretprobe:
-			r.Logger.Info("Reconciling Application Kretprobe Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Kretprobe)
-
-		case bpfmaniov1alpha1.ProgTypeUprobe:
-			r.Logger.Info("Reconciling Application Uprobe Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Uprobe)
-
-		case bpfmaniov1alpha1.ProgTypeUretprobe:
-			r.Logger.Info("Reconciling Application Uretprobe Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Uretprobe)
-
-		case bpfmaniov1alpha1.ProgTypeTracepoint:
-			r.Logger.Info("Reconciling Application Tracepoint Programs")
-			result, err = reconcileBpfProgram(ctx, r, prog.Tracepoint)
-
-		default:
-			err := fmt.Errorf("invalid program type: %s", prog.Type)
-			r.Logger.Error(err, "invalid program type")
-			return ctrl.Result{}, err
-		}
-		if err != nil {
-			r.Logger.Error(err, "failed reconciling Application Programs")
-			return ctrl.Result{}, err
-		}
-	}
-	return result, nil
+	return reconcileBpfProgram(ctx, r, appProgram)
 }
 
 // SetupWithManager sets up the controller with the Manager.
