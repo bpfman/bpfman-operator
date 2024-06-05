@@ -60,28 +60,16 @@ make undeploy-openshift
 The other option for installing the `bpfman-operator` is through the
 [OLM bundle](https://www.redhat.com/en/blog/deploying-operators-olm-bundles).
 
-First create the namespace:
+Use `operator-sdk` to install the bundle like so:
 
 ```bash
-oc create ns openshift-bpfman
-```
-
-Then use `operator-sdk` to install the bundle like so:
-
-```bash
-operator-sdk run bundle quay.io/bpfman/bpfman-operator-bundle:latest --namespace openshift-bpfman
+operator-sdk run bundle quay.io/bpfman/bpfman-operator-bundle:latest --namespace bpfman
 ```
 
 To clean up at a later time, execute:
 
 ```bash
 operator-sdk cleanup bpfman-operator
-```
-
-followed by
-
-```bash
-oc delete ns openshift-bpfman
 ```
 
 ## Verify the Installation
