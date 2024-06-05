@@ -291,6 +291,10 @@ test: fmt envtest ## Run Unit tests.
 .PHONY: test-integration
 test-integration: ## Run Integration tests.
 	go clean -testcache
+	cd config/bpfman-deployment && \
+	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+		  kustomization.yaml.env > kustomization.yaml
 	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
 
 ## The physical bundle is no longer tracked in git since it should be considered
@@ -300,8 +304,10 @@ test-integration: ## Run Integration tests.
 .PHONY: bundle
 bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests and metadata, then validate generated files.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} &&\
-	 $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && \
+	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	cp config/manifests/dependencies.yaml bundle/metadata/
 	$(OPERATOR_SDK) bundle validate ./bundle
@@ -456,8 +462,10 @@ destroy-kind: ## Destroy Kind cluster
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && \
-	$(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && \
+	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -479,8 +487,10 @@ run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind D
 .PHONY: deploy-openshift
 deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} \
-	&& $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
+	cd config/bpfman-deployment && \
+	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
 
 .PHONY: undeploy-openshift
