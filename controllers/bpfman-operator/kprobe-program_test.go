@@ -60,14 +60,14 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 		Spec: bpfmaniov1alpha1.KprobeProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			KprobeProgramInfo: bpfmaniov1alpha1.KprobeProgramInfo{
 
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				FunctionName: functionName,
 				Offset:       uint64(offset),

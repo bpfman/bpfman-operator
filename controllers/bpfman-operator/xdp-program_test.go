@@ -55,14 +55,14 @@ func TestXdpProgramReconcile(t *testing.T) {
 		Spec: bpfmaniov1alpha1.XdpProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			XdpProgramInfo: bpfmaniov1alpha1.XdpProgramInfo{
 
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
 					Interfaces: &[]string{fakeInt},
