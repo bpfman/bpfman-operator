@@ -80,7 +80,9 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var complete bool
 
 	for _, a := range appPrograms.Items {
+		complete = false
 		for _, p := range a.Spec.Programs {
+			complete = false
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
 				fentryProgram := bpfmaniov1alpha1.FentryProgram{
@@ -226,8 +228,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
 
 			default:
-				r.Logger.Error(fmt.Errorf("Unsupported Bpf program type"), "Unsupported Bpf program type", "ProgType", p.Type)
-				// Skip this program and continue to the next one
+				r.Logger.Info("Unsupported Bpf program type", "ProgType", p.Type)
 				continue
 			}
 

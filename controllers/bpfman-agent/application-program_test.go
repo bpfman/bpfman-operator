@@ -66,7 +66,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Type: bpfmaniov1alpha1.ProgTypeFentry,
 					Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: fentryBpfFunctionName,
+							BpfFunctionName: bpfFentryFunctionName,
 						},
 						FunctionName: fentryFunctionName,
 					},
@@ -75,7 +75,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Type: bpfmaniov1alpha1.ProgTypeKprobe,
 					Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: kprobeBpfFunctionName,
+							BpfFunctionName: bpfKprobeFunctionName,
 						},
 						FunctionName: kprobeFunctionName,
 						Offset:       uint64(kprobeOffset),
@@ -86,7 +86,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Type: bpfmaniov1alpha1.ProgTypeTracepoint,
 					Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: tracepointBpfFunctionName,
+							BpfFunctionName: bpfTracepointFunctionName,
 						},
 						Names: []string{tracepointName},
 					},
