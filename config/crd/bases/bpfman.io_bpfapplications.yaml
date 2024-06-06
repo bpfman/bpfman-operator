@@ -39,6 +39,51 @@ spec:
           spec:
             description: BpfApplicationSpec defines the desired state of BpfApplication
             properties:
+              bytecode:
+                description: |-
+                  Bytecode configures where the bpf program's bytecode should be loaded
+                  from.
+                properties:
+                  image:
+                    description: Image used to specify a bytecode container image.
+                    properties:
+                      imagepullpolicy:
+                        default: IfNotPresent
+                        description: PullPolicy describes a policy for if/when to
+                          pull a bytecode image. Defaults to IfNotPresent.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      imagepullsecret:
+                        description: |-
+                          ImagePullSecret is the name of the secret bpfman should use to get remote image
+                          repository secrets.
+                        properties:
+                          name:
+                            description: Name of the secret which contains the credentials
+                              to access the image repository.
+                            type: string
+                          namespace:
+                            description: Namespace of the secret which contains the
+                              credentials to access the image repository.
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
+                      url:
+                        description: Valid container image URL used to reference a
+                          remote bytecode image.
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  path:
+                    description: Path is used to specify a bytecode object via filepath.
+                    type: string
+                type: object
               globaldata:
                 additionalProperties:
                   format: byte
@@ -116,53 +161,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         func_name:
                           description: Function to attach the fentry to.
                           type: string
@@ -218,7 +216,6 @@ spec:
                           x-kubernetes-map-type: atomic
                       required:
                       - bpffunctionname
-                      - bytecode
                       - func_name
                       type: object
                     fexit:
@@ -230,53 +227,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         func_name:
                           description: Function to attach the fexit to.
                           type: string
@@ -332,7 +282,6 @@ spec:
                           x-kubernetes-map-type: atomic
                       required:
                       - bpffunctionname
-                      - bytecode
                       - func_name
                       type: object
                     kprobe:
@@ -344,53 +293,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         func_name:
                           description: Functions to attach the kprobe to.
                           type: string
@@ -458,7 +360,6 @@ spec:
                           type: boolean
                       required:
                       - bpffunctionname
-                      - bytecode
                       - func_name
                       type: object
                     kretprobe:
@@ -470,53 +371,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         func_name:
                           description: Functions to attach the kprobe to.
                           type: string
@@ -584,7 +438,6 @@ spec:
                           type: boolean
                       required:
                       - bpffunctionname
-                      - bytecode
                       - func_name
                       type: object
                     tc:
@@ -596,53 +449,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         direction:
                           description: |-
                             Direction specifies the direction of traffic the tc program should
@@ -753,7 +559,6 @@ spec:
                           type: array
                       required:
                       - bpffunctionname
-                      - bytecode
                       - direction
                       - interfaceselector
                       - priority
@@ -767,53 +572,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         mapownerselector:
                           description: |-
                             MapOwnerSelector is used to select the loaded eBPF program this eBPF program
@@ -873,7 +631,6 @@ spec:
                           type: array
                       required:
                       - bpffunctionname
-                      - bytecode
                       - names
                       type: object
                     type:
@@ -899,53 +656,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         containers:
                           description: |-
                             Containers identifes the set of containers in which to attach the uprobe.
@@ -1093,7 +803,6 @@ spec:
                           type: string
                       required:
                       - bpffunctionname
-                      - bytecode
                       - target
                       type: object
                     uretprobe:
@@ -1105,53 +814,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         containers:
                           description: |-
                             Containers identifes the set of containers in which to attach the uprobe.
@@ -1299,7 +961,6 @@ spec:
                           type: string
                       required:
                       - bpffunctionname
-                      - bytecode
                       - target
                       type: object
                     xdp:
@@ -1311,53 +972,6 @@ spec:
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        bytecode:
-                          description: |-
-                            Bytecode configures where the bpf program's bytecode should be loaded
-                            from.
-                          properties:
-                            image:
-                              description: Image used to specify a bytecode container
-                                image.
-                              properties:
-                                imagepullpolicy:
-                                  default: IfNotPresent
-                                  description: PullPolicy describes a policy for if/when
-                                    to pull a bytecode image. Defaults to IfNotPresent.
-                                  enum:
-                                  - Always
-                                  - Never
-                                  - IfNotPresent
-                                  type: string
-                                imagepullsecret:
-                                  description: |-
-                                    ImagePullSecret is the name of the secret bpfman should use to get remote image
-                                    repository secrets.
-                                  properties:
-                                    name:
-                                      description: Name of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                    namespace:
-                                      description: Namespace of the secret which contains
-                                        the credentials to access the image repository.
-                                      type: string
-                                  required:
-                                  - name
-                                  - namespace
-                                  type: object
-                                url:
-                                  description: Valid container image URL used to reference
-                                    a remote bytecode image.
-                                  type: string
-                              required:
-                              - url
-                              type: object
-                            path:
-                              description: Path is used to specify a bytecode object
-                                via filepath.
-                              type: string
-                          type: object
                         interfaceselector:
                           description: Selector to determine the network interface
                             (or interfaces)
@@ -1452,7 +1066,6 @@ spec:
                           type: array
                       required:
                       - bpffunctionname
-                      - bytecode
                       - interfaceselector
                       - priority
                       type: object
@@ -1460,6 +1073,7 @@ spec:
                 minItems: 1
                 type: array
             required:
+            - bytecode
             - nodeselector
             type: object
           status:

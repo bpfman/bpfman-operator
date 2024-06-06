@@ -50,8 +50,20 @@ func (r *FentryProgramReconciler) getFinalizer() string {
 	return internal.FentryProgramControllerFinalizer
 }
 
+func (r *FentryProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentFentryProgram
+	} else {
+		return r.appOwner
+	}
+}
+
 func (r *FentryProgramReconciler) getRecType() string {
-	return internal.FentryString
+	if r.appOwner == nil {
+		return internal.FentryString
+	} else {
+		return internal.ApplicationString
+	}
 }
 
 func (r *FentryProgramReconciler) getProgType() internal.ProgramType {
@@ -122,7 +134,7 @@ func (r *FentryProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 	annotations := map[string]string{internal.FentryProgramFunction: r.currentFentryProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentFentryProgram, r.getRecType(), annotations)
+	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}
@@ -168,7 +180,8 @@ func (r *FentryProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Reconcile each FentryProgram.
-	return r.reconcileCommon(ctx, r, fentryObjects)
+	_, result, err := r.reconcileCommon(ctx, r, fentryObjects)
+	return result, err
 }
 
 func (r *FentryProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -188,7 +201,7 @@ func (r *FentryProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentFentryProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentFentryProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
