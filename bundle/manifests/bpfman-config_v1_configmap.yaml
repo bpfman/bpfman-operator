@@ -12,4 +12,6 @@ data:
     millisec_delay = 10000
 kind: ConfigMap
 metadata:
+  annotations: {}
+  labels: {}
   name: bpfman-config
