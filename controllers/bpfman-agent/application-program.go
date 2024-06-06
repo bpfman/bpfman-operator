@@ -30,25 +30,16 @@ type BpfApplicationReconciler struct {
 // the bpfmanReconciler interface.  We should think about what's needed and what
 // isn't.
 
-// func (r *BpfApplicationReconciler) getFinalizer() string {
-// 	return internal.BpfApplicationControllerFinalizer
-// }
 
-// func (r *BpfApplicationReconciler) getName() string {
-// 	return r.currentApp.Name
-// }
 
 func (r *BpfApplicationReconciler) getRecType() string {
 	return internal.ApplicationString
 }
 
-// func (r *BpfApplicationReconciler) getNode() *v1.Node {
-// 	return r.ourNode
-// }
-
-// func (r *BpfApplicationReconciler) getNodeSelector() *metav1.LabelSelector {
-// 	return &r.currentApp.Spec.NodeSelector
-// }
+func (r *BpfApplicationReconciler) getNode() *v1.Node {
+	return r.ourNode
+}
+>>>>>>> 14b2026 (Additional changes for BpfApplication object)
 
 // func (r *BpfApplicationReconciler) getBpfGlobalData() map[string][]byte {
 // 	return r.currentApp.Spec.GlobalData
