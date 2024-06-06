@@ -228,6 +228,7 @@ func (p ProgramType) String() string {
 const UprobeString = "uprobe"
 const FentryString = "fentry"
 const FexitString = "fexit"
+const ApplicationString = "application"
 
 type ReconcileResult uint8
 

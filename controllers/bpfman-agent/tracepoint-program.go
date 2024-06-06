@@ -50,8 +50,20 @@ func (r *TracepointProgramReconciler) getFinalizer() string {
 	return internal.TracepointProgramControllerFinalizer
 }
 
+func (r *TracepointProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentTracepointProgram
+	} else {
+		return r.appOwner
+	}
+}
+
 func (r *TracepointProgramReconciler) getRecType() string {
-	return internal.Tracepoint.String()
+	if r.appOwner == nil {
+		return internal.Tracepoint.String()
+	} else {
+		return internal.ApplicationString
+	}
 }
 
 func (r *TracepointProgramReconciler) getProgType() internal.ProgramType {
@@ -123,7 +135,7 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 
 		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -170,7 +182,8 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, tracepointObjects)
+	_, result, err := r.reconcileCommon(ctx, r, tracepointObjects)
+	return result, err
 }
 
 func (r *TracepointProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -190,7 +203,7 @@ func (r *TracepointProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentTracepointProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentTracepointProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

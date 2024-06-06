@@ -50,8 +50,20 @@ func (r *KprobeProgramReconciler) getFinalizer() string {
 	return internal.KprobeProgramControllerFinalizer
 }
 
+func (r *KprobeProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentKprobeProgram
+	} else {
+		return r.appOwner
+	}
+}
+
 func (r *KprobeProgramReconciler) getRecType() string {
-	return internal.Kprobe.String()
+	if r.appOwner == nil {
+		return internal.Kprobe.String()
+	} else {
+		return internal.ApplicationString
+	}
 }
 
 func (r *KprobeProgramReconciler) getProgType() internal.ProgramType {
@@ -122,7 +134,7 @@ func (r *KprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentKprobeProgram, r.getRecType(), annotations)
+	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}
@@ -168,7 +180,8 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Reconcile each KprobeProgram.
-	return r.reconcileCommon(ctx, r, kprobeObjects)
+	_, result, err := r.reconcileCommon(ctx, r, kprobeObjects)
+	return result, err
 }
 
 func (r *KprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -194,7 +207,7 @@ func (r *KprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentKprobeProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentKprobeProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

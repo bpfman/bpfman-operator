@@ -51,8 +51,20 @@ func (r *UprobeProgramReconciler) getFinalizer() string {
 	return internal.UprobeProgramControllerFinalizer
 }
 
+func (r *UprobeProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentUprobeProgram
+	} else {
+		return r.appOwner
+	}
+}
+
 func (r *UprobeProgramReconciler) getRecType() string {
-	return internal.UprobeString
+	if r.appOwner == nil {
+		return internal.UprobeString
+	} else {
+		return internal.ApplicationString
+	}
 }
 
 func (r *UprobeProgramReconciler) getProgType() internal.ProgramType {
@@ -171,7 +183,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
 
-			prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+			prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 			}
@@ -188,7 +200,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
 
-				prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+				prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 				}
@@ -199,7 +211,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		prog, err := r.createBpfProgram(bpfProgramNameBase, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramNameBase, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 		}
@@ -246,7 +258,8 @@ func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, uprobeObjects)
+	_, result, err := r.reconcileCommon(ctx, r, uprobeObjects)
+	return result, err
 }
 
 func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -292,7 +305,7 @@ func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 				UprobeAttachInfo: uprobeAttachInfo,
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentUprobeProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentUprobeProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

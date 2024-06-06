@@ -64,6 +64,9 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		Spec: bpfmaniov1alpha1.BpfApplicationSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			Programs: []bpfmaniov1alpha1.BpfApplicationProgram{
 				{
@@ -71,9 +74,6 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfFentryFunctionName,
-							ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-								Path: &bytecodePath,
-							},
 						},
 						FunctionName: functionFentryName,
 					},
@@ -83,9 +83,6 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfKprobeFunctionName,
-							ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-								Path: &bytecodePath,
-							},
 						},
 						FunctionName: functionKprobeName,
 						Offset:       uint64(offset),
@@ -97,9 +94,6 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfTracepointFunctionName,
-							ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-								Path: &bytecodePath,
-							},
 						},
 						Names: []string{tracepointName},
 					},
