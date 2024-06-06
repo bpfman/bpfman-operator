@@ -69,13 +69,13 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 		Spec: bpfmaniov1alpha1.UprobeProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			UprobeProgramInfo: bpfmaniov1alpha1.UprobeProgramInfo{
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				FunctionName: functionName,
 				Target:       target,

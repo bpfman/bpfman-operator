@@ -64,13 +64,13 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		Spec: bpfmaniov1alpha1.TracepointProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			TracepointProgramInfo: bpfmaniov1alpha1.TracepointProgramInfo{
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				Names: []string{tracepointName},
 			},

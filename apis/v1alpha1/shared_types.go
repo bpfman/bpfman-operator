@@ -59,10 +59,6 @@ type BpfProgramCommon struct {
 	// program
 	BpfFunctionName string `json:"bpffunctionname"`
 
-	// Bytecode configures where the bpf program's bytecode should be loaded
-	// from.
-	ByteCode BytecodeSelector `json:"bytecode"`
-
 	// MapOwnerSelector is used to select the loaded eBPF program this eBPF program
 	// will share a map with. The value is a label applied to the BpfProgram to select.
 	// The selector must resolve to exactly one instance of a BpfProgram on a given node
@@ -84,6 +80,10 @@ type BpfAppCommon struct {
 	// such things as size, endianness, alignment and packing of data structures.
 	// +optional
 	GlobalData map[string][]byte `json:"globaldata,omitempty"`
+
+	// Bytecode configures where the bpf program's bytecode should be loaded
+	// from.
+	ByteCode BytecodeSelector `json:"bytecode"`
 }
 
 // BpfProgramStatusCommon defines the BpfProgram status

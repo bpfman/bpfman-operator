@@ -58,14 +58,14 @@ func fexitProgramReconcile(t *testing.T, multiCondition bool) {
 		Spec: bpfmaniov1alpha1.FexitProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			FexitProgramInfo: bpfmaniov1alpha1.FexitProgramInfo{
 
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				FunctionName: functionName,
 			},

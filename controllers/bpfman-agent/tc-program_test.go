@@ -66,13 +66,13 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		Spec: bpfmaniov1alpha1.TcProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			TcProgramInfo: bpfmaniov1alpha1.TcProgramInfo{
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
 					Interfaces: &[]string{fakeInt},
@@ -237,13 +237,13 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		Spec: bpfmaniov1alpha1.TcProgramSpec{
 			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
 				NodeSelector: metav1.LabelSelector{},
+				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+					Path: &bytecodePath,
+				},
 			},
 			TcProgramInfo: bpfmaniov1alpha1.TcProgramInfo{
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
-					ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-						Path: &bytecodePath,
-					},
 				},
 				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
 					Interfaces: &fakeInts,
