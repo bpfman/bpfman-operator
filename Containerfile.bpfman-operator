@@ -40,6 +40,7 @@ ARG TARGETARCH
 WORKDIR /
 COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
 COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/openshift/restricted-scc.yaml ./config/openshift/restricted-scc.yaml
 COPY --from=bpfman-operator-build /usr/src/bpfman-operator/bpfman-operator .
 USER 65532:65532
 

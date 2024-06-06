@@ -214,8 +214,9 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-06-05T19:41:58Z"
+    createdAt: "2024-06-07T18:48:53Z"
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",
@@ -825,6 +826,16 @@ spec:
           resources:
           - nodes
           verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - create
+          - delete
           - get
           - list
           - watch

@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	osv1 "github.com/openshift/api/security/v1"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -43,12 +44,15 @@ import (
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configmaps/finalizers,verbs=update
 
 type BpfmanConfigReconciler struct {
 	ReconcilerCommon
 	BpfmanStandardDeployment string
 	CsiDriverDeployment      string
+	RestrictedSCC            string
+	IsOpenshift              bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -91,10 +95,6 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req ctrl.Request, bpfmanConfig *corev1.ConfigMap) (ctrl.Result, error) {
-	bpfmanDeployment := &appsv1.DaemonSet{}
-
-	staticBpfmanDeployment := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment)
-	r.Logger.V(1).Info("StaticBpfmanDeployment with CSI", "DS", staticBpfmanDeployment)
 	bpfmanCsiDriver := &storagev1.CSIDriver{}
 	// one-shot try to create bpfman's CSIDriver object if it doesn't exist, does not re-trigger reconcile.
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanCsiDriverName}, bpfmanCsiDriver); err != nil {
@@ -106,9 +106,32 @@ func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req 
 				r.Logger.Error(err, "Failed to create Bpfman csi driver")
 				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 			}
+		} else {
+			r.Logger.Error(err, "Failed to get csi.bpfman.io csidriver")
 		}
 	}
 
+	if r.IsOpenshift {
+		bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{}
+		// one-shot try to create the bpfman-restricted SCC if it doesn't exist, does not re-trigger reconcile.
+		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanRestrictedSccName}, bpfmanRestrictedSCC); err != nil {
+			if errors.IsNotFound(err) {
+				bpfmanRestrictedSCC = LoadRestrictedSecurityContext(r.RestrictedSCC)
+
+				r.Logger.Info("Creating Bpfman restricted scc object for unprivileged users to bind to")
+				if err := r.Create(ctx, bpfmanRestrictedSCC); err != nil {
+					r.Logger.Error(err, "Failed to create Bpfman restricted scc")
+					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+				}
+			} else {
+				r.Logger.Error(err, "Failed to get bpfman-restricted scc")
+			}
+		}
+	}
+
+	bpfmanDeployment := &appsv1.DaemonSet{}
+	staticBpfmanDeployment := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment)
+	r.Logger.V(1).Info("StaticBpfmanDeployment with CSI", "DS", staticBpfmanDeployment)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanDsName}, bpfmanDeployment); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("Creating Bpfman Daemon")
@@ -209,8 +232,29 @@ func bpfmanConfigPredicate() predicate.Funcs {
 	}
 }
 
+// LoadRestrictedSecurityContext loads the bpfman-restricted SCC from disk which
+// users can bind to in order to utilize bpfman in an unprivileged way.
+func LoadRestrictedSecurityContext(path string) *osv1.SecurityContextConstraints {
+	// Load static SCC yaml from disk
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{}
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, _ := decode(b, nil, bpfmanRestrictedSCC)
+
+	return obj.(*osv1.SecurityContextConstraints)
+}
+
 func LoadCsiDriver(path string) *storagev1.CSIDriver {
-	// Load static bpfman deployment from disk
+	// Load static CSIDriver yaml from disk
 	file, err := os.Open(path)
 	if err != nil {
 		panic(err)

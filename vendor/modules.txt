@@ -124,6 +124,9 @@ github.com/munnerz/goautoneg
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
+# github.com/openshift/api v0.0.0-20240605201059-cefcda60d938
+## explicit; go 1.22.0
+github.com/openshift/api/security/v1
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
