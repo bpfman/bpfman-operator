@@ -116,6 +116,13 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+# Allows building bundles in Mac replacing BSD 'sed' command by GNU-compatible 'gsed'
+ifeq (,$(shell which gsed 2>/dev/null))
+SED ?= sed
+else
+SED ?= gsed
+endif
+
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
@@ -292,7 +299,7 @@ test: fmt envtest ## Run Unit tests.
 test-integration: ## Run Integration tests.
 	go clean -testcache
 	cd config/bpfman-deployment && \
-	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	  $(SED) -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
 	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
 		  kustomization.yaml.env > kustomization.yaml
 	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
@@ -305,8 +312,8 @@ test-integration: ## Run Integration tests.
 bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests and metadata, then validate generated files.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 	cd config/bpfman-deployment && \
-	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
-	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+	  $(SED) -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)-$(MULTIARCH_TARGETS)@' \
 		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	cp config/manifests/dependencies.yaml bundle/metadata/
@@ -402,7 +409,7 @@ images: operator-images agent-images ## Build and push bpfman-agent, and bpfman-
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	kind load docker-image ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
+	kind load docker-image ${BPFMAN_OPERATOR_IMG}-${MULTIARCH_TARGETS} ${BPFMAN_AGENT_IMG}-${MULTIARCH_TARGETS} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -461,10 +468,10 @@ destroy-kind: ## Destroy Kind cluster
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
-	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
+	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}-${MULTIARCH_TARGETS}
 	cd config/bpfman-deployment && \
-	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
-	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+	 $(SED)  -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)-$(MULTIARCH_TARGETS)@' \
 		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
@@ -486,10 +493,10 @@ run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind D
 
 .PHONY: deploy-openshift
 deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
-	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
+	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}-${MULTIARCH_TARGETS}
 	cd config/bpfman-deployment && \
-	  sed -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
-	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
+	  $(SED) -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
+	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)-$(MULTIARCH_TARGETS)@' \
 		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
 

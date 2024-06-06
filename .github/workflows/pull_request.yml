@@ -47,6 +47,19 @@ jobs:
         fail_ci_if_error: true
         verbose: true   
 
+  bundle-check:
+    runs-on: ubuntu-latest
+    name: Checking bundle up-to-date
+    steps:
+    - name: install make
+      run: sudo apt-get install make
+    - name: checkout
+      uses: actions/checkout@v3
+    - name: Verify generated bundle manifest
+      run: |
+        make bundle
+        git diff --exit-code -I'^    createdAt: ' bundle
+
   kubernetes-integration-tests:
     runs-on: ubuntu-latest
     strategy:
@@ -113,6 +126,7 @@ jobs:
       [
         check-license,
         build-lint-test,
+        bundle-check,
         kubernetes-integration-tests,
       ]
     runs-on: ubuntu-latest
