@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: quay.io/bpfman/bpfman-operator
   newName: quay.io/bpfman/bpfman-operator
-  newTag: latest-amd64
+  newTag: latest
