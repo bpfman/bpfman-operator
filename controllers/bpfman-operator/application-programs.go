@@ -19,6 +19,7 @@ package bpfmanoperator
 import (
 	"context"
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +31,10 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
 )
+
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications/finalizers,verbs=update
 
 // BpfApplicationReconciler reconciles a BpfApplication object
 type BpfApplicationReconciler struct {
@@ -43,10 +48,6 @@ func (r *BpfApplicationReconciler) getRecCommon() *ReconcilerCommon {
 func (r *BpfApplicationReconciler) getFinalizer() string {
 	return internal.BpfApplicationControllerFinalizer
 }
-
-//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications/finalizers,verbs=update
 
 func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)
