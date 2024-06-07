@@ -7,6 +7,20 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfapplications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfapplications/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - bpfprograms
   verbs:
   - create

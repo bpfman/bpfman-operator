@@ -142,7 +142,7 @@ type BpfApplication struct {
 }
 
 // +kubebuilder:object:root=true
-// BpfApplicationList contains a list of BpfApplication
+// BpfApplicationList contains a list of BpfApplications
 type BpfApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

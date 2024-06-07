@@ -18,6 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications,verbs=get;list;watch
+
 type BpfApplicationReconciler struct {
 	ReconcilerCommon
 	currentApp *bpfmaniov1alpha1.BpfApplication
