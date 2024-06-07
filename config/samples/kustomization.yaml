@@ -7,5 +7,5 @@ resources:
   - bpfman.io_v1alpha1_uprobe_uprobeprogram.yaml
   - bpfman.io_v1alpha1_fentry_fentryprogram.yaml
   - bpfman.io_v1alpha1_fexit_fexitprogram.yaml
-- _v1alpha1_bpfapplication.yaml
+  - _v1alpha1_bpfapplication.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
