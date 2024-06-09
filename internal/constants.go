@@ -29,6 +29,7 @@ const (
 	FentryProgramFunction       = "bpfman.io.fentryprogramcontroller/function"
 	FexitProgramFunction        = "bpfman.io.fexitprogramcontroller/function"
 	BpfProgramOwnerLabel        = "bpfman.io/ownedByProgram"
+	BpfParentProgram            = "bpfman.io/parentProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfman.io/discoveredProgram"
 	IdAnnotation                = "bpfman.io/ProgramId"

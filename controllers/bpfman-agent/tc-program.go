@@ -176,7 +176,7 @@ func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfm
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{internal.TcProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}

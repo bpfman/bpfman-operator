@@ -134,7 +134,7 @@ func (r *FexitProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 
 	annotations := map[string]string{internal.FexitProgramFunction: r.currentFexitProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+	prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}

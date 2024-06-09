@@ -183,7 +183,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
 
-			prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+			prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 			}
@@ -200,7 +200,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
 
-				prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+				prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 				}
@@ -211,7 +211,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		prog, err := r.createBpfProgram(bpfProgramNameBase, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramNameBase, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 		}

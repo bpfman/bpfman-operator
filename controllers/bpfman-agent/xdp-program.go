@@ -161,7 +161,7 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{internal.XdpProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.getOwner(), r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}

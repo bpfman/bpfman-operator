@@ -217,12 +217,10 @@ func (r *ReconcilerCommon) reconcileBpfProgram(ctx context.Context,
 			if err != nil {
 				return bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, err
 			}
-
-			r.Logger.V(1).WithValues("loadRequest", loadRequest).WithValues("loadedBpfProgram", loadedBpfProgram).Info("StateMatch")
-
 			isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
 			if !isSame {
 				r.Logger.V(1).Info("bpf program is in wrong state, unloading and reloading", "reason", reasons, "bpfProgram Name", bpfProgram.Name, "bpf program ID", id)
+				r.Logger.V(1).WithValues("loadRequest", loadRequest).WithValues("loadedBpfProgram", loadedBpfProgram).Info("bpf program state")
 				if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
 					r.Logger.Error(err, "Failed to unload BPF Program")
 					return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
@@ -499,13 +497,17 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmani
 }
 
 func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
-	owner string) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
+	rec bpfmanReconciler) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
 
 	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this *Program and the controller's node
 	opts := []client.ListOption{
-		client.MatchingLabels{internal.BpfProgramOwnerLabel: owner, internal.K8sHostLabel: r.NodeName},
+		client.MatchingLabels{
+			internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
+			internal.BpfParentProgram:     rec.getName(),
+			internal.K8sHostLabel:         r.NodeName,
+		},
 	}
 
 	err := r.List(ctx, bpfProgramList, opts...)
@@ -525,29 +527,30 @@ func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
 // into a central location.
 func (r *ReconcilerCommon) createBpfProgram(
 	bpfProgramName string,
-	finalizer string,
-	owner metav1.Object,
-	ownerType string,
+	rec bpfmanReconciler,
 	annotations map[string]string) (*bpfmaniov1alpha1.BpfProgram, error) {
 
-	r.Logger.V(1).Info("createBpfProgram()", "Name", bpfProgramName, "Owner", owner.GetName(), "OwnerType", ownerType)
+	r.Logger.V(1).Info("createBpfProgram()", "Name", bpfProgramName,
+		"Owner", rec.getOwner().GetName(), "OwnerType", rec.getRecType())
 
 	bpfProg := &bpfmaniov1alpha1.BpfProgram{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       bpfProgramName,
-			Finalizers: []string{finalizer},
-			Labels: map[string]string{internal.BpfProgramOwnerLabel: owner.GetName(),
-				internal.K8sHostLabel: r.NodeName},
+			Finalizers: []string{rec.getFinalizer()},
+			Labels: map[string]string{
+				internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
+				internal.BpfParentProgram:     rec.getName(),
+				internal.K8sHostLabel:         r.NodeName},
 			Annotations: annotations,
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
-			Type: ownerType,
+			Type: rec.getRecType(),
 		},
 		Status: bpfmaniov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 	}
 
 	// Make the corresponding BpfProgramConfig the owner
-	if err := ctrl.SetControllerReference(owner, bpfProg, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(rec.getOwner(), bpfProg, r.Scheme); err != nil {
 		return nil, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
 	}
 
@@ -752,7 +755,7 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 
 	// Query the K8s API to get a list of existing bpfPrograms for this *Program
 	// on this node.
-	existingBpfPrograms, err := r.getExistingBpfPrograms(ctx, rec.getOwner().GetName())
+	existingBpfPrograms, err := r.getExistingBpfPrograms(ctx, rec)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
 	}
