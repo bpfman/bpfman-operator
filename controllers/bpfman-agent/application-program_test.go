@@ -34,19 +34,20 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		fakeNode     = testutils.NewNode("fake-control-plane")
 		ctx          = context.TODO()
 		// fentry program config
-		fentryBpfFunctionName = "fentry_test"
+		bpfFentryFunctionName = "fentry_test"
 		fentryFunctionName    = "do_unlinkat"
 		fentryBpfProgName     = fmt.Sprintf("%s-%s-%s-%s", name, "fentry", fakeNode.Name, "do-unlinkat")
 		fentryBpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fentryFakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 		// kprobe program config
-		kprobeBpfFunctionName = "kprobe_test"
-		kprobeFunctionName    = "try_to_wake_up"
-		kprobeOffset          = 0
-		kprobeRetprobe        = false
-		// tracepoint program config
-		tracepointBpfFunctionName = "tracepoint_test"
-		tracepointName            = "syscalls/sys_enter_setitimer"
+		bpfKprobeFunctionName       = "kprobe_test"
+		kprobeFunctionName          = "try_to_wake_up"
+		kprobeBpfProgName           = fmt.Sprintf("%s-%s-%s-%s", name, "kprobe", fakeNode.Name, "try-to-wake-up")
+		kprobeBpfProg               = &bpfmaniov1alpha1.BpfProgram{}
+		kprobeFakeUID               = "ef71d42c-aa21-48e8-a697-82391d801a82"
+		kprobeOffset                = 0
+		kprobeRetprobe              = false
+		kprobecontainerpid    int32 = 0
 	)
 
 	// A AppProgram object with metadata and spec.
@@ -82,15 +83,6 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 						RetProbe:     kprobeRetprobe,
 					},
 				},
-				{
-					Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-					Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfTracepointFunctionName,
-						},
-						Names: []string{tracepointName},
-					},
-				},
 			},
 		},
 	}
@@ -106,6 +98,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgramList{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgram{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.FentryProgramList{})
+	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.KprobeProgramList{})
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(App).WithStatusSubresource(&bpfmaniov1alpha1.BpfProgram{}).WithRuntimeObjects(objs...).Build()
@@ -120,7 +113,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		appOwner:     App,
 	}
 
-	// Set development Logger so we can see all logs in tests.
+	// Set development Logger, so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
@@ -135,6 +128,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		},
 	}
 
+	// do fentry program
 	// First reconcile should create the bpf program object
 	res, err := r.Reconcile(ctx, req)
 	if err != nil {
@@ -173,11 +167,13 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	// Require no requeue
 	require.False(t, res.Requeue)
+
+	// 1- do Fentry Program
 	expectedLoadReq := &gobpfman.LoadRequest{
 		Bytecode: &gobpfman.BytecodeLocation{
 			Location: &gobpfman.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        fentryBpfFunctionName,
+		Name:        bpfFentryFunctionName,
 		ProgramType: *internal.Tracing.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(fentryBpfProg.UID), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
@@ -219,4 +215,94 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), fentryBpfProg.Status.Conditions[0].Type)
+
+	// do kprobe program
+	// First reconcile should create the bpf program object
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	require.NoError(t, err)
+
+	require.NotEmpty(t, kprobeBpfProg)
+	// Finalizer is written
+	require.Equal(t, internal.KprobeProgramControllerFinalizer, kprobeBpfProg.Finalizers[0])
+	// owningConfig Label was correctly set
+	require.Equal(t, name, kprobeBpfProg.Labels[internal.BpfProgramOwnerLabel])
+	// node Label was correctly set
+	require.Equal(t, fakeNode.Name, kprobeBpfProg.Labels[internal.K8sHostLabel])
+	// fentry function Annotation was correctly set
+	require.Equal(t, kprobeFunctionName, kprobeBpfProg.Annotations[internal.KprobeProgramFunction])
+	// Type is set
+	require.Equal(t, r.getRecType(), kprobeBpfProg.Spec.Type)
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	// Update UID of bpfProgram with Fake UID since the fake API server won't
+	kprobeBpfProg.UID = types.UID(kprobeFakeUID)
+	err = cl.Update(ctx, kprobeBpfProg)
+	require.NoError(t, err)
+
+	// Second reconcile should create the bpfman Load Request and update the
+	// BpfProgram object's maps field and id annotation.
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	expectedLoadReq = &gobpfman.LoadRequest{
+		Bytecode: &gobpfman.BytecodeLocation{
+			Location: &gobpfman.BytecodeLocation_File{File: bytecodePath},
+		},
+		Name:        bpfKprobeFunctionName,
+		ProgramType: *internal.Kprobe.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(kprobeBpfProg.UID), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfman.AttachInfo{
+			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
+				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
+					FnName:       kprobeFunctionName,
+					Offset:       uint64(kprobeOffset),
+					Retprobe:     kprobeRetprobe,
+					ContainerPid: &kprobecontainerpid,
+				},
+			},
+		},
+	}
+
+	// Check that the bpfProgram's programs was correctly updated
+	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	require.NoError(t, err)
+
+	// prog ID should already have been set
+	id, err = bpfmanagentinternal.GetID(kprobeBpfProg)
+	require.NoError(t, err)
+
+	// Check the bpfLoadRequest was correctly Built
+	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()) {
+		cmp.Diff(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform())
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()))
+		t.Fatal("Built bpfman LoadRequest does not match expected")
+	}
+
+	// Third reconcile should set the status to loaded
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	// Check that the bpfProgram's status was correctly updated
+	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	require.NoError(t, err)
+
+	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), kprobeBpfProg.Status.Conditions[0].Type)
+
 }

@@ -34,10 +34,6 @@ func (r *BpfApplicationReconciler) getRecType() string {
 	return internal.ApplicationString
 }
 
-func (r *BpfApplicationReconciler) getNode() *v1.Node {
-	return r.ourNode
-}
-
 func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentApp = &bpfmaniov1alpha1.BpfApplication{}

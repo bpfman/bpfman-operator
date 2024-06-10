@@ -1,0 +1,34 @@
+apiVersion: bpfman.io/v1alpha1
+kind: BpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfapplication
+  name: bpfapplication-sample
+spec:
+  # Select all nodes
+  nodeselector: {}
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/testapp:latest
+  globaldata:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
+  programs:
+    - type: Fentry
+      fentry:
+        func_name: do_unlinkat
+    - type: Kprobe
+      kprobe:
+        bpffunctionname: my_kprobe
+        func_name: try_to_wake_up
+        offset: 0
+        retprobe: false
+    - type: Tracepoint
+      tracepoint:
+        names:
+        - syscalls/sys_enter_openat
