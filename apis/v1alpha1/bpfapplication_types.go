@@ -133,6 +133,7 @@ type BpfApplicationStatus struct {
 //+kubebuilder:resource:scope=Cluster
 
 // BpfApplication is the Schema for the bpfapplications API
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
 type BpfApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
