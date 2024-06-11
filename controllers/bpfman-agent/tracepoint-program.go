@@ -47,7 +47,7 @@ type TracepointProgramReconciler struct {
 }
 
 func (r *TracepointProgramReconciler) getFinalizer() string {
-	return internal.TracepointProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *TracepointProgramReconciler) getOwner() metav1.Object {
@@ -59,11 +59,7 @@ func (r *TracepointProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *TracepointProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.Tracepoint.String()
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *TracepointProgramReconciler) getProgType() internal.ProgramType {
@@ -149,6 +145,8 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTracepointProgram = &bpfmaniov1alpha1.TracepointProgram{}
+	r.finalizer = internal.TracepointProgramControllerFinalizer
+	r.recType = internal.Tracepoint.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tracept")
 

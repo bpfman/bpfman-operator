@@ -47,7 +47,7 @@ type KprobeProgramReconciler struct {
 }
 
 func (r *KprobeProgramReconciler) getFinalizer() string {
-	return internal.KprobeProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *KprobeProgramReconciler) getOwner() metav1.Object {
@@ -59,11 +59,7 @@ func (r *KprobeProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *KprobeProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.Kprobe.String()
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *KprobeProgramReconciler) getProgType() internal.ProgramType {
@@ -147,6 +143,8 @@ func (r *KprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentKprobeProgram = &bpfmaniov1alpha1.KprobeProgram{}
+	r.finalizer = internal.KprobeProgramControllerFinalizer
+	r.recType = internal.Kprobe.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("kprobe")
 

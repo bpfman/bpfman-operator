@@ -48,7 +48,7 @@ type UprobeProgramReconciler struct {
 }
 
 func (r *UprobeProgramReconciler) getFinalizer() string {
-	return internal.UprobeProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *UprobeProgramReconciler) getOwner() metav1.Object {
@@ -60,11 +60,7 @@ func (r *UprobeProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *UprobeProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.UprobeString
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *UprobeProgramReconciler) getProgType() internal.ProgramType {
@@ -225,6 +221,8 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentUprobeProgram = &bpfmaniov1alpha1.UprobeProgram{}
+	r.finalizer = internal.UprobeProgramControllerFinalizer
+	r.recType = internal.UprobeString
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("uprobe")
 

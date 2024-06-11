@@ -40,6 +40,8 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("application")
 	r.appOwner = &bpfmaniov1alpha1.BpfApplication{}
+	r.finalizer = internal.BpfApplicationControllerFinalizer
+	r.recType = internal.ApplicationString
 
 	ctxLogger := log.FromContext(ctx)
 	ctxLogger.Info("Reconcile Application: Enter", "ReconcileKey", req)

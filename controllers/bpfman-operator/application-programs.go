@@ -52,6 +52,19 @@ func (r *BpfApplicationReconciler) getFinalizer() string {
 	return internal.BpfApplicationControllerFinalizer
 }
 
+// SetupWithManager sets up the controller with the Manager.
+func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&bpfmaniov1alpha1.BpfApplication{}).
+		// Watch bpfPrograms which are owned by BpfApplications
+		Watches(
+			&bpfmaniov1alpha1.BpfProgram{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.ApplicationString))),
+		).
+		Complete(r)
+}
+
 func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)
 
@@ -93,20 +106,9 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return reconcileBpfProgram(ctx, r, appProgram)
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&bpfmaniov1alpha1.BpfApplication{}).
-		// Watch bpfPrograms which are owned by BpfApplications
-		Watches(
-			&bpfmaniov1alpha1.BpfProgram{},
-			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.ApplicationString))),
-		).
-		Complete(r)
-}
-
 func (r *BpfApplicationReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+	// Sometimes we end up with a stale FentryProgram due to races, do this
+	// get to ensure we're up to date before attempting a status update.
 	app := &bpfmaniov1alpha1.BpfApplication{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, app); err != nil {
 		r.Logger.V(1).Info("failed to get fresh Application Programs object...requeuing")

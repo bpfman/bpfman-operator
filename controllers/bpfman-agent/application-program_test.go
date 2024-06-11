@@ -141,7 +141,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	require.NotEmpty(t, fentryBpfProg)
 	// Finalizer is written
-	require.Equal(t, internal.FentryProgramControllerFinalizer, fentryBpfProg.Finalizers[0])
+	require.Equal(t, internal.BpfApplicationControllerFinalizer, fentryBpfProg.Finalizers[0])
 	// owningConfig Label was correctly set
 	require.Equal(t, name, fentryBpfProg.Labels[internal.BpfProgramOwnerLabel])
 	// node Label was correctly set
@@ -228,7 +228,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	require.NotEmpty(t, kprobeBpfProg)
 	// Finalizer is written
-	require.Equal(t, internal.KprobeProgramControllerFinalizer, kprobeBpfProg.Finalizers[0])
+	require.Equal(t, internal.BpfApplicationControllerFinalizer, kprobeBpfProg.Finalizers[0])
 	// owningConfig Label was correctly set
 	require.Equal(t, name, kprobeBpfProg.Labels[internal.BpfProgramOwnerLabel])
 	// node Label was correctly set

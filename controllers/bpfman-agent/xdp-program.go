@@ -47,7 +47,7 @@ type XdpProgramReconciler struct {
 }
 
 func (r *XdpProgramReconciler) getFinalizer() string {
-	return internal.XdpProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *XdpProgramReconciler) getOwner() metav1.Object {
@@ -59,12 +59,9 @@ func (r *XdpProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *XdpProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.Xdp.String()
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
+
 func (r *XdpProgramReconciler) getProgType() internal.ProgramType {
 	return internal.Xdp
 }
@@ -175,6 +172,8 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentXdpProgram = &bpfmaniov1alpha1.XdpProgram{}
+	r.finalizer = internal.XdpProgramControllerFinalizer
+	r.recType = internal.Xdp.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("xdp")
 

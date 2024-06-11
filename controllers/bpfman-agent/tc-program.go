@@ -48,7 +48,7 @@ type TcProgramReconciler struct {
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
-	return internal.TcProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *TcProgramReconciler) getOwner() metav1.Object {
@@ -60,11 +60,7 @@ func (r *TcProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *TcProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.Tc.String()
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *TcProgramReconciler) getProgType() internal.ProgramType {
@@ -190,6 +186,8 @@ func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfm
 func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTcProgram = &bpfmaniov1alpha1.TcProgram{}
+	r.finalizer = internal.TcProgramControllerFinalizer
+	r.recType = internal.Tc.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tc")
 

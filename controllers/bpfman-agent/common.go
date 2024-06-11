@@ -72,6 +72,8 @@ type ReconcilerCommon struct {
 	Logger       logr.Logger
 	NodeName     string
 	progId       *uint32
+	finalizer    string
+	recType      string
 	appOwner     metav1.Object // Set if the owner is an application
 }
 
@@ -751,7 +753,7 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 		return internal.Requeue, fmt.Errorf("failed to check if node is selected: %v", err)
 	}
 
-	isBeingDeleted := !program.GetDeletionTimestamp().IsZero()
+	isBeingDeleted := !rec.getOwner().GetDeletionTimestamp().IsZero()
 
 	// Query the K8s API to get a list of existing bpfPrograms for this *Program
 	// on this node.

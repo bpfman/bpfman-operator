@@ -161,7 +161,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 }
 
 func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
-	controllerutil.AddFinalizer(prog, internal.BpfmanOperatorFinalizer)
+	controllerutil.AddFinalizer(prog, finalizer)
 
 	err := r.Update(ctx, prog)
 	if err != nil {

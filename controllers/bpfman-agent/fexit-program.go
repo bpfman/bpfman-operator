@@ -47,7 +47,7 @@ type FexitProgramReconciler struct {
 }
 
 func (r *FexitProgramReconciler) getFinalizer() string {
-	return internal.FexitProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *FexitProgramReconciler) getOwner() metav1.Object {
@@ -59,11 +59,7 @@ func (r *FexitProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *FexitProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.FexitString
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *FexitProgramReconciler) getProgType() internal.ProgramType {
@@ -147,6 +143,8 @@ func (r *FexitProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 func (r *FexitProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentFexitProgram = &bpfmaniov1alpha1.FexitProgram{}
+	r.finalizer = internal.FexitProgramControllerFinalizer
+	r.recType = internal.FexitString
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("fexit")
 

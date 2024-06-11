@@ -47,7 +47,7 @@ type FentryProgramReconciler struct {
 }
 
 func (r *FentryProgramReconciler) getFinalizer() string {
-	return internal.FentryProgramControllerFinalizer
+	return r.finalizer
 }
 
 func (r *FentryProgramReconciler) getOwner() metav1.Object {
@@ -59,11 +59,7 @@ func (r *FentryProgramReconciler) getOwner() metav1.Object {
 }
 
 func (r *FentryProgramReconciler) getRecType() string {
-	if r.appOwner == nil {
-		return internal.FentryString
-	} else {
-		return internal.ApplicationString
-	}
+	return r.recType
 }
 
 func (r *FentryProgramReconciler) getProgType() internal.ProgramType {
@@ -147,6 +143,8 @@ func (r *FentryProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 func (r *FentryProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentFentryProgram = &bpfmaniov1alpha1.FentryProgram{}
+	r.finalizer = internal.FentryProgramControllerFinalizer
+	r.recType = internal.FentryString
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("fentry")
 
