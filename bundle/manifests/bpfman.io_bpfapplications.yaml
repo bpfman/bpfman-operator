@@ -14,7 +14,11 @@ spec:
     singular: bpfapplication
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[0].reason
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: BpfApplication is the Schema for the bpfapplications API
