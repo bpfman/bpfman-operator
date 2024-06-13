@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -54,9 +53,7 @@ func TestTcGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-		if strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
-			return true
-		}
-		return false
+
+		return doTcCheck(t, output)
 	}, 30*time.Second, time.Second)
 }

@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"regexp"
-	"strconv"
 	"testing"
 	"time"
 
@@ -64,7 +62,6 @@ func TestUprobeGoCounter(t *testing.T) {
 	require.NoError(t, err)
 	goUprobeCounterPod := pods.Items[0]
 
-	want := regexp.MustCompile(`Uprobe count: ([0-9]+)`)
 	req := env.Cluster().Client().CoreV1().Pods(uprobeGoCounterUserspaceNs).GetLogs(goUprobeCounterPod.Name, &corev1.PodLogOptions{})
 	require.Eventually(t, func() bool {
 		logs, err := req.Stream(ctx)
@@ -74,16 +71,6 @@ func TestUprobeGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-
-		matches := want.FindAllStringSubmatch(output.String(), -1)
-		if len(matches) >= 1 && len(matches[0]) >= 2 {
-			count, err := strconv.Atoi(matches[0][1])
-			require.NoError(t, err)
-			if count > 0 {
-				t.Logf("counted %d uprobe executions so far, BPF program is functioning", count)
-				return true
-			}
-		}
-		return false
+		return doUprobeCheck(t, output)
 	}, 30*time.Second, time.Second)
 }

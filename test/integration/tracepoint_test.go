@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"regexp"
-	"strconv"
 	"testing"
 	"time"
 
@@ -45,7 +43,6 @@ func TestTracepointGoCounter(t *testing.T) {
 	require.NoError(t, err)
 	goTracepointCounterPod := pods.Items[0]
 
-	want := regexp.MustCompile(`SIGUSR1 signal count: ([0-9]+)`)
 	req := env.Cluster().Client().CoreV1().Pods(tracepointGoCounterUserspaceNs).GetLogs(goTracepointCounterPod.Name, &corev1.PodLogOptions{})
 	require.Eventually(t, func() bool {
 		logs, err := req.Stream(ctx)
@@ -55,16 +52,6 @@ func TestTracepointGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-
-		matches := want.FindAllStringSubmatch(output.String(), -1)
-		if len(matches) >= 1 && len(matches[0]) >= 2 {
-			count, err := strconv.Atoi(matches[0][1])
-			require.NoError(t, err)
-			if count > 0 {
-				t.Logf("counted %d SIGUSR1 signals so far, BPF program is functioning", count)
-				return true
-			}
-		}
-		return false
+		return doTracepointCheck(t, output)
 	}, 30*time.Second, time.Second)
 }
