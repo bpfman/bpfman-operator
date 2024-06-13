@@ -55,6 +55,8 @@ func TestMain(m *testing.M) {
 	// changes prior to the tests and fed them to the test suite.
 	if bpfmanAgentImage == "" || bpfmanOperatorImage == "" {
 		exitOnErr(fmt.Errorf("BPFMAN_AGENT_IMG, and BPFMAN_OPERATOR_IMG must be provided"))
+	} else {
+		fmt.Printf("INFO: using bpfmanAgentImage=%s and bpfmanOperatorImage=%s\n", bpfmanAgentImage, bpfmanOperatorImage)
 	}
 
 	ctx, cancel = context.WithCancel(context.Background())

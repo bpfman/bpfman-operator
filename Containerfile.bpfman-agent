@@ -1,10 +1,14 @@
 # Build the manager binary
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-FROM docker.io/library/golang:1.22 as bpfman-agent-build
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 as bpfman-agent-build
+
+# The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
-ARG TARGETPLATFORM
 ARG TARGETARCH
+ARG TARGETPLATFORM
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 WORKDIR /usr/src/bpfman-operator
 
@@ -31,7 +35,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod ven
 
 # Use the fedora minimal image to reduce the size of the final image but still
 # be able to easily install extra packages.
-FROM quay.io/fedora/fedora-minimal
+FROM --platform=$TARGETPLATFORM quay.io/fedora/fedora-minimal
 ARG DNF_CMD="microdnf"
 
 # The full fedora image can be used for debugging purposes.  To use it, comment
@@ -40,13 +44,15 @@ ARG DNF_CMD="microdnf"
 # ARG DNF_CMD="dnf"
 
 ARG TARGETARCH
+ARG TARGETPLATFORM
+
 WORKDIR /
 COPY --from=bpfman-agent-build /usr/src/bpfman-operator/bpfman-agent .
 
 # Install crictl
 RUN ${DNF_CMD} -y install wget tar gzip
 ARG VERSION="v1.28.0"
-RUN wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
+RUN wget --no-check-certificate https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
 RUN tar zxvf crictl-${VERSION}-linux-${TARGETARCH}.tar.gz -C /usr/local/bin
 RUN rm -f crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
 RUN ${DNF_CMD} -y clean all

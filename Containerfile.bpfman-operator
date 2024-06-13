@@ -1,10 +1,16 @@
 # Build the manager binary
-ARG TARGETPLATFORM
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 as bpfman-operator-build
+
 ARG BUILDPLATFORM
-FROM docker.io/library/golang:1.22 as bpfman-operator-build
+
+# The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
-ARG TARGETPLATFORM
 ARG TARGETARCH
+ARG TARGETPLATFORM
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 WORKDIR /usr/src/bpfman-operator
 
@@ -35,8 +41,11 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod ven
 # The full fedora image can be used for debugging purposes, but you may need to
 # change "microdnf" to "dnf" below to install extra packages.
 # FROM fedora:38
-FROM quay.io/fedora/fedora-minimal
-ARG TARGETARCH
+FROM --platform=$TARGETPLATFORM quay.io/fedora/fedora-minimal
+
+# The following ARGs are set internally by docker or podman on multiarch builds
+ARG TARGETPLATFORM
+
 WORKDIR /
 COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
 COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
