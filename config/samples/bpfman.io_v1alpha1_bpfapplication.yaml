@@ -32,14 +32,17 @@ spec:
     - type: Uprobe
       uprobe:
         bpffunctionname: uprobe_counter
-        func_name: main.getCount
-        target: /go-target
+        func_name: malloc
+        target: libc
         retprobe: false
         containers:
-          namespace: go-target
-          pods: {}
+          namespace: bpfman
+          pods:
+            matchLabels:
+            name: bpfman-daemon
           containernames:
-            - go-target
+            - bpfman
+            - bpfman-agent
     - type: XDP
       xdp:
         bpffunctionname: xdp_stats

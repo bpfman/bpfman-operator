@@ -97,8 +97,6 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplication{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgramList{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgram{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.FentryProgramList{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.KprobeProgramList{})
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(App).WithStatusSubresource(&bpfmaniov1alpha1.BpfProgram{}).WithRuntimeObjects(objs...).Build()
@@ -128,7 +126,6 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		},
 	}
 
-	// do fentry program
 	// First reconcile should create the bpf program object
 	res, err := r.Reconcile(ctx, req)
 	if err != nil {
@@ -168,7 +165,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// 1- do Fentry Program
+	// do Fentry Program
 	expectedLoadReq := &gobpfman.LoadRequest{
 		Bytecode: &gobpfman.BytecodeLocation{
 			Location: &gobpfman.BytecodeLocation_File{File: bytecodePath},

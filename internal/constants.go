@@ -28,8 +28,6 @@ const (
 	UprobeNoContainersOnNode    = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
 	FentryProgramFunction       = "bpfman.io.fentryprogramcontroller/function"
 	FexitProgramFunction        = "bpfman.io.fexitprogramcontroller/function"
-	BpfProgramOwnerLabel        = "bpfman.io/ownedByProgram"
-	BpfParentProgram            = "bpfman.io/parentProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfman.io/discoveredProgram"
 	IdAnnotation                = "bpfman.io/ProgramId"
@@ -51,6 +49,16 @@ const (
 	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
 	DefaultPort                 = 50051
 	DefaultEnabled              = true
+	// BpfProgramOwnerLabel is the name of the object that owns the BpfProgram
+	// object.  In the case of a *Program, it will be the name of the *Program
+	// object.  In the case of a BpfApplication, it will be the name of the
+	// BpfApplication object.
+	BpfProgramOwnerLabel = "bpfman.io/ownedByProgram"
+	// BpfParentProgram is the name of the current program that caused the
+	// creation of the BpfProgram object.  In the case of a *Program, it will be
+	// the name of the *Program object.  In the case of a BpfApplication, it
+	// will be the name generated for the given BpfApplication program.
+	BpfParentProgram = "bpfman.io/parentProgram"
 )
 
 // -----------------------------------------------------------------------------

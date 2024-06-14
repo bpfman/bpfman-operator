@@ -128,7 +128,7 @@ type bpfmanReconciler interface {
 // reconcileCommon is the common reconciler loop called by each bpfman
 // reconciler.  It reconciles each program in the list.  The boolean return
 // value is set to true if we've made it through all the programs in the list
-// without anything being updated and a reque has not been requested. Otherwise,
+// without anything being updated and a requeue has not been requested. Otherwise,
 // it's set to false. reconcileCommon should not return error because it will
 // trigger an infinite reconcile loop. Instead, it should report the error to
 // user and retry if specified. For some errors the controller may decide not to
@@ -222,7 +222,6 @@ func (r *ReconcilerCommon) reconcileBpfProgram(ctx context.Context,
 			isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
 			if !isSame {
 				r.Logger.V(1).Info("bpf program is in wrong state, unloading and reloading", "reason", reasons, "bpfProgram Name", bpfProgram.Name, "bpf program ID", id)
-				r.Logger.V(1).WithValues("loadRequest", loadRequest).WithValues("loadedBpfProgram", loadedBpfProgram).Info("bpf program state")
 				if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
 					r.Logger.Error(err, "Failed to unload BPF Program")
 					return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
@@ -533,7 +532,7 @@ func (r *ReconcilerCommon) createBpfProgram(
 	annotations map[string]string) (*bpfmaniov1alpha1.BpfProgram, error) {
 
 	r.Logger.V(1).Info("createBpfProgram()", "Name", bpfProgramName,
-		"Owner", rec.getOwner().GetName(), "OwnerType", rec.getRecType())
+		"Owner", rec.getOwner().GetName(), "OwnerType", rec.getRecType(), "Name", rec.getName())
 
 	bpfProg := &bpfmaniov1alpha1.BpfProgram{
 		ObjectMeta: metav1.ObjectMeta{

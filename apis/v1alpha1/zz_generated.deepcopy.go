@@ -130,6 +130,11 @@ func (in *BpfApplicationProgram) DeepCopyInto(out *BpfApplicationProgram) {
 		*out = new(TcProgramInfo)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.TCX != nil {
+		in, out := &in.TCX, &out.TCX
+		*out = new(TcProgramInfo)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Fentry != nil {
 		in, out := &in.Fentry, &out.Fentry
 		*out = new(FentryProgramInfo)

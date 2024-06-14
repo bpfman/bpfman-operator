@@ -15,9 +15,15 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.nodeselector
+      name: NodeSelector
+      type: string
     - jsonPath: .status.conditions[0].reason
       name: Status
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -446,6 +452,129 @@ spec:
                       type: object
                     tc:
                       description: tc defines the desired state of the application's
+                        TcPrograms.
+                      properties:
+                        bpffunctionname:
+                          description: |-
+                            BpfFunctionName is the name of the function that is the entry point for the BPF
+                            program
+                          type: string
+                        direction:
+                          description: |-
+                            Direction specifies the direction of traffic the tc program should
+                            attach to for a given network device.
+                          enum:
+                          - ingress
+                          - egress
+                          type: string
+                        interfaceselector:
+                          description: Selector to determine the network interface
+                            (or interfaces)
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            interfaces:
+                              description: |-
+                                Interfaces refers to a list of network interfaces to attach the BPF
+                                program to.
+                              items:
+                                type: string
+                              type: array
+                            primarynodeinterface:
+                              description: Attach BPF program to the primary interface
+                                on the node. Only 'true' accepted.
+                              type: boolean
+                          type: object
+                        mapownerselector:
+                          description: |-
+                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+                            will share a map with. The value is a label applied to the BpfProgram to select.
+                            The selector must resolve to exactly one instance of a BpfProgram on a given node
+                            or the eBPF program will not load.
+                          properties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector
+                                requirements. The requirements are ANDed.
+                              items:
+                                description: |-
+                                  A label selector requirement is a selector that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector
+                                      applies to.
+                                    type: string
+                                  operator:
+                                    description: |-
+                                      operator represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: |-
+                                      values is an array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. This array is replaced during a strategic
+                                      merge patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                required:
+                                - key
+                                - operator
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                operator is "In", and the values array contains only "value". The requirements are ANDed.
+                              type: object
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        priority:
+                          description: |-
+                            Priority specifies the priority of the tc program in relation to
+                            other programs of the same type with the same attach point. It is a value
+                            from 0 to 1000 where lower values have higher precedence.
+                          format: int32
+                          maximum: 1000
+                          minimum: 0
+                          type: integer
+                        proceedon:
+                          default:
+                          - pipe
+                          - dispatcher_return
+                          description: |-
+                            ProceedOn allows the user to call other tc programs in chain on this exit code.
+                            Multiple values are supported by repeating the parameter.
+                          items:
+                            enum:
+                            - unspec
+                            - ok
+                            - reclassify
+                            - shot
+                            - pipe
+                            - stolen
+                            - queued
+                            - repeat
+                            - redirect
+                            - trap
+                            - dispatcher_return
+                            type: string
+                          maxItems: 11
+                          type: array
+                      required:
+                      - bpffunctionname
+                      - direction
+                      - interfaceselector
+                      - priority
+                      type: object
+                    tcx:
+                      description: tcx defines the desired state of the application's
                         TcPrograms.
                       properties:
                         bpffunctionname:
@@ -1074,6 +1203,47 @@ spec:
                       - priority
                       type: object
                   type: object
+                  x-kubernetes-validations:
+                  - message: xdp configuration is required when type is XDP, and forbidden
+                      otherwise
+                    rule: 'has(self.type) && self.type == ''XDP'' ?  has(self.xdp)
+                      : !has(self.xdp)'
+                  - message: tc configuration is required when type is TC, and forbidden
+                      otherwise
+                    rule: 'has(self.type) && self.type == ''TC'' ?  has(self.tc) :
+                      !has(self.tc)'
+                  - message: tcx configuration is required when type is TCX, and forbidden
+                      otherwise
+                    rule: 'has(self.type) && self.type == ''TCX'' ?  has(self.tcx)
+                      : !has(self.tcx)'
+                  - message: fentry configuration is required when type is Fentry,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Fentry'' ?  has(self.fentry)
+                      : !has(self.fentry)'
+                  - message: fexit configuration is required when type is Fexit, and
+                      forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Fexit'' ?  has(self.fexit)
+                      : !has(self.fexit)'
+                  - message: kprobe configuration is required when type is Kprobe,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Kprobe'' ?  has(self.kprobe)
+                      : !has(self.kprobe)'
+                  - message: kretprobe configuration is required when type is Kretprobe,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Kretprobe'' ?  has(self.kretprobe)
+                      : !has(self.kretprobe)'
+                  - message: uprobe configuration is required when type is Uprobe,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Uprobe'' ?  has(self.uprobe)
+                      : !has(self.uprobe)'
+                  - message: uretprobe configuration is required when type is Uretprobe,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Uretprobe'' ?  has(self.uretprobe)
+                      : !has(self.uretprobe)'
+                  - message: tracepoint configuration is required when type is Tracepoint,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''Tracepoint'' ?  has(self.tracepoint)
+                      : !has(self.tracepoint)'
                 minItems: 1
                 type: array
             required:

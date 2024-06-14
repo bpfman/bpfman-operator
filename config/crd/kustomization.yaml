@@ -36,7 +36,7 @@ patchesStrategicMerge:
 #- patches/cainjection_in_kprobeprograms.yaml
 #- patches/cainjection_in_uprobeprograms.yaml
 #- patches/cainjection_in_fentryprograms.yaml
-#- patches/cainjection_in_fentryprograms.yaml
+#- patches/cainjection_in_fexitrograms.yaml
 #- patches/cainjection_in_bpfapplications.yaml
 #+kubebuilder:scaffold:crdkustomizecainjectionpatch
 

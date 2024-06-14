@@ -26,10 +26,6 @@ type BpfApplicationReconciler struct {
 	ourNode    *v1.Node
 }
 
-// TODO: As implemented, the BpfApplicationReconciler doesn't need to implement
-// the bpfmanReconciler interface.  We should think about what's needed and what
-// isn't.
-
 func (r *BpfApplicationReconciler) getRecType() string {
 	return internal.ApplicationString
 }
@@ -93,8 +89,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// Reconcile FentryProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
-				r.showPrograms(ctx, rec)
-
 			case bpfmaniov1alpha1.ProgTypeFexit:
 				fexitProgram := bpfmaniov1alpha1.FexitProgram{
 					ObjectMeta: metav1.ObjectMeta{
@@ -114,8 +108,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				fexitObjects := []client.Object{&fexitProgram}
 				// Reconcile FexitProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fexitObjects)
-
-				r.showPrograms(ctx, rec)
 
 			case bpfmaniov1alpha1.ProgTypeKprobe,
 				bpfmaniov1alpha1.ProgTypeKretprobe:
@@ -138,8 +130,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// Reconcile KprobeProgram or KpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, kprobeObjects)
 
-				r.showPrograms(ctx, rec)
-
 			case bpfmaniov1alpha1.ProgTypeUprobe,
 				bpfmaniov1alpha1.ProgTypeUretprobe:
 				uprobeProgram := bpfmaniov1alpha1.UprobeProgram{
@@ -161,8 +151,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// Reconcile UprobeProgram or UpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
-				r.showPrograms(ctx, rec)
-
 			case bpfmaniov1alpha1.ProgTypeTracepoint:
 				tracepointProgram := bpfmaniov1alpha1.TracepointProgram{
 					ObjectMeta: metav1.ObjectMeta{
@@ -182,8 +170,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				tracepointObjects := []client.Object{&tracepointProgram}
 				// Reconcile TracepointProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tracepointObjects)
-
-				r.showPrograms(ctx, rec)
 
 			case bpfmaniov1alpha1.ProgTypeTC,
 				bpfmaniov1alpha1.ProgTypeTCX:
@@ -206,8 +192,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// Reconcile TcProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
-				r.showPrograms(ctx, rec)
-
 			case bpfmaniov1alpha1.ProgTypeXDP:
 				xdpProgram := bpfmaniov1alpha1.XdpProgram{
 					ObjectMeta: metav1.ObjectMeta{
@@ -227,10 +211,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				xdpObjects := []client.Object{&xdpProgram}
 				// Reconcile XdpProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
-
-				r.showPrograms(ctx, rec)
-
-				r.showPrograms(ctx, rec)
 
 			default:
 				r.Logger.Error(fmt.Errorf("unsupported bpf program type"), "unsupported bpf program type", "ProgType", p.Type)
@@ -258,43 +238,6 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	return res, err
-}
-
-// TODO: Remove this debug function
-func (r *BpfApplicationReconciler) getAllExistingBpfPrograms(ctx context.Context,
-	rec bpfmanReconciler) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
-
-	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
-
-	// Only list bpfPrograms for this *Program and the controller's node
-	opts := []client.ListOption{
-		client.MatchingLabels{
-			internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
-			internal.K8sHostLabel:         r.NodeName,
-		},
-	}
-
-	err := r.List(ctx, bpfProgramList, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	existingBpfPrograms := map[string]bpfmaniov1alpha1.BpfProgram{}
-	for _, bpfProg := range bpfProgramList.Items {
-		existingBpfPrograms[bpfProg.GetName()] = bpfProg
-	}
-
-	return existingBpfPrograms, nil
-}
-
-// TODO: Remove this debug function
-func (r *BpfApplicationReconciler) showPrograms(ctx context.Context, rec bpfmanReconciler) {
-	programs, err := r.getAllExistingBpfPrograms(ctx, rec)
-	if err != nil {
-		r.Logger.V(1).Info("Failed to get existing BpfPrograms", "Application", rec.getOwner().GetName(), "Error", err)
-	} else {
-		r.Logger.V(1).Info("Existing BpfPrograms", "Application", rec.getOwner().GetName(), "Programs", programs)
-	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
