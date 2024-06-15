@@ -164,6 +164,12 @@ bpfman supports:
 * `uprobeProgram`
 * `xdpProgram`
 
+## BpfApplication CRD
+
+The `BpfApplication` CRD is designed for managing eBPF programs at an application level within a Kubernetes cluster.
+This CRD allows Kubernetes users to define which eBPF programs are essential for an application's operations and specify
+how these programs should be deployed across the cluster.
+
 ## BpfProgram CRD
 
 The `BpfProgram` CRD is used internally by the `bpfman-deployment` to keep track of per-node `bpfman` state,
