@@ -214,8 +214,25 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-06-04T18:15:26Z"
+    createdAt: "2024-06-07T18:48:53Z"
+    operatorframework.io/suggested-namespace-template: |-
+      {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+          "name": "bpfman",
+          "labels": {
+            "pod-security.kubernetes.io/enforce": "privileged",
+            "pod-security.kubernetes.io/audit": "privileged",
+            "pod-security.kubernetes.io/warn": "privileged",
+          },
+          "annotations": {
+            "openshift.io/node-selector": ""
+          },
+        }
+      }
     operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/bpfman/bpfman
@@ -268,22 +285,20 @@ spec:
   description: "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
     CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n## Quick Start\n\nTo
-    get bpfman up and running quickly with self signed certificates simply do \nthe
-    following.\n\n```bash\nkubectl create namespace openshift-bpfman\n```\n After
-    creating the namespace simply install the bpfman-operator in the desired namespace
-    from operator-hub\n## Configuration\n\nThe `bpfman-config` configmap is automatically
-    created in the `bpfman` namespace and used to configure the bpfman deployment.\n\nTo
-    edit the config simply run\n\n```bash\nkubectl edit cm bpfman-config\n```\n\nThe
-    following fields are adjustable\n\n- `bpfman.agent.image`: The image used for
-    the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n- `bpfman.image`:
-    The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n- `bpfman.log.level`:
-    the log level for bpfman, currently supports `debug`, `info`, `warn`, `error`,
-    and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for
-    the bpfman-agent currently supports `info`, `debug`, and `trace` \n\nThe bpfman
-    operator deploys eBPF programs via CRDs. The following CRDs are currently available,
-    \n\n- XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n- UprobeProgram\n-
-    FentryProgram\n- FexitProgram\n\n## More information\n\nPlease checkout the [bpfman
-    community website](https://bpfman.io/) for more information."
+    get bpfman up and running quickly simply click 'install' to deploy the bpfman-operator
+    in the bpfman namespace via operator-hub.\n## Configuration\n\nThe `bpfman-config`
+    configmap is automatically created in the `bpfman` namespace and used to configure
+    the bpfman deployment.\n\nTo edit the config simply run\n\n```bash\nkubectl edit
+    cm bpfman-config\n```\n\nThe following fields are adjustable\n\n- `bpfman.agent.image`:
+    The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n-
+    `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
+    `bpfman.log.level`: the log level for bpfman, currently supports `debug`, `info`,
+    `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`:
+    the log level for the bpfman-agent currently supports `info`, `debug`, and `trace`
+    \n\nThe bpfman operator deploys eBPF programs via CRDs. The following CRDs are
+    currently available, \n\n- XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n-
+    UprobeProgram\n- FentryProgram\n- FexitProgram\n\n## More information\n\nPlease
+    checkout the [bpfman community website](https://bpfman.io/) for more information."
   displayName: Bpfman Operator
   icon:
   - base64data: |
@@ -811,6 +826,16 @@ spec:
           resources:
           - nodes
           verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - create
+          - delete
           - get
           - list
           - watch

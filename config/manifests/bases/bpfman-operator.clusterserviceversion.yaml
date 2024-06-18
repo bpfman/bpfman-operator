@@ -3,9 +3,26 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: "[]"
+    categories: OpenShift Optional
     capabilities: Basic Install
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
     repository: https://github.com/bpfman/bpfman
+    operatorframework.io/suggested-namespace-template: |-
+      {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+          "name": "bpfman",
+          "labels": {
+            "pod-security.kubernetes.io/enforce": "privileged",
+            "pod-security.kubernetes.io/audit": "privileged",
+            "pod-security.kubernetes.io/warn": "privileged",
+          },
+          "annotations": {
+            "openshift.io/node-selector": ""
+          },
+        }
+      }
   name: bpfman-operator.v0.0.0
   namespace: placeholder
 spec:
@@ -56,9 +73,8 @@ spec:
     "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
     CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n##
-    Quick Start\n\nTo get bpfman up and running quickly with self signed certificates
-    simply do \nthe following.\n\n```bash\nkubectl create namespace openshift-bpfman\n```\n After creating the namespace simply install
-    the bpfman-operator in the desired namespace from operator-hub\n##
+    Quick Start\n\nTo get bpfman up and running quickly simply click 'install'
+    to deploy the bpfman-operator in the bpfman namespace via operator-hub.\n##
     Configuration\n\nThe `bpfman-config` configmap is automatically created in the `bpfman`
     namespace and used to configure the bpfman deployment.\n\nTo edit the config simply
     run\n\n```bash\nkubectl edit cm bpfman-config\n```\n\nThe following fields are adjustable\n\n-

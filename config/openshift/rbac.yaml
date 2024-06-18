@@ -9,4 +9,18 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: bpfman-daemon
-    namespace: openshift-bpfman
+    namespace: bpfman
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: user
+rules:
+  - apiGroups:
+      - security.openshift.io
+    resourceNames:
+      - bpfman-restricted
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - use

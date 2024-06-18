@@ -1,5 +1,5 @@
 # Adds namespace to all resources.
-namespace: openshift-bpfman
+namespace: bpfman
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
@@ -33,4 +33,3 @@ resources:
   - ../bpfman-operator-deployment
   - ../bpfman-deployment
   - rbac.yaml
-  - user-scc.yaml
