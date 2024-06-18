@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -124,8 +123,7 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	// sanitize kprobe name to work in a bpfProgram name
-	sanatizedKprobe := strings.Replace(strings.Replace(r.currentKprobeProgram.Spec.FunctionName, "/", "-", -1), "_", "-", -1)
+	sanatizedKprobe := sanitize(r.currentKprobeProgram.Spec.FunctionName)
 	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentKprobeProgram.Name, r.NodeName, sanatizedKprobe)
 
 	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.FunctionName}

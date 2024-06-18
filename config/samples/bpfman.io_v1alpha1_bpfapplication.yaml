@@ -21,7 +21,7 @@ spec:
       tracepoint:
         bpffunctionname: tracepoint_kill_recorder
         names:
-        - syscalls/sys_enter_kill
+          - syscalls/sys_enter_kill
     - type: TC
       tc:
         bpffunctionname: stats
@@ -39,7 +39,7 @@ spec:
           namespace: bpfman
           pods:
             matchLabels:
-            name: bpfman-daemon
+              name: bpfman-daemon
           containernames:
             - bpfman
             - bpfman-agent

@@ -3,6 +3,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -66,13 +67,19 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var err error
 	var complete bool
 
+	namePrefix := func(
+		app bpfmaniov1alpha1.BpfApplication,
+		prog bpfmaniov1alpha1.BpfApplicationProgram) string {
+		return app.Name + "-" + strings.ToLower(string(prog.Type)) + "-"
+	}
+
 	for i, a := range appPrograms.Items {
 		for j, p := range a.Spec.Programs {
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
 				fentryProgram := bpfmaniov1alpha1.FentryProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-fentry",
+						Name: namePrefix(a, p) + sanitize(p.Fentry.FunctionName),
 					},
 					Spec: bpfmaniov1alpha1.FentryProgramSpec{
 						FentryProgramInfo: *p.Fentry,
@@ -92,7 +99,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			case bpfmaniov1alpha1.ProgTypeFexit:
 				fexitProgram := bpfmaniov1alpha1.FexitProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-fexit",
+						Name: namePrefix(a, p) + sanitize(p.Fexit.FunctionName),
 					},
 					Spec: bpfmaniov1alpha1.FexitProgramSpec{
 						FexitProgramInfo: *p.Fexit,
@@ -113,7 +120,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				bpfmaniov1alpha1.ProgTypeKretprobe:
 				kprobeProgram := bpfmaniov1alpha1.KprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-kprobe",
+						Name: namePrefix(a, p) + sanitize(p.Kprobe.FunctionName),
 					},
 					Spec: bpfmaniov1alpha1.KprobeProgramSpec{
 						KprobeProgramInfo: *p.Kprobe,
@@ -134,7 +141,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				bpfmaniov1alpha1.ProgTypeUretprobe:
 				uprobeProgram := bpfmaniov1alpha1.UprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-uprobe",
+						Name: namePrefix(a, p) + sanitize(p.Uprobe.FunctionName),
 					},
 					Spec: bpfmaniov1alpha1.UprobeProgramSpec{
 						UprobeProgramInfo: *p.Uprobe,
@@ -154,7 +161,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			case bpfmaniov1alpha1.ProgTypeTracepoint:
 				tracepointProgram := bpfmaniov1alpha1.TracepointProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-tracepoint",
+						Name: namePrefix(a, p) + sanitize(p.Tracepoint.Names[0]),
 					},
 					Spec: bpfmaniov1alpha1.TracepointProgramSpec{
 						TracepointProgramInfo: *p.Tracepoint,
@@ -173,9 +180,15 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 			case bpfmaniov1alpha1.ProgTypeTC,
 				bpfmaniov1alpha1.ProgTypeTCX:
+				interfaces, ifErr := getInterfaces(&p.TC.InterfaceSelector, r.ourNode)
+				if ifErr != nil {
+					ctxLogger.Error(ifErr, "failed to get interfaces for TC Program",
+						"app program name", a.Name, "program index", j)
+					continue
+				}
 				tcProgram := bpfmaniov1alpha1.TcProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-tc",
+						Name: namePrefix(a, p) + p.TC.Direction + "-" + interfaces[0],
 					},
 					Spec: bpfmaniov1alpha1.TcProgramSpec{
 						TcProgramInfo: *p.TC,
@@ -193,9 +206,15 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
 			case bpfmaniov1alpha1.ProgTypeXDP:
+				interfaces, ifErr := getInterfaces(&p.XDP.InterfaceSelector, r.ourNode)
+				if ifErr != nil {
+					ctxLogger.Error(ifErr, "failed to get interfaces for XDP Program",
+						"app program name", a.Name, "program index", j)
+					continue
+				}
 				xdpProgram := bpfmaniov1alpha1.XdpProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: a.Name + "-xdp",
+						Name: namePrefix(a, p) + interfaces[0],
 					},
 					Spec: bpfmaniov1alpha1.XdpProgramSpec{
 						XdpProgramInfo: *p.XDP,

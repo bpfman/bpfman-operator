@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -157,8 +156,7 @@ func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*
 func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	// sanitize uprobe name to work in a bpfProgram name
-	sanatizedUprobe := strings.Replace(strings.Replace(r.currentUprobeProgram.Spec.Target, "/", "-", -1), "_", "-", -1)
+	sanatizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target)
 	bpfProgramNameBase := fmt.Sprintf("%s-%s-%s", r.currentUprobeProgram.Name, r.NodeName, sanatizedUprobe)
 
 	if r.currentUprobeProgram.Spec.Containers != nil {

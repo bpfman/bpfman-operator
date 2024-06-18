@@ -36,13 +36,13 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		// fentry program config
 		bpfFentryFunctionName = "fentry_test"
 		fentryFunctionName    = "do_unlinkat"
-		fentryBpfProgName     = fmt.Sprintf("%s-%s-%s-%s", name, "fentry", fakeNode.Name, "do-unlinkat")
+		fentryBpfProgName     = fmt.Sprintf("%s-%s-%s-%s-%s", name, "fentry", "do-unlinkat", fakeNode.Name, "do-unlinkat")
 		fentryBpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fentryFakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 		// kprobe program config
 		bpfKprobeFunctionName       = "kprobe_test"
 		kprobeFunctionName          = "try_to_wake_up"
-		kprobeBpfProgName           = fmt.Sprintf("%s-%s-%s-%s", name, "kprobe", fakeNode.Name, "try-to-wake-up")
+		kprobeBpfProgName           = fmt.Sprintf("%s-%s-%s-%s-%s", name, "kprobe", "try-to-wake-up", fakeNode.Name, "try-to-wake-up")
 		kprobeBpfProg               = &bpfmaniov1alpha1.BpfProgram{}
 		kprobeFakeUID               = "ef71d42c-aa21-48e8-a697-82391d801a82"
 		kprobeOffset                = 0

@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -125,8 +124,7 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
-		// sanitize tracepoint name to work in a bpfProgram name
-		sanatizedTrace := strings.Replace(strings.Replace(tracepoint, "/", "-", -1), "_", "-", -1)
+		sanatizedTrace := sanitize(tracepoint)
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTracepointProgram.Name, r.NodeName, sanatizedTrace)
 
 		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}

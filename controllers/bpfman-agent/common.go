@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -890,4 +891,10 @@ func getClientset() (*kubernetes.Clientset, error) {
 	}
 
 	return clientset, nil
+}
+
+// sanitize a string to work as a bpfProgram name
+func sanitize(name string) string {
+	name = strings.TrimPrefix(name, "/")
+	return strings.Replace(strings.Replace(name, "/", "-", -1), "_", "-", -1)
 }
