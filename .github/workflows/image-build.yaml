@@ -152,10 +152,6 @@ jobs:
           images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
-      - name: Generate olm bundle on disk
-        run: |
-          make bundle
-
       - name: Build image
         id: build-image
         uses: redhat-actions/buildah-build@v2
