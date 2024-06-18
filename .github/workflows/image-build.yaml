@@ -102,7 +102,7 @@ jobs:
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
-            cosign sign -y "${tag}@${{ steps.push-image.outputs.digest }}"
+            cosign sign -y "${tag}@${{ steps.build-push-image.outputs.digest }}"
           done
 
   generate-and-push-bundle-images:
@@ -137,10 +137,6 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.5.0
 
-      - name: Generate olm bundle on disk
-        run: |
-          make bundle-build
-
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
         if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
@@ -155,6 +151,17 @@ jobs:
         with:
           images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
+
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ matrix.image.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          containerfiles: ${{ matrix.image.dockerfile }}
+          build-args: ${{ matrix.image.build_args }}
+          context: ${{ matrix.image.context }}
 
       - name: Push to registry
         id: push-image
