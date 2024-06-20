@@ -48,11 +48,19 @@ type TcProgramReconciler struct {
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
-	return internal.TcProgramControllerFinalizer
+	return r.finalizer
+}
+
+func (r *TcProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentTcProgram
+	} else {
+		return r.appOwner
+	}
 }
 
 func (r *TcProgramReconciler) getRecType() string {
-	return internal.Tc.String()
+	return r.recType
 }
 
 func (r *TcProgramReconciler) getProgType() internal.ProgramType {
@@ -164,7 +172,7 @@ func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfm
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{internal.TcProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -178,6 +186,8 @@ func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfm
 func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTcProgram = &bpfmaniov1alpha1.TcProgram{}
+	r.finalizer = internal.TcProgramControllerFinalizer
+	r.recType = internal.Tc.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tc")
 
@@ -211,7 +221,8 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, tcObjects)
+	_, result, err := r.reconcileCommon(ctx, r, tcObjects)
+	return result, err
 }
 
 func (r *TcProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -234,7 +245,7 @@ func (r *TcProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPro
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentTcProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentTcProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

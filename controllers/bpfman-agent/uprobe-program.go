@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -48,11 +47,19 @@ type UprobeProgramReconciler struct {
 }
 
 func (r *UprobeProgramReconciler) getFinalizer() string {
-	return internal.UprobeProgramControllerFinalizer
+	return r.finalizer
+}
+
+func (r *UprobeProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentUprobeProgram
+	} else {
+		return r.appOwner
+	}
 }
 
 func (r *UprobeProgramReconciler) getRecType() string {
-	return internal.UprobeString
+	return r.recType
 }
 
 func (r *UprobeProgramReconciler) getProgType() internal.ProgramType {
@@ -149,8 +156,7 @@ func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*
 func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	// sanitize uprobe name to work in a bpfProgram name
-	sanatizedUprobe := strings.Replace(strings.Replace(r.currentUprobeProgram.Spec.Target, "/", "-", -1), "_", "-", -1)
+	sanatizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target)
 	bpfProgramNameBase := fmt.Sprintf("%s-%s-%s", r.currentUprobeProgram.Name, r.NodeName, sanatizedUprobe)
 
 	if r.currentUprobeProgram.Spec.Containers != nil {
@@ -171,7 +177,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
 
-			prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+			prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 			}
@@ -188,7 +194,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
 
-				prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+				prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 				}
@@ -199,7 +205,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		prog, err := r.createBpfProgram(bpfProgramNameBase, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramNameBase, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 		}
@@ -213,6 +219,8 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentUprobeProgram = &bpfmaniov1alpha1.UprobeProgram{}
+	r.finalizer = internal.UprobeProgramControllerFinalizer
+	r.recType = internal.UprobeString
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("uprobe")
 
@@ -246,7 +254,8 @@ func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, uprobeObjects)
+	_, result, err := r.reconcileCommon(ctx, r, uprobeObjects)
+	return result, err
 }
 
 func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -292,7 +301,7 @@ func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 				UprobeAttachInfo: uprobeAttachInfo,
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentUprobeProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentUprobeProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

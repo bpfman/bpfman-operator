@@ -28,7 +28,6 @@ const (
 	UprobeNoContainersOnNode    = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
 	FentryProgramFunction       = "bpfman.io.fentryprogramcontroller/function"
 	FexitProgramFunction        = "bpfman.io.fexitprogramcontroller/function"
-	BpfProgramOwnerLabel        = "bpfman.io/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfman.io/discoveredProgram"
 	IdAnnotation                = "bpfman.io/ProgramId"
@@ -50,6 +49,16 @@ const (
 	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
 	DefaultPort                 = 50051
 	DefaultEnabled              = true
+	// BpfProgramOwnerLabel is the name of the object that owns the BpfProgram
+	// object.  In the case of a *Program, it will be the name of the *Program
+	// object.  In the case of a BpfApplication, it will be the name of the
+	// BpfApplication object.
+	BpfProgramOwnerLabel = "bpfman.io/ownedByProgram"
+	// BpfParentProgram is the name of the current program that caused the
+	// creation of the BpfProgram object.  In the case of a *Program, it will be
+	// the name of the *Program object.  In the case of a BpfApplication, it
+	// will be the name generated for the given BpfApplication program.
+	BpfParentProgram = "bpfman.io/parentProgram"
 )
 
 // -----------------------------------------------------------------------------
@@ -81,6 +90,8 @@ const (
 	// FexitProgramControllerFinalizer is the finalizer that holds a Fexit
 	// BpfProgram object from deletion until cleanup can be performed.
 	FexitProgramControllerFinalizer = "bpfman.io.fexitprogramcontroller/finalizer"
+	// BpfApplicationFinalizer is the finalizer that holds a BpfApplication
+	BpfApplicationControllerFinalizer = "bpfman.io.bpfapplicationcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.
@@ -228,6 +239,7 @@ func (p ProgramType) String() string {
 const UprobeString = "uprobe"
 const FentryString = "fentry"
 const FexitString = "fexit"
+const ApplicationString = "application"
 
 type ReconcileResult uint8
 

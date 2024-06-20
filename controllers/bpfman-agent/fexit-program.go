@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -47,11 +46,19 @@ type FexitProgramReconciler struct {
 }
 
 func (r *FexitProgramReconciler) getFinalizer() string {
-	return internal.FexitProgramControllerFinalizer
+	return r.finalizer
+}
+
+func (r *FexitProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentFexitProgram
+	} else {
+		return r.appOwner
+	}
 }
 
 func (r *FexitProgramReconciler) getRecType() string {
-	return internal.FexitString
+	return r.recType
 }
 
 func (r *FexitProgramReconciler) getProgType() internal.ProgramType {
@@ -116,13 +123,12 @@ func (r *FexitProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FexitProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	// sanitize fexit name to work in a bpfProgram name
-	sanatizedFexit := strings.Replace(strings.Replace(r.currentFexitProgram.Spec.FunctionName, "/", "-", -1), "_", "-", -1)
+	sanatizedFexit := sanitize(r.currentFexitProgram.Spec.FunctionName)
 	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentFexitProgram.Name, r.NodeName, sanatizedFexit)
 
 	annotations := map[string]string{internal.FexitProgramFunction: r.currentFexitProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentFexitProgram, r.getRecType(), annotations)
+	prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}
@@ -135,6 +141,8 @@ func (r *FexitProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 func (r *FexitProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentFexitProgram = &bpfmaniov1alpha1.FexitProgram{}
+	r.finalizer = internal.FexitProgramControllerFinalizer
+	r.recType = internal.FexitString
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("fexit")
 
@@ -168,7 +176,8 @@ func (r *FexitProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Reconcile each FexitProgram.
-	return r.reconcileCommon(ctx, r, fexitObjects)
+	_, result, err := r.reconcileCommon(ctx, r, fexitObjects)
+	return result, err
 }
 
 func (r *FexitProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -188,7 +197,7 @@ func (r *FexitProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bpf
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentFexitProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentFexitProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

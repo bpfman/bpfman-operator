@@ -47,11 +47,19 @@ type XdpProgramReconciler struct {
 }
 
 func (r *XdpProgramReconciler) getFinalizer() string {
-	return internal.XdpProgramControllerFinalizer
+	return r.finalizer
+}
+
+func (r *XdpProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentXdpProgram
+	} else {
+		return r.appOwner
+	}
 }
 
 func (r *XdpProgramReconciler) getRecType() string {
-	return internal.Xdp.String()
+	return r.recType
 }
 
 func (r *XdpProgramReconciler) getProgType() internal.ProgramType {
@@ -150,7 +158,7 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{internal.XdpProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentXdpProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -164,6 +172,8 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentXdpProgram = &bpfmaniov1alpha1.XdpProgram{}
+	r.finalizer = internal.XdpProgramControllerFinalizer
+	r.recType = internal.Xdp.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("xdp")
 
@@ -196,7 +206,8 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, xdpObjects)
+	_, result, err := r.reconcileCommon(ctx, r, xdpObjects)
+	return result, err
 }
 
 func (r *XdpProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -218,7 +229,7 @@ func (r *XdpProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPr
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentXdpProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentXdpProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}

@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// BpfApplications returns a BpfApplicationInformer.
+	BpfApplications() BpfApplicationInformer
 	// BpfPrograms returns a BpfProgramInformer.
 	BpfPrograms() BpfProgramInformer
 	// FentryPrograms returns a FentryProgramInformer.
@@ -51,6 +53,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// BpfApplications returns a BpfApplicationInformer.
+func (v *version) BpfApplications() BpfApplicationInformer {
+	return &bpfApplicationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // BpfPrograms returns a BpfProgramInformer.

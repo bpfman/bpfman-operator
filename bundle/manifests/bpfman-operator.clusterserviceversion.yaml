@@ -6,6 +6,86 @@ metadata:
       [
         {
           "apiVersion": "bpfman.io/v1alpha1",
+          "kind": "BpfApplication",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "bpfapplication"
+            },
+            "name": "bpfapplication-sample"
+          },
+          "spec": {
+            "bytecode": {
+              "image": {
+                "url": "quay.io/bpfman-bytecode/go-application-counter:latest"
+              }
+            },
+            "nodeselector": {},
+            "programs": [
+              {
+                "kprobe": {
+                  "bpffunctionname": "kprobe_counter",
+                  "func_name": "try_to_wake_up",
+                  "offset": 0,
+                  "retprobe": false
+                },
+                "type": "Kprobe"
+              },
+              {
+                "tracepoint": {
+                  "bpffunctionname": "tracepoint_kill_recorder",
+                  "names": [
+                    "syscalls/sys_enter_kill"
+                  ]
+                },
+                "type": "Tracepoint"
+              },
+              {
+                "tc": {
+                  "bpffunctionname": "stats",
+                  "direction": "ingress",
+                  "interfaceselector": {
+                    "primarynodeinterface": true
+                  },
+                  "priority": 55
+                },
+                "type": "TC"
+              },
+              {
+                "type": "Uprobe",
+                "uprobe": {
+                  "bpffunctionname": "uprobe_counter",
+                  "containers": {
+                    "containernames": [
+                      "bpfman",
+                      "bpfman-agent"
+                    ],
+                    "namespace": "bpfman",
+                    "pods": {
+                      "matchLabels": {
+                        "name": "bpfman-daemon"
+                      }
+                    }
+                  },
+                  "func_name": "malloc",
+                  "retprobe": false,
+                  "target": "libc"
+                }
+              },
+              {
+                "type": "XDP",
+                "xdp": {
+                  "bpffunctionname": "xdp_stats",
+                  "interfaceselector": {
+                    "primarynodeinterface": true
+                  },
+                  "priority": 55
+                }
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "bpfman.io/v1alpha1",
           "kind": "FentryProgram",
           "metadata": {
             "labels": {
@@ -216,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-06-07T18:48:53Z"
+    createdAt: "2024-06-20T14:00:22Z"
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",
@@ -242,6 +322,9 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - kind: BpfApplication
+      name: bpfapplications.bpfman.io
+      version: v1alpha1
     - description: BpfProgram is the Schema for the BpfProgram API
       displayName: Bpf Program
       kind: BpfProgram
@@ -616,6 +699,32 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications/status
+          verbs:
+          - get
+          - patch
+          - update
         - apiGroups:
           - bpfman.io
           resources:

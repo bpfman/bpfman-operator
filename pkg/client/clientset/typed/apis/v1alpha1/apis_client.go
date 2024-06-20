@@ -28,6 +28,7 @@ import (
 
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	BpfApplicationsGetter
 	BpfProgramsGetter
 	FentryProgramsGetter
 	FexitProgramsGetter
@@ -41,6 +42,10 @@ type BpfmanV1alpha1Interface interface {
 // BpfmanV1alpha1Client is used to interact with features provided by the bpfman.io group.
 type BpfmanV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *BpfmanV1alpha1Client) BpfApplications() BpfApplicationInterface {
+	return newBpfApplications(c)
 }
 
 func (c *BpfmanV1alpha1Client) BpfPrograms() BpfProgramInterface {

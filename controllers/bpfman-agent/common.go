@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -54,6 +55,7 @@ import (
 //+kubebuilder:rbac:groups=bpfman.io,resources=uprobeprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=fentryprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=fexityprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfapplications/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
@@ -71,6 +73,9 @@ type ReconcilerCommon struct {
 	Logger       logr.Logger
 	NodeName     string
 	progId       *uint32
+	finalizer    string
+	recType      string
+	appOwner     metav1.Object // Set if the owner is an application
 }
 
 // bpfmanReconciler defines a generic bpfProgram K8s object reconciler which can
@@ -88,6 +93,9 @@ type bpfmanReconciler interface {
 	// getFinalizer returns the string used for the finalizer to prevent the
 	// BpfProgram object from deletion until cleanup can be performed
 	getFinalizer() string
+	// getOwner returns the owner of the BpfProgram object.  This is either the
+	// *Program or the BpfApplicationProgram that created it.
+	getOwner() metav1.Object
 	// getRecType returns the type of the reconciler.  This is often the string
 	// representation of the ProgramType, but in cases where there are multiple
 	// reconcilers for a single ProgramType, it may be different (e.g., uprobe,
@@ -119,13 +127,16 @@ type bpfmanReconciler interface {
 }
 
 // reconcileCommon is the common reconciler loop called by each bpfman
-// reconciler.  It reconciles each program in the list.  reconcileCommon should
-// not return error because it will trigger an infinite reconcile loop.
-// Instead, it should report the error to user and retry if specified. For some
-// errors the controller may decide not to retry. Note: This only results in
-// calls to bpfman if we need to change something
+// reconciler.  It reconciles each program in the list.  The boolean return
+// value is set to true if we've made it through all the programs in the list
+// without anything being updated and a requeue has not been requested. Otherwise,
+// it's set to false. reconcileCommon should not return error because it will
+// trigger an infinite reconcile loop. Instead, it should report the error to
+// user and retry if specified. For some errors the controller may decide not to
+// retry. Note: This only results in calls to bpfman if we need to change
+// something
 func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconciler,
-	programs []client.Object) (ctrl.Result, error) {
+	programs []client.Object) (bool, ctrl.Result, error) {
 
 	r.Logger.V(1).Info("Start reconcileCommon()")
 
@@ -133,7 +144,7 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, rec.getProgType())
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		return false, ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
 	requeue := false // initialize requeue to false
@@ -144,7 +155,7 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 		err := rec.setCurrentProgram(program)
 		if err != nil {
 			r.Logger.Error(err, "Failed to set current program")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+			return false, ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 		}
 
 		result, err := r.reconcileProgram(ctx, rec, program, loadedBpfPrograms)
@@ -157,7 +168,7 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 			// continue with next program
 		case internal.Updated:
 			// return
-			return ctrl.Result{Requeue: false}, nil
+			return false, ctrl.Result{Requeue: false}, nil
 		case internal.Requeue:
 			// remember to do a requeue when we're done and continue with next program
 			requeue = true
@@ -166,11 +177,11 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 
 	if requeue {
 		// A requeue has been requested
-		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+		return false, ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 	} else {
 		// We've made it through all the programs in the list without anything being
 		// updated and a reque has not been requested.
-		return ctrl.Result{Requeue: false}, nil
+		return true, ctrl.Result{Requeue: false}, nil
 	}
 }
 
@@ -209,9 +220,6 @@ func (r *ReconcilerCommon) reconcileBpfProgram(ctx context.Context,
 			if err != nil {
 				return bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, err
 			}
-
-			r.Logger.V(1).WithValues("loadRequest", loadRequest).WithValues("loadedBpfProgram", loadedBpfProgram).Info("StateMatch")
-
 			isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
 			if !isSame {
 				r.Logger.V(1).Info("bpf program is in wrong state, unloading and reloading", "reason", reasons, "bpfProgram Name", bpfProgram.Name, "bpf program ID", id)
@@ -491,13 +499,17 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmani
 }
 
 func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
-	program metav1.Object) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
+	rec bpfmanReconciler) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
 
 	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this *Program and the controller's node
 	opts := []client.ListOption{
-		client.MatchingLabels{internal.BpfProgramOwnerLabel: program.GetName(), internal.K8sHostLabel: r.NodeName},
+		client.MatchingLabels{
+			internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
+			internal.BpfParentProgram:     rec.getName(),
+			internal.K8sHostLabel:         r.NodeName,
+		},
 	}
 
 	err := r.List(ctx, bpfProgramList, opts...)
@@ -517,26 +529,30 @@ func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
 // into a central location.
 func (r *ReconcilerCommon) createBpfProgram(
 	bpfProgramName string,
-	finalizer string,
-	owner metav1.Object,
-	ownerType string,
+	rec bpfmanReconciler,
 	annotations map[string]string) (*bpfmaniov1alpha1.BpfProgram, error) {
+
+	r.Logger.V(1).Info("createBpfProgram()", "Name", bpfProgramName,
+		"Owner", rec.getOwner().GetName(), "OwnerType", rec.getRecType(), "Name", rec.getName())
+
 	bpfProg := &bpfmaniov1alpha1.BpfProgram{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       bpfProgramName,
-			Finalizers: []string{finalizer},
-			Labels: map[string]string{internal.BpfProgramOwnerLabel: owner.GetName(),
-				internal.K8sHostLabel: r.NodeName},
+			Finalizers: []string{rec.getFinalizer()},
+			Labels: map[string]string{
+				internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
+				internal.BpfParentProgram:     rec.getName(),
+				internal.K8sHostLabel:         r.NodeName},
 			Annotations: annotations,
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
-			Type: ownerType,
+			Type: rec.getRecType(),
 		},
 		Status: bpfmaniov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 	}
 
 	// Make the corresponding BpfProgramConfig the owner
-	if err := ctrl.SetControllerReference(owner, bpfProg, r.Scheme); err != nil {
+	if err := ctrl.SetControllerReference(rec.getOwner(), bpfProg, r.Scheme); err != nil {
 		return nil, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
 	}
 
@@ -624,7 +640,6 @@ func (r *ReconcilerCommon) handleProgDelete(
 func (r *ReconcilerCommon) handleProgCreateOrUpdate(
 	ctx context.Context,
 	rec bpfmanReconciler,
-	program client.Object,
 	existingBpfPrograms map[string]bpfmaniov1alpha1.BpfProgram,
 	expectedBpfPrograms *bpfmaniov1alpha1.BpfProgramList,
 	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
@@ -646,7 +661,7 @@ func (r *ReconcilerCommon) handleProgCreateOrUpdate(
 		} else {
 			// Create a new bpfProgram Object for this program.
 			opts := client.CreateOptions{}
-			r.Logger.Info("Creating bpfProgram", "Name", expectedBpfProgram.Name, "Owner", program.GetName())
+			r.Logger.Info("Creating bpfProgram", "Name", expectedBpfProgram.Name, "Owner", rec.getOwner().GetName())
 			if err := r.Create(ctx, &expectedBpfProgram, &opts); err != nil {
 				return internal.Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
 			}
@@ -738,11 +753,11 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 		return internal.Requeue, fmt.Errorf("failed to check if node is selected: %v", err)
 	}
 
-	isBeingDeleted := !program.GetDeletionTimestamp().IsZero()
+	isBeingDeleted := !rec.getOwner().GetDeletionTimestamp().IsZero()
 
 	// Query the K8s API to get a list of existing bpfPrograms for this *Program
 	// on this node.
-	existingBpfPrograms, err := r.getExistingBpfPrograms(ctx, program)
+	existingBpfPrograms, err := r.getExistingBpfPrograms(ctx, rec)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
 	}
@@ -772,7 +787,7 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 		if err != nil {
 			return internal.Requeue, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
 		}
-		return r.handleProgCreateOrUpdate(ctx, rec, program, existingBpfPrograms, expectedBpfPrograms, loadedBpfPrograms,
+		return r.handleProgCreateOrUpdate(ctx, rec, existingBpfPrograms, expectedBpfPrograms, loadedBpfPrograms,
 			isNodeSelected, isBeingDeleted, mapOwnerStatus)
 	}
 
@@ -876,4 +891,10 @@ func getClientset() (*kubernetes.Clientset, error) {
 	}
 
 	return clientset, nil
+}
+
+// sanitize a string to work as a bpfProgram name
+func sanitize(name string) string {
+	name = strings.TrimPrefix(name, "/")
+	return strings.Replace(strings.Replace(name, "/", "-", -1), "_", "-", -1)
 }

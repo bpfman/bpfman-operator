@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -47,11 +46,19 @@ type TracepointProgramReconciler struct {
 }
 
 func (r *TracepointProgramReconciler) getFinalizer() string {
-	return internal.TracepointProgramControllerFinalizer
+	return r.finalizer
+}
+
+func (r *TracepointProgramReconciler) getOwner() metav1.Object {
+	if r.appOwner == nil {
+		return r.currentTracepointProgram
+	} else {
+		return r.appOwner
+	}
 }
 
 func (r *TracepointProgramReconciler) getRecType() string {
-	return internal.Tracepoint.String()
+	return r.recType
 }
 
 func (r *TracepointProgramReconciler) getProgType() internal.ProgramType {
@@ -117,13 +124,12 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
-		// sanitize tracepoint name to work in a bpfProgram name
-		sanatizedTrace := strings.Replace(strings.Replace(tracepoint, "/", "-", -1), "_", "-", -1)
+		sanatizedTrace := sanitize(tracepoint)
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTracepointProgram.Name, r.NodeName, sanatizedTrace)
 
 		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -137,6 +143,8 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTracepointProgram = &bpfmaniov1alpha1.TracepointProgram{}
+	r.finalizer = internal.TracepointProgramControllerFinalizer
+	r.recType = internal.Tracepoint.String()
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tracept")
 
@@ -170,7 +178,8 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Reconcile each TcProgram.
-	return r.reconcileCommon(ctx, r, tracepointObjects)
+	_, result, err := r.reconcileCommon(ctx, r, tracepointObjects)
+	return result, err
 }
 
 func (r *TracepointProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
@@ -190,7 +199,7 @@ func (r *TracepointProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentTracepointProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},
 		GlobalData: r.currentTracepointProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
