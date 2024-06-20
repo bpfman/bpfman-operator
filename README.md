@@ -182,4 +182,4 @@ object to find references to the bpfMap pinpoints (`spec.maps`) in order to conf
 ## Developer
 
 For more architecture details about `bpfman-operator`, refer to
-[Developing the bpfman-operator](https://bpfman.io/v0.4.1/developer-guide/develop-operator)
+[Developing the bpfman-operator](https://bpfman.io/v0.5.0-rc1/developer-guide/develop-operator)

@@ -16,7 +16,7 @@ metadata:
           "spec": {
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/go-application-counter:latest"
+                "url": "quay.io/bpfman-bytecode/go-application-counter:v0.5.0-rc1"
               }
             },
             "nodeselector": {},
@@ -97,7 +97,7 @@ metadata:
             "bpffunctionname": "test_fentry",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/fentry:latest"
+                "url": "quay.io/bpfman-bytecode/fentry:v0.5.0-rc1"
               }
             },
             "func_name": "do_unlinkat",
@@ -117,7 +117,7 @@ metadata:
             "bpffunctionname": "test_fexit",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/fexit:latest"
+                "url": "quay.io/bpfman-bytecode/fexit:v0.5.0-rc1"
               }
             },
             "func_name": "do_unlinkat",
@@ -137,7 +137,7 @@ metadata:
             "bpffunctionname": "my_kprobe",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/kprobe:latest"
+                "url": "quay.io/bpfman-bytecode/kprobe:v0.5.0-rc1"
               }
             },
             "func_name": "try_to_wake_up",
@@ -170,7 +170,7 @@ metadata:
             "bpffunctionname": "pass",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/tc_pass:latest"
+                "url": "quay.io/bpfman-bytecode/tc_pass:v0.5.0-rc1"
               }
             },
             "direction": "ingress",
@@ -205,7 +205,7 @@ metadata:
             "bpffunctionname": "enter_openat",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/tracepoint:latest"
+                "url": "quay.io/bpfman-bytecode/tracepoint:v0.5.0-rc1"
               }
             },
             "globaldata": {
@@ -238,7 +238,7 @@ metadata:
             "bpffunctionname": "my_uprobe",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/uprobe:latest"
+                "url": "quay.io/bpfman-bytecode/uprobe:v0.5.0-rc1"
               }
             },
             "func_name": "syscall",
@@ -271,7 +271,7 @@ metadata:
             "bpffunctionname": "pass",
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/xdp_pass:latest"
+                "url": "quay.io/bpfman-bytecode/xdp_pass:v0.5.0-rc1"
               }
             },
             "globaldata": {
@@ -295,8 +295,8 @@ metadata:
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-06-20T14:00:22Z"
+    containerImage: quay.io/bpfman/bpfman-operator:v0.5.0-rc1
+    createdAt: "2024-06-20T19:30:45Z"
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",
@@ -316,7 +316,7 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/bpfman/bpfman
-  name: bpfman-operator.v0.4.1
+  name: bpfman-operator.v0.5.0-rc1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -373,8 +373,8 @@ spec:
     configmap is automatically created in the `bpfman` namespace and used to configure
     the bpfman deployment.\n\nTo edit the config simply run\n\n```bash\nkubectl edit
     cm bpfman-config\n```\n\nThe following fields are adjustable\n\n- `bpfman.agent.image`:
-    The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n-
-    `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
+    The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:v0.5.0-rc1`\n-
+    `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:v0.5.0-rc1`\n-
     `bpfman.log.level`: the log level for bpfman, currently supports `debug`, `info`,
     `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`:
     the log level for the bpfman-agent currently supports `info`, `debug`, and `trace`
@@ -1043,7 +1043,7 @@ spec:
                 env:
                 - name: GO_LOG
                   value: debug
-                image: quay.io/bpfman/bpfman-operator:latest
+                image: quay.io/bpfman/bpfman-operator:v0.5.0-rc1
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -1131,4 +1131,4 @@ spec:
   provider:
     name: The bpfman Community
     url: https://bpfman.io/
-  version: 0.4.1
+  version: 0.5.0-rc1
