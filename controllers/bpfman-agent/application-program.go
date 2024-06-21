@@ -280,5 +280,11 @@ func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).
+		// Watch for changes in Pod resources in case we are using a container selector.
+		Watches(
+			&v1.Pod{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(podOnNodePredicate(r.NodeName)),
+		).
 		Complete(r)
 }
