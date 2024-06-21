@@ -896,5 +896,6 @@ func getClientset() (*kubernetes.Clientset, error) {
 // sanitize a string to work as a bpfProgram name
 func sanitize(name string) string {
 	name = strings.TrimPrefix(name, "/")
-	return strings.Replace(strings.Replace(name, "/", "-", -1), "_", "-", -1)
+	name = strings.Replace(strings.Replace(name, "/", "-", -1), "_", "-", -1)
+	return strings.ToLower(name)
 }
