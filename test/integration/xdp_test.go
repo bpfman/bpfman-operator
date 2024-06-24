@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"io"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -136,9 +135,7 @@ func TestXdpGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-		if strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
-			return true
-		}
-		return false
+
+		return doXdpCheck(t, output)
 	}, 30*time.Second, time.Second)
 }
