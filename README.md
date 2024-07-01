@@ -1,7 +1,7 @@
 # bpfman-operator
 
-The `bpfman-operator` repository exists in order to deploy and manage bpfman within a Kubernetes cluster.
-This operator was built utilizing some great tooling provided by the
+The `bpfman-operator` repository exists to deploy and manage bpfman within a Kubernetes cluster.
+This operator was built using some great tooling provided by the
 [operator-sdk library](https://sdk.operatorframework.io/).
 A great first step in understanding some of the functionality can be to just run `make help`.
 
@@ -92,7 +92,7 @@ To test the deployment simply deploy one of the sample `xdpPrograms`:
 kubectl apply -f config/samples/bpfman.io_v1alpha1_xdp_pass_xdpprogram.yaml
 ```
 
-If loading of the XDP Program to the selected nodes was successful it will be reported
+If loading of the XDP Program to the selected nodes was successful, it will be reported
 back to the user via the `xdpProgram`'s status field:
 
 ```bash
@@ -148,7 +148,7 @@ xdp-pass-all-nodes   pass              {}             0          {"primarynodein
 
 ## API Types Overview
 
-Refer to [api-spec.md](./api-spec.md) for a detailed description of all the bpfman Kubernetes API types.
+Refer to [api-spec.md](https://bpfman.io/main/developer-guide/api-spec/) for a detailed description of all the bpfman Kubernetes API types.
 
 ### Multiple Program CRDs
 
@@ -173,11 +173,11 @@ how these programs should be deployed across the cluster.
 ## BpfProgram CRD
 
 The `BpfProgram` CRD is used internally by the `bpfman-deployment` to keep track of per-node `bpfman` state,
-such as map pin points, and to report node specific errors back to the user.
-Kubernetes users/controllers are only allowed to view these objects, NOT create or edit them.
+such as map pinpoints, and to report node-specific errors back to the user.
+Kubernetes' users/controllers are only allowed to view these objects, NOT create or edit them.
 
 Applications wishing to use `bpfman` to deploy/manage their eBPF programs in Kubernetes will make use of this
-object to find references to the bpfMap pinpoints (`spec.maps`) in order to configure their eBPF programs.
+object to find references to the bpfMap pinpoints (`spec.maps`) to configure their eBPF programs.
 
 ## Developer
 
