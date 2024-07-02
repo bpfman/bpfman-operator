@@ -16,7 +16,7 @@ metadata:
           "spec": {
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/go-application-counter:latest"
+                "url": "quay.io/bpfman-bytecode/go-app-counter:latest"
               }
             },
             "nodeselector": {},
@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-06-20T14:00:22Z"
+    createdAt: "2024-07-01T16:49:31Z"
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",

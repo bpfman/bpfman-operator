@@ -18,8 +18,8 @@ import (
 
 const (
 	appGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-app-counter/?timeout=120&ref=main"
-	appGoCounterUserspaceNs     = "go-application-counter"
-	appGoCounterUserspaceDsName = "go-application-counter-ds"
+	appGoCounterUserspaceNs     = "go-app-counter"
+	appGoCounterUserspaceDsName = "go-app-counter-ds"
 )
 
 func TestApplicationGoCounter(t *testing.T) {
@@ -51,7 +51,7 @@ func TestApplicationGoCounter(t *testing.T) {
 		// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
 		5*time.Minute, 10*time.Second)
 
-	pods, err := env.Cluster().Client().CoreV1().Pods(appGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-application-counter"})
+	pods, err := env.Cluster().Client().CoreV1().Pods(appGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-app-counter"})
 	require.NoError(t, err)
 	goAppCounterPod := pods.Items[0]
 
