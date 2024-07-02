@@ -85,6 +85,10 @@ func (r *KprobeProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentKprobeProgram.Spec.GlobalData
 }
 
+func (r *KprobeProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentKprobeProgram.GetLabels())
+}
+
 func (r *KprobeProgramReconciler) setCurrentProgram(program client.Object) error {
 	var ok bool
 
@@ -123,14 +127,13 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanatizedKprobe := sanitize(r.currentKprobeProgram.Spec.FunctionName)
-	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentKprobeProgram.Name, r.NodeName, sanatizedKprobe)
+	attachPoint := sanitize(r.currentKprobeProgram.Spec.FunctionName)
 
 	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+	prog, err := r.createBpfProgram(attachPoint, r, annotations)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 	}
 
 	progs.Items = append(progs.Items, *prog)

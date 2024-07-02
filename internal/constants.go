@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+  http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -49,16 +49,17 @@ const (
 	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
 	DefaultPort                 = 50051
 	DefaultEnabled              = true
-	// BpfProgramOwnerLabel is the name of the object that owns the BpfProgram
-	// object.  In the case of a *Program, it will be the name of the *Program
-	// object.  In the case of a BpfApplication, it will be the name of the
+	// BpfProgramOwner is the name of the object that owns the BpfProgram
+	// object. In the case of a *Program, it will be the name of the *Program
+	// object. In the case of a BpfApplication, it will be the name of the
 	// BpfApplication object.
-	BpfProgramOwnerLabel = "bpfman.io/ownedByProgram"
-	// BpfParentProgram is the name of the current program that caused the
-	// creation of the BpfProgram object.  In the case of a *Program, it will be
-	// the name of the *Program object.  In the case of a BpfApplication, it
-	// will be the name generated for the given BpfApplication program.
-	BpfParentProgram = "bpfman.io/parentProgram"
+	BpfProgramOwner = "bpfman.io/ownedByProgram"
+	// AppProgramId is an identifier that is used to identify individual
+	// programs that are part of a given BpfApplication object.  *Programs have
+	// an AppProgramId of "".
+	AppProgramId = "bpfman.io/appProgramId"
+	// BpfProgramAttachPoint is the attach point for a given BpfProgram.
+	BpfProgramAttachPoint = "bpfman.io/bpfProgramAttachPoint"
 )
 
 // -----------------------------------------------------------------------------
@@ -233,7 +234,7 @@ func (p ProgramType) String() string {
 	}
 }
 
-// Define a constant strings for Uprobe, Fentry and Fexit.  Uprobe has the same
+// Define a constant strings for Uprobe, Fentry and Fexit. Uprobe has the same
 // kernel ProgramType as Kprobe, and Fentry and Fexit both have the Tracing
 // ProgramType, so we can't use the ProgramType String() method above.
 const UprobeString = "uprobe"
@@ -249,11 +250,11 @@ const (
 	// programs in it's list.
 	Unchanged ReconcileResult = 0
 	// Changes were made to k8s objects that we know will trigger another
-	// reconcile.  Calling code should stop reconciling additional programs and
+	// reconcile. Calling code should stop reconciling additional programs and
 	// return immediately to avoid multiple concurrent reconcile threads.
 	Updated ReconcileResult = 1
 	// A retry should be scheduled. This should only be used when "Updated"
-	// doesn't apply, but we want to trigger another reconcile anyway.  For
+	// doesn't apply, but we want to trigger another reconcile anyway. For
 	// example, there was a transient error. The calling code may continue
 	// reconciling other programs in it's list.
 	Requeue ReconcileResult = 2

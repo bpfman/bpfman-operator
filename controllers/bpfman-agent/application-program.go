@@ -67,10 +67,10 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var err error
 	var complete bool
 
-	namePrefix := func(
+	buildProgramName := func(
 		app bpfmaniov1alpha1.BpfApplication,
 		prog bpfmaniov1alpha1.BpfApplicationProgram) string {
-		return app.Name + "-" + strings.ToLower(string(prog.Type)) + "-"
+		return app.Name + "-" + strings.ToLower(string(prog.Type))
 	}
 
 	for i, a := range appPrograms.Items {
@@ -78,10 +78,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		for j, p := range a.Spec.Programs {
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fentry.FunctionName))
 				fentryProgram := bpfmaniov1alpha1.FentryProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Fentry.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.FentryProgramSpec{
 						FentryProgramInfo: *p.Fentry,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -99,10 +100,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
 			case bpfmaniov1alpha1.ProgTypeFexit:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fexit.FunctionName))
 				fexitProgram := bpfmaniov1alpha1.FexitProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Fexit.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.FexitProgramSpec{
 						FexitProgramInfo: *p.Fexit,
 						BpfAppCommon:     a.Spec.BpfAppCommon,
@@ -121,10 +123,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 			case bpfmaniov1alpha1.ProgTypeKprobe,
 				bpfmaniov1alpha1.ProgTypeKretprobe:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Kprobe.FunctionName))
 				kprobeProgram := bpfmaniov1alpha1.KprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Kprobe.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.KprobeProgramSpec{
 						KprobeProgramInfo: *p.Kprobe,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -143,10 +146,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 			case bpfmaniov1alpha1.ProgTypeUprobe,
 				bpfmaniov1alpha1.ProgTypeUretprobe:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Uprobe.FunctionName))
 				uprobeProgram := bpfmaniov1alpha1.UprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Uprobe.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.UprobeProgramSpec{
 						UprobeProgramInfo: *p.Uprobe,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -164,10 +168,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
 			case bpfmaniov1alpha1.ProgTypeTracepoint:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Tracepoint.Names[0]))
 				tracepointProgram := bpfmaniov1alpha1.TracepointProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Tracepoint.Names[0]),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.TracepointProgramSpec{
 						TracepointProgramInfo: *p.Tracepoint,
 						BpfAppCommon:          a.Spec.BpfAppCommon,
@@ -192,10 +197,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						"app program name", a.Name, "program index", j)
 					continue
 				}
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TC.Direction, interfaces[0])
 				tcProgram := bpfmaniov1alpha1.TcProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + p.TC.Direction + "-" + interfaces[0],
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.TcProgramSpec{
 						TcProgramInfo: *p.TC,
 						BpfAppCommon:  a.Spec.BpfAppCommon,
@@ -219,10 +225,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						"app program name", a.Name, "program index", j)
 					continue
 				}
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), interfaces[0])
 				xdpProgram := bpfmaniov1alpha1.XdpProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + interfaces[0],
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.XdpProgramSpec{
 						XdpProgramInfo: *p.XDP,
 						BpfAppCommon:   a.Spec.BpfAppCommon,

@@ -82,7 +82,7 @@ func fentryProgramReconcile(t *testing.T, multiCondition bool) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Fentry.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: Fentry.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.FentryProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

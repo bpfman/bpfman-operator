@@ -79,7 +79,7 @@ func TestTracepointProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Tracepoint.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: Tracepoint.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TracepointProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

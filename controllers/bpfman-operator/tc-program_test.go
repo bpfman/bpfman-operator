@@ -89,7 +89,7 @@ func TestTcProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: tc.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: tc.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TcProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

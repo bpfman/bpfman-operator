@@ -87,6 +87,10 @@ func (r *TcProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentTcProgram.Spec.GlobalData
 }
 
+func (r *TcProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentTcProgram.GetLabels())
+}
+
 func (r *TcProgramReconciler) setCurrentProgram(program client.Object) error {
 	var err error
 	var ok bool
@@ -169,12 +173,12 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
-		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
+		attachPoint := iface + "-" + r.currentTcProgram.Spec.Direction
 		annotations := map[string]string{internal.TcProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+		prog, err := r.createBpfProgram(attachPoint, r, annotations)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 		}
 
 		progs.Items = append(progs.Items, *prog)

@@ -82,7 +82,7 @@ func fexitProgramReconcile(t *testing.T, multiCondition bool) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Fexit.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: Fexit.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.FexitProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
