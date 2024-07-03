@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -61,7 +62,8 @@ import (
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 const (
-	retryDurationAgent = 5 * time.Second
+	retryDurationAgent     = 5 * time.Second
+	programDoesNotExistErr = "does not exist"
 )
 
 // ReconcilerCommon provides a skeleton for all *Program Reconcilers.
@@ -622,7 +624,7 @@ func (r *ReconcilerCommon) handleProgDelete(
 			opts := client.DeleteOptions{}
 			r.Logger.Info("Deleting bpfProgram", "Name", bpfProgram.Name, "Owner", bpfProgram.GetName())
 			if err := r.Delete(ctx, &bpfProgram, &opts); err != nil {
-				return internal.Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
+				return internal.Requeue, fmt.Errorf("failed to delete bpfProgram object: %v", err)
 			}
 			return internal.Updated, nil
 		}
@@ -631,6 +633,43 @@ func (r *ReconcilerCommon) handleProgDelete(
 	// We're done reconciling.
 	r.Logger.Info("Finished reconciling", "program name", rec.getName())
 	return internal.Unchanged, nil
+}
+
+// unLoadAndDeleteProgramsList unloads and deletes BbpPrograms when the owning
+// *Program or BpfApplication is not being deleted itself, but something
+// has changed such that the BpfPrograms are no longer needed.
+func (r *ReconcilerCommon) unLoadAndDeleteBpfProgramsList(ctx context.Context, bpfProgramsList *bpfmaniov1alpha1.BpfProgramList, finalizerString string) (reconcile.Result, error) {
+	for _, bpfProgram := range bpfProgramsList.Items {
+		r.Logger.V(1).Info("Deleting bpfProgram", "Name", bpfProgram.Name)
+		id, err := bpfmanagentinternal.GetID(&bpfProgram)
+		if err != nil {
+			r.Logger.Error(err, "Failed to get bpf program ID")
+			return ctrl.Result{}, nil
+		}
+		r.Logger.Info("Calling bpfman to unload program on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
+		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
+			if strings.Contains(err.Error(), programDoesNotExistErr) {
+				r.Logger.Info("Program not found on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
+			} else {
+				r.Logger.Error(err, "Failed to unload Program")
+				return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+			}
+		}
+
+		if r.removeFinalizer(ctx, &bpfProgram, finalizerString) {
+			return ctrl.Result{}, nil
+		}
+
+		opts := client.DeleteOptions{}
+		r.Logger.Info("Deleting bpfProgram", "Name", bpfProgram.Name, "Owner", bpfProgram.GetName())
+		if err := r.Delete(ctx, &bpfProgram, &opts); err != nil {
+			return ctrl.Result{RequeueAfter: retryDurationAgent}, fmt.Errorf("failed to delete bpfProgram object: %v", err)
+		} else {
+			// we will deal one program at a time, so we can break out of the loop
+			break
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 // handleProgCreateOrUpdate compares the expected bpfPrograms to the existing
