@@ -74,6 +74,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	for i, a := range appPrograms.Items {
+		var appProgramMap = make(map[string]bool)
 		for j, p := range a.Spec.Programs {
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
@@ -93,6 +94,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fentryObjects := []client.Object{&fentryProgram}
+				appProgramMap[fentryProgram.Name] = true
 				// Reconcile FentryProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
@@ -113,6 +115,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fexitObjects := []client.Object{&fexitProgram}
+				appProgramMap[fexitProgram.Name] = true
 				// Reconcile FexitProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fexitObjects)
 
@@ -134,6 +137,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				kprobeObjects := []client.Object{&kprobeProgram}
+				appProgramMap[kprobeProgram.Name] = true
 				// Reconcile KprobeProgram or KpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, kprobeObjects)
 
@@ -155,6 +159,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				uprobeObjects := []client.Object{&uprobeProgram}
+				appProgramMap[uprobeProgram.Name] = true
 				// Reconcile UprobeProgram or UpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
@@ -175,6 +180,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tracepointObjects := []client.Object{&tracepointProgram}
+				appProgramMap[tracepointProgram.Name] = true
 				// Reconcile TracepointProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tracepointObjects)
 
@@ -202,6 +208,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tcObjects := []client.Object{&tcProgram}
+				appProgramMap[tcProgram.Name] = true
 				// Reconcile TcProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
@@ -228,16 +235,17 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				xdpObjects := []client.Object{&xdpProgram}
+				appProgramMap[xdpProgram.Name] = true
 				// Reconcile XdpProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
 
 			default:
-				r.Logger.Error(fmt.Errorf("unsupported bpf program type"), "unsupported bpf program type", "ProgType", p.Type)
+				ctxLogger.Error(fmt.Errorf("unsupported bpf program type"), "unsupported bpf program type", "ProgType", p.Type)
 				// Skip this program and continue to the next one
 				continue
 			}
 
-			r.Logger.V(1).Info("Reconcile Application", "Application", i, "Program", j, "Name", a.Name,
+			ctxLogger.V(1).Info("Reconcile Application", "Application", i, "Program", j, "Name", a.Name,
 				"type", p.Type, "Complete", complete, "Result", res, "Error", err)
 
 			if complete {
@@ -249,6 +257,27 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 
 		if complete {
+			bpfPrograms := &bpfmaniov1alpha1.BpfProgramList{}
+			bpfDeletedPrograms := &bpfmaniov1alpha1.BpfProgramList{}
+			// find programs that need to be deleted and delete them
+			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: a.Name}}
+			if err := r.List(ctx, bpfPrograms, opts...); err != nil {
+				ctxLogger.Error(err, "failed to get freshPrograms for full reconcile")
+				return ctrl.Result{}, err
+			}
+			for _, bpfProgram := range bpfPrograms.Items {
+				progName := bpfProgram.Labels[internal.BpfParentProgram]
+				if _, ok := appProgramMap[progName]; !ok {
+					ctxLogger.Info("Deleting BpfProgram", "BpfProgram", progName)
+					bpfDeletedPrograms.Items = append(bpfDeletedPrograms.Items, bpfProgram)
+				}
+			}
+			// Delete BpfPrograms that are no longer needed
+			res, err = r.unLoadAndDeleteBpfProgramsList(ctx, bpfDeletedPrograms, internal.BpfApplicationControllerFinalizer)
+			if err != nil {
+				ctxLogger.Error(err, "failed to delete programs")
+				return ctrl.Result{}, err
+			}
 			// We've completed reconciling all programs for this application, continue to the next one
 			continue
 		} else {
