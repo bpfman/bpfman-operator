@@ -95,7 +95,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fentryObjects := []client.Object{&fentryProgram}
-				appProgramMap[fentryProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile FentryProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
@@ -117,7 +117,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fexitObjects := []client.Object{&fexitProgram}
-				appProgramMap[fexitProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile FexitProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fexitObjects)
 
@@ -140,7 +140,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				kprobeObjects := []client.Object{&kprobeProgram}
-				appProgramMap[kprobeProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile KprobeProgram or KpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, kprobeObjects)
 
@@ -163,7 +163,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				uprobeObjects := []client.Object{&uprobeProgram}
-				appProgramMap[uprobeProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile UprobeProgram or UpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
@@ -185,7 +185,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tracepointObjects := []client.Object{&tracepointProgram}
-				appProgramMap[tracepointProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile TracepointProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tracepointObjects)
 
@@ -214,7 +214,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tcObjects := []client.Object{&tcProgram}
-				appProgramMap[tcProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile TcProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
@@ -242,7 +242,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				xdpObjects := []client.Object{&xdpProgram}
-				appProgramMap[xdpProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile XdpProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
 
@@ -267,15 +267,15 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			bpfPrograms := &bpfmaniov1alpha1.BpfProgramList{}
 			bpfDeletedPrograms := &bpfmaniov1alpha1.BpfProgramList{}
 			// find programs that need to be deleted and delete them
-			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: a.Name}}
+			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwner: a.Name}}
 			if err := r.List(ctx, bpfPrograms, opts...); err != nil {
 				ctxLogger.Error(err, "failed to get freshPrograms for full reconcile")
 				return ctrl.Result{}, err
 			}
 			for _, bpfProgram := range bpfPrograms.Items {
-				progName := bpfProgram.Labels[internal.BpfParentProgram]
-				if _, ok := appProgramMap[progName]; !ok {
-					ctxLogger.Info("Deleting BpfProgram", "BpfProgram", progName)
+				id := bpfProgram.Labels[internal.AppProgramId]
+				if _, ok := appProgramMap[id]; !ok {
+					ctxLogger.Info("Deleting BpfProgram", "AppProgramId", id, "BpfProgram", bpfProgram.Name)
 					bpfDeletedPrograms.Items = append(bpfDeletedPrograms.Items, bpfProgram)
 				}
 			}
