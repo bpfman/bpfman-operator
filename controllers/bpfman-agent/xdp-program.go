@@ -86,6 +86,10 @@ func (r *XdpProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentXdpProgram.Spec.GlobalData
 }
 
+func (r *XdpProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentXdpProgram.GetLabels())
+}
+
 func (r *XdpProgramReconciler) setCurrentProgram(program client.Object) error {
 	var err error
 	var ok bool
@@ -155,12 +159,12 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	for _, iface := range r.interfaces {
-		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
+		attachPoint := iface
 		annotations := map[string]string{internal.XdpProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+		prog, err := r.createBpfProgram(attachPoint, r, annotations)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 		}
 
 		progs.Items = append(progs.Items, *prog)

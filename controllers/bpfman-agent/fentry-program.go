@@ -85,6 +85,10 @@ func (r *FentryProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentFentryProgram.Spec.GlobalData
 }
 
+func (r *FentryProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentFentryProgram.GetLabels())
+}
+
 func (r *FentryProgramReconciler) setCurrentProgram(program client.Object) error {
 	var ok bool
 
@@ -123,14 +127,13 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FentryProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanatizedFentry := sanitize(r.currentFentryProgram.Spec.FunctionName)
-	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentFentryProgram.Name, r.NodeName, sanatizedFentry)
+	attachPoint := sanitize(r.currentFentryProgram.Spec.FunctionName)
 
 	annotations := map[string]string{internal.FentryProgramFunction: r.currentFentryProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+	prog, err := r.createBpfProgram(attachPoint, r, annotations)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 	}
 
 	progs.Items = append(progs.Items, *prog)

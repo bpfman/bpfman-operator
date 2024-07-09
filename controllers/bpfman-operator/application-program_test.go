@@ -112,7 +112,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: App.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: App.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.BpfApplicationControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

@@ -67,10 +67,10 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var err error
 	var complete bool
 
-	namePrefix := func(
+	buildProgramName := func(
 		app bpfmaniov1alpha1.BpfApplication,
 		prog bpfmaniov1alpha1.BpfApplicationProgram) string {
-		return app.Name + "-" + strings.ToLower(string(prog.Type)) + "-"
+		return app.Name + "-" + strings.ToLower(string(prog.Type))
 	}
 
 	for i, a := range appPrograms.Items {
@@ -78,10 +78,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		for j, p := range a.Spec.Programs {
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fentry.FunctionName))
 				fentryProgram := bpfmaniov1alpha1.FentryProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Fentry.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.FentryProgramSpec{
 						FentryProgramInfo: *p.Fentry,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -94,15 +95,16 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fentryObjects := []client.Object{&fentryProgram}
-				appProgramMap[fentryProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile FentryProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
 			case bpfmaniov1alpha1.ProgTypeFexit:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fexit.FunctionName))
 				fexitProgram := bpfmaniov1alpha1.FexitProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Fexit.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.FexitProgramSpec{
 						FexitProgramInfo: *p.Fexit,
 						BpfAppCommon:     a.Spec.BpfAppCommon,
@@ -115,16 +117,17 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				fexitObjects := []client.Object{&fexitProgram}
-				appProgramMap[fexitProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile FexitProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, fexitObjects)
 
 			case bpfmaniov1alpha1.ProgTypeKprobe,
 				bpfmaniov1alpha1.ProgTypeKretprobe:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Kprobe.FunctionName))
 				kprobeProgram := bpfmaniov1alpha1.KprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Kprobe.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.KprobeProgramSpec{
 						KprobeProgramInfo: *p.Kprobe,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -137,16 +140,17 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				kprobeObjects := []client.Object{&kprobeProgram}
-				appProgramMap[kprobeProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile KprobeProgram or KpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, kprobeObjects)
 
 			case bpfmaniov1alpha1.ProgTypeUprobe,
 				bpfmaniov1alpha1.ProgTypeUretprobe:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Uprobe.FunctionName))
 				uprobeProgram := bpfmaniov1alpha1.UprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Uprobe.FunctionName),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.UprobeProgramSpec{
 						UprobeProgramInfo: *p.Uprobe,
 						BpfAppCommon:      a.Spec.BpfAppCommon,
@@ -159,15 +163,16 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				uprobeObjects := []client.Object{&uprobeProgram}
-				appProgramMap[uprobeProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile UprobeProgram or UpretprobeProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
 			case bpfmaniov1alpha1.ProgTypeTracepoint:
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Tracepoint.Names[0]))
 				tracepointProgram := bpfmaniov1alpha1.TracepointProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + sanitize(p.Tracepoint.Names[0]),
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.TracepointProgramSpec{
 						TracepointProgramInfo: *p.Tracepoint,
 						BpfAppCommon:          a.Spec.BpfAppCommon,
@@ -180,7 +185,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tracepointObjects := []client.Object{&tracepointProgram}
-				appProgramMap[tracepointProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile TracepointProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tracepointObjects)
 
@@ -192,10 +197,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						"app program name", a.Name, "program index", j)
 					continue
 				}
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TC.Direction, interfaces[0])
 				tcProgram := bpfmaniov1alpha1.TcProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + p.TC.Direction + "-" + interfaces[0],
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.TcProgramSpec{
 						TcProgramInfo: *p.TC,
 						BpfAppCommon:  a.Spec.BpfAppCommon,
@@ -208,7 +214,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				tcObjects := []client.Object{&tcProgram}
-				appProgramMap[tcProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile TcProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
@@ -219,10 +225,11 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 						"app program name", a.Name, "program index", j)
 					continue
 				}
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), interfaces[0])
 				xdpProgram := bpfmaniov1alpha1.XdpProgram{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: namePrefix(a, p) + interfaces[0],
-					},
+						Name:   buildProgramName(a, p),
+						Labels: map[string]string{internal.AppProgramId: appProgramId}},
 					Spec: bpfmaniov1alpha1.XdpProgramSpec{
 						XdpProgramInfo: *p.XDP,
 						BpfAppCommon:   a.Spec.BpfAppCommon,
@@ -235,7 +242,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				}
 				rec.appOwner = &a
 				xdpObjects := []client.Object{&xdpProgram}
-				appProgramMap[xdpProgram.Name] = true
+				appProgramMap[appProgramId] = true
 				// Reconcile XdpProgram.
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
 
@@ -260,15 +267,15 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			bpfPrograms := &bpfmaniov1alpha1.BpfProgramList{}
 			bpfDeletedPrograms := &bpfmaniov1alpha1.BpfProgramList{}
 			// find programs that need to be deleted and delete them
-			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: a.Name}}
+			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwner: a.Name}}
 			if err := r.List(ctx, bpfPrograms, opts...); err != nil {
 				ctxLogger.Error(err, "failed to get freshPrograms for full reconcile")
 				return ctrl.Result{}, err
 			}
 			for _, bpfProgram := range bpfPrograms.Items {
-				progName := bpfProgram.Labels[internal.BpfParentProgram]
-				if _, ok := appProgramMap[progName]; !ok {
-					ctxLogger.Info("Deleting BpfProgram", "BpfProgram", progName)
+				id := bpfProgram.Labels[internal.AppProgramId]
+				if _, ok := appProgramMap[id]; !ok {
+					ctxLogger.Info("Deleting BpfProgram", "AppProgramId", id, "BpfProgram", bpfProgram.Name)
 					bpfDeletedPrograms.Items = append(bpfDeletedPrograms.Items, bpfProgram)
 				}
 			}

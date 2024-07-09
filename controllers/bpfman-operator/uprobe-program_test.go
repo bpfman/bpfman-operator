@@ -85,7 +85,7 @@ func TestUprobeProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Uprobe.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: Uprobe.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.UprobeProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

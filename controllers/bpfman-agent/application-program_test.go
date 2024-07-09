@@ -36,13 +36,15 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		// fentry program config
 		bpfFentryFunctionName = "fentry_test"
 		fentryFunctionName    = "do_unlinkat"
-		fentryBpfProgName     = fmt.Sprintf("%s-%s-%s-%s-%s", name, "fentry", "do-unlinkat", fakeNode.Name, "do-unlinkat")
+		fentryAppProgramId    = fmt.Sprintf("%s-%s", "fentry", sanitize(fentryFunctionName))
+		fentryAttachPoint     = sanitize(fentryFunctionName)
 		fentryBpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fentryFakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 		// kprobe program config
 		bpfKprobeFunctionName       = "kprobe_test"
 		kprobeFunctionName          = "try_to_wake_up"
-		kprobeBpfProgName           = fmt.Sprintf("%s-%s-%s-%s-%s", name, "kprobe", "try-to-wake-up", fakeNode.Name, "try-to-wake-up")
+		kprobeAppProgramId          = fmt.Sprintf("%s-%s", "kprobe", sanitize(kprobeFunctionName))
+		kprobeAttachPoint           = sanitize(kprobeFunctionName)
 		kprobeBpfProg               = &bpfmaniov1alpha1.BpfProgram{}
 		kprobeFakeUID               = "ef71d42c-aa21-48e8-a697-82391d801a82"
 		kprobeOffset                = 0
@@ -133,14 +135,14 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: fentryBpfProgName, Namespace: metav1.NamespaceAll}, fentryBpfProg)
+	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, fentryBpfProg)
 	// Finalizer is written
 	require.Equal(t, internal.BpfApplicationControllerFinalizer, fentryBpfProg.Finalizers[0])
 	// owningConfig Label was correctly set
-	require.Equal(t, name, fentryBpfProg.Labels[internal.BpfProgramOwnerLabel])
+	require.Equal(t, name, fentryBpfProg.Labels[internal.BpfProgramOwner])
 	// node Label was correctly set
 	require.Equal(t, fakeNode.Name, fentryBpfProg.Labels[internal.K8sHostLabel])
 	// fentry function Annotation was correctly set
@@ -184,7 +186,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: fentryBpfProgName, Namespace: metav1.NamespaceAll}, fentryBpfProg)
+	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -208,7 +210,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: fentryBpfProgName, Namespace: metav1.NamespaceAll}, fentryBpfProg)
+	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), fentryBpfProg.Status.Conditions[0].Type)
@@ -220,14 +222,14 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 
-	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, kprobeBpfProg)
 	// Finalizer is written
 	require.Equal(t, internal.BpfApplicationControllerFinalizer, kprobeBpfProg.Finalizers[0])
 	// owningConfig Label was correctly set
-	require.Equal(t, name, kprobeBpfProg.Labels[internal.BpfProgramOwnerLabel])
+	require.Equal(t, name, kprobeBpfProg.Labels[internal.BpfProgramOwner])
 	// node Label was correctly set
 	require.Equal(t, fakeNode.Name, kprobeBpfProg.Labels[internal.K8sHostLabel])
 	// fentry function Annotation was correctly set
@@ -273,7 +275,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -297,9 +299,8 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: kprobeBpfProgName, Namespace: metav1.NamespaceAll}, kprobeBpfProg)
+	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), kprobeBpfProg.Status.Conditions[0].Type)
-
 }

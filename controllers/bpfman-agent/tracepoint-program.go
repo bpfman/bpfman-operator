@@ -85,6 +85,10 @@ func (r *TracepointProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentTracepointProgram.Spec.GlobalData
 }
 
+func (r *TracepointProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentTracepointProgram.GetLabels())
+}
+
 func (r *TracepointProgramReconciler) setCurrentProgram(program client.Object) error {
 	var ok bool
 
@@ -124,14 +128,12 @@ func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
-		sanatizedTrace := sanitize(tracepoint)
-		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTracepointProgram.Name, r.NodeName, sanatizedTrace)
-
+		attachPoint := sanitize(tracepoint)
 		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
-		prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+		prog, err := r.createBpfProgram(attachPoint, r, annotations)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 		}
 
 		progs.Items = append(progs.Items, *prog)

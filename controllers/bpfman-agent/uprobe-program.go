@@ -86,6 +86,10 @@ func (r *UprobeProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentUprobeProgram.Spec.GlobalData
 }
 
+func (r *UprobeProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentUprobeProgram.GetLabels())
+}
+
 func (r *UprobeProgramReconciler) setCurrentProgram(program client.Object) error {
 	var ok bool
 
@@ -156,8 +160,7 @@ func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*
 func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanatizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target)
-	bpfProgramNameBase := fmt.Sprintf("%s-%s-%s", r.currentUprobeProgram.Name, r.NodeName, sanatizedUprobe)
+	sanatizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target) + "-" + sanitize(r.currentUprobeProgram.Spec.FunctionName)
 
 	if r.currentUprobeProgram.Spec.Containers != nil {
 
@@ -175,11 +178,11 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 				internal.UprobeNoContainersOnNode: "true",
 			}
 
-			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
+			attachPoint := sanatizedUprobe + "-no-containers-on-node"
 
-			prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+			prog, err := r.createBpfProgram(attachPoint, r, annotations)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
+				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 			}
 
 			progs.Items = append(progs.Items, *prog)
@@ -192,11 +195,15 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 				annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 				annotations[internal.UprobeContainerPid] = strconv.FormatInt(container.pid, 10)
 
-				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
+				attachPoint := fmt.Sprintf("%s-%s-%s",
+					sanatizedUprobe,
+					container.podName,
+					container.containerName,
+				)
 
-				prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+				prog, err := r.createBpfProgram(attachPoint, r, annotations)
 				if err != nil {
-					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 				}
 
 				progs.Items = append(progs.Items, *prog)
@@ -205,9 +212,11 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		prog, err := r.createBpfProgram(bpfProgramNameBase, r, annotations)
+		attachPoint := sanatizedUprobe
+
+		prog, err := r.createBpfProgram(attachPoint, r, annotations)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 		}
 
 		progs.Items = append(progs.Items, *prog)

@@ -43,6 +43,7 @@ import (
 	"github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/go-logr/logr"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
@@ -126,6 +127,9 @@ type bpfmanReconciler interface {
 	getNodeSelector() *metav1.LabelSelector
 	// getBpfGlobalData returns the Bpf program global variables.
 	getBpfGlobalData() map[string][]byte
+	// getAppProgramId() returns the program qualifier for the current
+	// program.  If there is no qualifier, it should return an empty string.
+	getAppProgramId() string
 }
 
 // reconcileCommon is the common reconciler loop called by each bpfman
@@ -500,17 +504,22 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmani
 	return true
 }
 
+type bpfProgKey struct {
+	appProgId   string
+	attachPoint string
+}
+
 func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
-	rec bpfmanReconciler) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
+	rec bpfmanReconciler) (map[bpfProgKey]bpfmaniov1alpha1.BpfProgram, error) {
 
 	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this *Program and the controller's node
 	opts := []client.ListOption{
 		client.MatchingLabels{
-			internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
-			internal.BpfParentProgram:     rec.getName(),
-			internal.K8sHostLabel:         r.NodeName,
+			internal.BpfProgramOwner: rec.getOwner().GetName(),
+			internal.AppProgramId:    rec.getAppProgramId(),
+			internal.K8sHostLabel:    r.NodeName,
 		},
 	}
 
@@ -519,32 +528,47 @@ func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
 		return nil, err
 	}
 
-	existingBpfPrograms := map[string]bpfmaniov1alpha1.BpfProgram{}
+	existingBpfPrograms := map[bpfProgKey]bpfmaniov1alpha1.BpfProgram{}
 	for _, bpfProg := range bpfProgramList.Items {
-		existingBpfPrograms[bpfProg.GetName()] = bpfProg
+		key := bpfProgKey{
+			appProgId:   bpfProg.GetLabels()[internal.AppProgramId],
+			attachPoint: bpfProg.GetAnnotations()[internal.BpfProgramAttachPoint],
+		}
+		existingBpfPrograms[key] = bpfProg
 	}
 
 	return existingBpfPrograms, nil
 }
 
+func generateUniqueName(baseName string) string {
+	uuid := uuid.New().String()
+	return fmt.Sprintf("%s-%s", baseName, uuid[:8])
+}
+
 // createBpfProgram moves some shared logic for building bpfProgram objects
 // into a central location.
 func (r *ReconcilerCommon) createBpfProgram(
-	bpfProgramName string,
+	attachPoint string,
 	rec bpfmanReconciler,
 	annotations map[string]string) (*bpfmaniov1alpha1.BpfProgram, error) {
 
-	r.Logger.V(1).Info("createBpfProgram()", "Name", bpfProgramName,
+	r.Logger.V(1).Info("createBpfProgram()", "Name", attachPoint,
 		"Owner", rec.getOwner().GetName(), "OwnerType", rec.getRecType(), "Name", rec.getName())
+
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[internal.BpfProgramAttachPoint] = attachPoint
 
 	bpfProg := &bpfmaniov1alpha1.BpfProgram{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       bpfProgramName,
+			Name:       generateUniqueName(rec.getName()),
 			Finalizers: []string{rec.getFinalizer()},
 			Labels: map[string]string{
-				internal.BpfProgramOwnerLabel: rec.getOwner().GetName(),
-				internal.BpfParentProgram:     rec.getName(),
-				internal.K8sHostLabel:         r.NodeName},
+				internal.BpfProgramOwner: rec.getOwner().GetName(),
+				internal.AppProgramId:    rec.getAppProgramId(),
+				internal.K8sHostLabel:    r.NodeName,
+			},
 			Annotations: annotations,
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
@@ -581,7 +605,7 @@ func (r *ReconcilerCommon) createBpfProgram(
 func (r *ReconcilerCommon) handleProgDelete(
 	ctx context.Context,
 	rec bpfmanReconciler,
-	existingBpfPrograms map[string]bpfmaniov1alpha1.BpfProgram,
+	existingBpfPrograms map[bpfProgKey]bpfmaniov1alpha1.BpfProgram,
 	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
 	isNodeSelected bool,
 	isBeingDeleted bool,
@@ -679,7 +703,7 @@ func (r *ReconcilerCommon) unLoadAndDeleteBpfProgramsList(ctx context.Context, b
 func (r *ReconcilerCommon) handleProgCreateOrUpdate(
 	ctx context.Context,
 	rec bpfmanReconciler,
-	existingBpfPrograms map[string]bpfmaniov1alpha1.BpfProgram,
+	existingBpfPrograms map[bpfProgKey]bpfmaniov1alpha1.BpfProgram,
 	expectedBpfPrograms *bpfmaniov1alpha1.BpfProgramList,
 	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
 	isNodeSelected bool,
@@ -692,11 +716,15 @@ func (r *ReconcilerCommon) handleProgCreateOrUpdate(
 	// even if the node isn't selected
 	for _, expectedBpfProgram := range expectedBpfPrograms.Items {
 		r.Logger.V(1).Info("Creating or Updating", "Name", expectedBpfProgram.Name)
-		existingBpfProgram, exists := existingBpfPrograms[expectedBpfProgram.Name]
+		key := bpfProgKey{
+			appProgId:   expectedBpfProgram.GetLabels()[internal.AppProgramId],
+			attachPoint: expectedBpfProgram.GetAnnotations()[internal.BpfProgramAttachPoint],
+		}
+		existingBpfProgram, exists := existingBpfPrograms[key]
 		if exists {
 			// Remove the bpfProgram from the existingPrograms map so we know
 			// not to delete it below.
-			delete(existingBpfPrograms, expectedBpfProgram.Name)
+			delete(existingBpfPrograms, key)
 		} else {
 			// Create a new bpfProgram Object for this program.
 			opts := client.CreateOptions{}
@@ -937,4 +965,49 @@ func sanitize(name string) string {
 	name = strings.TrimPrefix(name, "/")
 	name = strings.Replace(strings.Replace(name, "/", "-", -1), "_", "-", -1)
 	return strings.ToLower(name)
+}
+
+func appProgramId(labels map[string]string) string {
+	id, ok := labels[internal.AppProgramId]
+	if ok {
+		return id
+	}
+	return ""
+}
+
+// getBpfProgram returns a BpfProgram object in the bpfProgram parameter based
+// on the given owner, appProgId, and attachPoint. If the BpfProgram is not
+// found, an error is returned.
+func (r *ReconcilerCommon) getBpfProgram(
+	ctx context.Context,
+	owner string,
+	appProgId string,
+	attachPoint string,
+	bpfProgram *bpfmaniov1alpha1.BpfProgram) error {
+
+	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
+
+	// Only list bpfPrograms for this *Program and the controller's node
+	opts := []client.ListOption{
+		client.MatchingLabels{
+			internal.BpfProgramOwner: owner,
+			internal.AppProgramId:    appProgId,
+			internal.K8sHostLabel:    r.NodeName,
+		},
+	}
+
+	err := r.List(ctx, bpfProgramList, opts...)
+	if err != nil {
+		return err
+	}
+
+	for _, bpfProg := range bpfProgramList.Items {
+		if appProgId == bpfProg.GetLabels()[internal.AppProgramId] &&
+			attachPoint == bpfProg.GetAnnotations()[internal.BpfProgramAttachPoint] {
+			*bpfProgram = bpfProg
+			return nil
+		}
+	}
+
+	return fmt.Errorf("bpfProgram not found")
 }

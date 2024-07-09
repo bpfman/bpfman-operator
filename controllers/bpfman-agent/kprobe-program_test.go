@@ -18,7 +18,6 @@ package bpfmanagent
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -55,7 +54,8 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		kprobecontainerpid int32 = 0
 		fakeNode                 = testutils.NewNode("fake-control-plane")
 		ctx                      = context.TODO()
-		bpfProgName              = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "try-to-wake-up")
+		appProgramId             = ""
+		attachPoint              = sanitize(functionName)
 		bpfProg                  = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID                  = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
@@ -126,14 +126,14 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProg)
 	// Finalizer is written
 	require.Equal(t, r.getFinalizer(), bpfProg.Finalizers[0])
 	// owningConfig Label was correctly set
-	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwnerLabel], name)
+	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwner], name)
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// kprobe function Annotation was correctly set
@@ -178,7 +178,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -202,7 +202,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)

@@ -85,7 +85,7 @@ func TestXdpProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Xdp.Name, internal.K8sHostLabel: fakeNode.Name},
+			Labels:     map[string]string{internal.BpfProgramOwner: Xdp.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TcProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{

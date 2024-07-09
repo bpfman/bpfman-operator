@@ -18,7 +18,6 @@ package bpfmanagent
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -54,7 +53,8 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		fakeNode        = testutils.NewNode("fake-control-plane")
 		fakeInt         = "eth0"
 		ctx             = context.TODO()
-		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt)
+		appProgramId    = ""
+		attachPoint     = fakeInt + "-" + direction
 		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
@@ -131,12 +131,12 @@ func TestTcProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProg)
 	// owningConfig Label was correctly set
-	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwnerLabel], name)
+	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwner], name)
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// Finalizer is written
@@ -183,7 +183,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -206,7 +206,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)
@@ -222,8 +222,10 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		fakeNode        = testutils.NewNode("fake-control-plane")
 		fakeInts        = []string{"eth0", "eth1"}
 		ctx             = context.TODO()
-		bpfProgName0    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[0])
-		bpfProgName1    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[1])
+		appProgramId0   = ""
+		attachPoint0    = fakeInts[0] + "-" + direction
+		appProgramId1   = ""
+		attachPoint1    = fakeInts[1] + "-" + direction
 		bpfProgEth0     = &bpfmaniov1alpha1.BpfProgram{}
 		bpfProgEth1     = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID0        = "ef71d42c-aa21-48e8-a697-82391d801a80"
@@ -301,12 +303,12 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	}
 
 	// Check the first BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
+	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProgEth0)
 	// owningConfig Label was correctly set
-	require.Equal(t, bpfProgEth0.Labels[internal.BpfProgramOwnerLabel], name)
+	require.Equal(t, bpfProgEth0.Labels[internal.BpfProgramOwner], name)
 	// node Label was correctly set
 	require.Equal(t, bpfProgEth0.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// Finalizer is written
@@ -349,12 +351,12 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check the Second BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+	err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProgEth1)
 	// owningConfig Label was correctly set
-	require.Equal(t, bpfProgEth1.Labels[internal.BpfProgramOwnerLabel], name)
+	require.Equal(t, bpfProgEth1.Labels[internal.BpfProgramOwner], name)
 	// node Label was correctly set
 	require.Equal(t, bpfProgEth1.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// Finalizer is written
@@ -427,7 +429,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
+	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -435,7 +437,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+	err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
@@ -455,11 +457,11 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
+	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+	err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
 	require.NoError(t, err)
 
 	// Third reconcile should update the bpfPrograms status to loaded
@@ -472,13 +474,13 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
+	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), bpfProgEth0.Status.Conditions[0].Type)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+	err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), bpfProgEth1.Status.Conditions[0].Type)

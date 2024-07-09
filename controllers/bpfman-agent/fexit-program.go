@@ -85,6 +85,10 @@ func (r *FexitProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.currentFexitProgram.Spec.GlobalData
 }
 
+func (r *FexitProgramReconciler) getAppProgramId() string {
+	return appProgramId(r.currentFexitProgram.GetLabels())
+}
+
 func (r *FexitProgramReconciler) setCurrentProgram(program client.Object) error {
 	var ok bool
 
@@ -123,14 +127,13 @@ func (r *FexitProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *FexitProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanatizedFexit := sanitize(r.currentFexitProgram.Spec.FunctionName)
-	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentFexitProgram.Name, r.NodeName, sanatizedFexit)
+	attachPoint := sanitize(r.currentFexitProgram.Spec.FunctionName)
 
 	annotations := map[string]string{internal.FexitProgramFunction: r.currentFexitProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(bpfProgramName, r, annotations)
+	prog, err := r.createBpfProgram(attachPoint, r, annotations)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 	}
 
 	progs.Items = append(progs.Items, *prog)
