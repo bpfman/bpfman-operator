@@ -109,6 +109,7 @@ spec:
           args:
             - --health-probe-bind-address=:8175
             - --metrics-bind-address=127.0.0.1:8174
+            - --profiling-bind-address=:6060
           image: quay.io/bpfman/bpfman-agent:latest
           securityContext:
             privileged: true

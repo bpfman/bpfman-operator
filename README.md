@@ -207,3 +207,51 @@ object to find references to the bpfMap pinpoints (`spec.maps`) to configure the
 
 For more architecture details about `bpfman-operator`, refer to
 [Developing the bpfman-operator](https://bpfman.io/v0.5.0/developer-guide/develop-operator)
+
+### Bpfman-agent profiling
+
+bpfman-agent process use port `6060` for Golang profiling to be able to get the different profiles
+
+1- Set port-forward rule in a different terminal 
+```shell
+oc get pods -n bpfman
+NAME                               READY   STATUS    RESTARTS   AGE
+bpfman-daemon-76v57                3/3     Running   0          14m
+bpfman-operator-7f67bc7c57-ww52z   2/2     Running   0          14m
+
+oc -n bpfman port-forward bpfman-daemon-76v57 6060
+```
+
+2- Download the required profiles:
+
+`curl -o <profile> http://localhost:6060/debug/pprof/<profile>`
+
+Where <profile> can be:
+
+| profile      | description                                                                   |
+|--------------|-------------------------------------------------------------------------------|
+| allocs       | A sampling of all memory allocations                                          |
+| block        | Stack traces that led to blocking on synchronization primitives               |
+| cmdline      | The command line invocation of the current program                            |
+| goroutine    | Stack traces of all current goroutines                                        |
+| heap         | A sampling of memory allocations of live objects.                             |
+|              | You can specify the gc GET parameter to run GC before taking the heap sample. |
+| mutex        | Stack traces of holders of contended mutexes                                  |
+| profile      | CPU profile.                                                                  |
+|              | You can specify the duration in the seconds GET parameter.                    |
+| threadcreate | Stack traces that led to the creation of new OS threads                       |
+| trace        | A trace of execution of the current program.                                  |
+|              | You can specify the duration in the seconds GET parameter.                    |
+
+Example:
+
+```shell
+curl "http://localhost:6060/debug/pprof/trace?seconds=20" -o trace
+curl "http://localhost:6060/debug/pprof/profile?duration=20" -o cpu
+curl "http://localhost:6060/debug/pprof/heap?gc" -o heap
+curl "http://localhost:6060/debug/pprof/allocs" -o allocs
+curl "http://localhost:6060/debug/pprof/goroutine" -o goroutine
+```
+
+3- Use [go tool pprof](https://go.dev/blog/pprof) to dig into the profiles (go tool trace for the trace profile) or use 
+  web interface for example `go tool pprof -http=:8080 cpu`
