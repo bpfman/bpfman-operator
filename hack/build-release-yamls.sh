@@ -52,7 +52,7 @@ done
 
 echo "Generated:" release-v${VERSION}/bpfman-crds-install.yaml
 
-## 2. bpfman-operator install yaml
+## 2.bpfman-operator install yaml
 
 $(cd ./config/bpfman-operator-deployment && ${KUSTOMIZE} edit set image quay.io/bpfman/bpfman-operator=quay.io/bpfman/bpfman-operator:v${VERSION})
 ${KUSTOMIZE} build ./config/default > release-v${VERSION}/bpfman-operator-install.yaml
@@ -61,44 +61,3 @@ sed -i "s/quay.io\/bpfman\/bpfman-agent:latest/quay.io\/bpfman\/bpfman-agent:v${
 sed -i "s/quay.io\/bpfman\/bpfman:latest/quay.io\/bpfman\/bpfman:v${VERSION}/g" release-v${VERSION}/bpfman-operator-install.yaml
 
 echo "Generated:" release-v${VERSION}/bpfman-operator-install.yaml
-
-## 3. examples install yamls
-
-### XDP
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-xdp-counter-install.yaml
-### TC
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tc-counter > release-v${VERSION}/go-tc-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-tc-counter-install.yaml
-### TRACEPOINT
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install.yaml
-### UPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-uprobe-counter-install.yaml
-### URETPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-uretprobe-counter > release-v${VERSION}/go-uretprobe-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-uretprobe-counter-install.yaml
-### KPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install.yaml
-echo "Generated:" release-v${VERSION}/go-kprobe-counter-install.yaml
-
-## 4. examples install yamls for SELINUX distros
-### XDP
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-xdp-counter-install-selinux.yaml
-### TC
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-tc-counter > release-v${VERSION}/go-tc-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-tc-counter-install-selinux.yaml
-### TRACEPOINT
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
-### UPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-uprobe-counter-install-selinux.yaml
-### URETPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-uretprobe-counter > release-v${VERSION}/go-uretprobe-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-uretprobe-counter-install-selinux.yaml
-### KPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install-selinux.yaml
-echo "Generated:" release-v${VERSION}/go-kprobe-counter-install-selinux.yaml
