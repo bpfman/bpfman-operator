@@ -72,6 +72,30 @@ To clean up at a later time, execute:
 operator-sdk cleanup bpfman-operator
 ```
 
+#### 3. Deploy as a bundle from the Console's OperatorHub page
+
+This mode is recommended when you want to test the customer experience of navigating through the operators'
+catalog and installing/configuring it manually through the UI, prior to committing the bundle to either: -
+
+- https://github.com/redhat-openshift-ecosystem/community-operators-prod
+ 
+or
+
+- https://github.com/k8s-operatorhub/community-operators/pulls
+
+```sh
+export BUNDLE_IMG=quay.io/$USER/bpfman-operator-bundle:developement
+make bundle bundle-build bundle-push
+export CATALOG_IMG=quay.io/$USER/bpfman-operator-catalog:developement
+make catalog-build catalog-push catalog-deploy
+```
+
+To clean up at a later time, execute:
+
+```bash
+make catalog-undeploy
+```
+
 ## Verify the Installation
 
 Regardless of the deployment method, if the `bpfman-operator` was deployed successfully,
