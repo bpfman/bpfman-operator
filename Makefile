@@ -29,7 +29,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # bpfman.io/bpfman-operator-bundle:$VERSION and bpfman.io/bpfman-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= bpfman.io/bpfman-operator
+IMAGE_TAG_BASE ?= quay.io/bpfman/bpfman-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -50,7 +50,6 @@ IMAGE_TAG ?= latest
 BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
-BPFMAN_OPERATOR_BUNDLE_IMG ?= quay.io/bpfman/bpfman-operator-bundle:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -344,11 +343,11 @@ load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the runn
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f Containerfile.bundle -t $(BPFMAN_OPERATOR_BUNDLE_IMG) .
+	docker build -f Containerfile.bundle -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	docker push $(BPFMAN_OPERATOR_BUNDLE_IMG)
+	docker push $(BUNDLE_IMG)
 
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
@@ -368,7 +367,6 @@ endif
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
 	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
-
 # Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
@@ -434,3 +432,13 @@ deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+# Deploy the catalog.
+.PHONY: catalog-deploy
+catalog-deploy: ## Deploy a catalog image.
+	$(SED) -e 's~<IMAGE>~$(CATALOG_IMG)~' ./config/catalog/catalog.yaml | kubectl apply -f -
+
+# Undeploy the catalog.
+.PHONY: catalog-undeploy
+catalog-undeploy: ## Undeploy a catalog image.
+	kubectl delete -f ./config/catalog/catalog.yaml

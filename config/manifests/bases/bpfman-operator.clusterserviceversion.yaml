@@ -7,6 +7,7 @@ metadata:
     capabilities: Basic Install
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
     repository: https://github.com/bpfman/bpfman
+    operatorframework.io/suggested-namespace: bpfman
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",
@@ -23,6 +24,23 @@ metadata:
           },
         }
       }
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "true"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/infrastructure-features: '["csi", "disconnected"]'
+    operators.openshift.io/valid-subscription: '["OpenShift Kubernetes Engine", "OpenShift Container Platform", "OpenShift Platform Plus"]'
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/arch.ppc64le: supported
+    operatorframework.io/arch.s390x: supported
   name: bpfman-operator.v0.0.0
   namespace: placeholder
 spec:
