@@ -47,6 +47,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+      - description: BpfApplication is the Schema for the bpfapplications API
+        displayName: Bpf Application
+        kind: BpfApplication
+        name: bpfapplications.bpfman.io
+        version: v1alpha1
       - description: BpfProgram is the Schema for the BpfProgram API
         displayName: Bpf Program
         kind: BpfProgram
