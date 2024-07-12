@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-07-12T16:12:00Z"
+    createdAt: "2024-07-12T19:37:22Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -341,7 +341,9 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: BpfApplication
+    - description: BpfApplication is the Schema for the bpfapplications API
+      displayName: Bpf Application
+      kind: BpfApplication
       name: bpfapplications.bpfman.io
       version: v1alpha1
     - description: BpfProgram is the Schema for the BpfProgram API
