@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-07-11T20:30:36Z"
+    createdAt: "2024-07-12T15:52:56Z"
     operatorframework.io/suggested-namespace-template: |-
       {
         "apiVersion": "v1",
@@ -316,7 +316,7 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/bpfman/bpfman
-  name: bpfman-operator.v0.5.0-rc2
+  name: bpfman-operator.v0.5.0-rc3
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1131,4 +1131,4 @@ spec:
   provider:
     name: The bpfman Community
     url: https://bpfman.io/
-  version: 0.5.0-rc2
+  version: 0.5.0-rc3
