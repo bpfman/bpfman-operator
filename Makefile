@@ -406,7 +406,7 @@ deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specifi
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	kubectl delete cm bpfman-config -n bpfman
+	kubectl delete --ignore-not-found=$(ignore-not-found) cm bpfman-config -n bpfman
 	sleep 5 # Wait for the operator to cleanup the daemonset
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
@@ -441,4 +441,4 @@ catalog-deploy: ## Deploy a catalog image.
 # Undeploy the catalog.
 .PHONY: catalog-undeploy
 catalog-undeploy: ## Undeploy a catalog image.
-	kubectl delete -f ./config/catalog/catalog.yaml
+	kubectl delete --ignore-not-found=$(ignore-not-found) -f ./config/catalog/catalog.yaml
