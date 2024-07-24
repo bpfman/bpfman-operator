@@ -18,6 +18,7 @@ package bpfmanoperator
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -160,113 +161,86 @@ func projectRootPredicate(dir string) bool {
 	return true
 }
 
-func TestBpfmanConfigReconcileAndDelete(t *testing.T) {
-	var (
-		name          = "bpfman-config"
-		namespace     = "bpfman"
-		staticDsPath  = "../../config/bpfman-deployment/daemonset.yaml"
-		staticCsiPath = "../../config/bpfman-deployment/csidriverinfo.yaml"
-		ctx           = context.TODO()
-	)
+func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
+	for _, tc := range []struct {
+		isOpenShift bool
+	}{
+		{isOpenShift: false},
+		{isOpenShift: true},
+	} {
+		t.Run(fmt.Sprintf("isOpenShift: %v", tc.isOpenShift), func(t *testing.T) {
+			r, bpfmanConfig, req, ctx, cl := setupTestEnvironment(tc.isOpenShift)
+			require.Equal(t, tc.isOpenShift, r.RestrictedSCC != "", "RestrictedSCC should be non-empty for OpenShift and empty otherwise")
 
-	// A configMap for bpfman with metadata and spec.
-	bpfmanConfig := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: map[string]string{
-			"bpfman.agent.image":     "BPFMAN_AGENT_IS_SCARY",
-			"bpfman.image":           "FAKE-IMAGE",
-			"bpfman.agent.log.level": "FAKE",
-		},
+			// The expected bpfman daemonset
+			expectedBpfmanDs := LoadAndConfigureBpfmanDs(bpfmanConfig, resolveConfigPath(internal.BpfmanDaemonManifestPath))
+
+			// First reconcile will add bpfman-operator finalizer to bpfman configmap
+			res, err := r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile: (%v)", err)
+			}
+
+			// Require no requeue
+			require.False(t, res.Requeue)
+
+			// Check the BpfProgram Object was created successfully
+			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNs}, bpfmanConfig)
+			require.NoError(t, err)
+
+			// Check the bpfman-operator finalizer was successfully added
+			require.Contains(t, bpfmanConfig.GetFinalizers(), internal.BpfmanOperatorFinalizer)
+
+			// Second reconcile will create bpfman daemonset and, when isOpenshift holds true, a SCC.
+			res, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile: (%v)", err)
+			}
+
+			// Require no requeue
+			require.False(t, res.Requeue)
+
+			// Check the bpfman daemonset was created successfully
+			actualBpfmanDs := &appsv1.DaemonSet{}
+
+			err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: expectedBpfmanDs.Namespace}, actualBpfmanDs)
+			require.NoError(t, err)
+
+			// Check the bpfman daemonset was created with the correct configuration.
+			require.True(t, reflect.DeepEqual(actualBpfmanDs.Spec, expectedBpfmanDs.Spec))
+
+			if tc.isOpenShift {
+				// Check the SCC was created with the correct configuration.
+				actualRestrictedSCC := &osv1.SecurityContextConstraints{}
+				expectedRestrictedSCC := LoadRestrictedSecurityContext(resolveConfigPath(internal.BpfmanRestrictedSCCPath))
+				err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll}, actualRestrictedSCC)
+				require.NoError(t, err)
+				// Match ResourceVersion's as that is the only expected difference (0 versus 1).
+				expectedRestrictedSCC.ResourceVersion = actualRestrictedSCC.ResourceVersion
+				require.True(t, reflect.DeepEqual(actualRestrictedSCC, expectedRestrictedSCC))
+			}
+
+			// Delete the bpfman configmap
+			err = cl.Delete(ctx, bpfmanConfig)
+			require.NoError(t, err)
+
+			// Third reconcile will delete bpfman daemonset
+			res, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile: (%v)", err)
+			}
+
+			// Require no requeue
+			require.False(t, res.Requeue)
+
+			err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: expectedBpfmanDs.Namespace}, actualBpfmanDs)
+			require.True(t, errors.IsNotFound(err))
+
+			err = cl.Get(ctx, types.NamespacedName{Name: bpfmanConfig.Name, Namespace: bpfmanConfig.Namespace}, bpfmanConfig)
+			require.True(t, errors.IsNotFound(err))
+
+			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll}, &osv1.SecurityContextConstraints{})
+			require.True(t, errors.IsNotFound(err))
+		})
 	}
-
-	// Objects to track in the fake client.
-	objs := []runtime.Object{bpfmanConfig}
-
-	// Register operator types with the runtime scheme.
-	s := scheme.Scheme
-	s.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ConfigMap{})
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.DaemonSet{})
-	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
-
-	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-
-	rc := ReconcilerCommon{
-		Client: cl,
-		Scheme: s,
-	}
-
-	// The expected bpfman daemonset
-	expectedBpfmanDs := LoadAndConfigureBpfmanDs(bpfmanConfig, staticDsPath)
-
-	// Set development Logger so we can see all logs in tests.
-	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
-
-	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &BpfmanConfigReconciler{ReconcilerCommon: rc, BpfmanStandardDeployment: staticDsPath, CsiDriverDeployment: staticCsiPath}
-
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	// First reconcile will add bpfman-operator finalizer to bpfman configmap
-	res, err := r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfmanConfig.Name, Namespace: namespace}, bpfmanConfig)
-	require.NoError(t, err)
-
-	// Check the bpfman-operator finalizer was successfully added
-	require.Contains(t, bpfmanConfig.GetFinalizers(), internal.BpfmanOperatorFinalizer)
-
-	// Second reconcile will create bpfman daemonset
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check the bpfman daemonset was created successfully
-	actualBpfmanDs := &appsv1.DaemonSet{}
-
-	err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: namespace}, actualBpfmanDs)
-	require.NoError(t, err)
-
-	// Check the bpfman daemonset was created with the correct configuration.
-	require.True(t, reflect.DeepEqual(actualBpfmanDs.Spec, expectedBpfmanDs.Spec))
-
-	// Delete the bpfman configmap
-	err = cl.Delete(ctx, bpfmanConfig)
-	require.NoError(t, err)
-
-	// Third reconcile will delete bpfman daemonset
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: namespace}, actualBpfmanDs)
-	require.True(t, errors.IsNotFound(err))
-
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfmanConfig.Name, Namespace: namespace}, bpfmanConfig)
-	require.True(t, errors.IsNotFound(err))
 }
