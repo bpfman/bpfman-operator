@@ -249,8 +249,8 @@ spec:
         workspace: workspace
     - name: build-source-image
       params:
-      - name: BASE_IMAGES
-        value: $(tasks.build-container.results.BASE_IMAGES_DIGESTS)
+      - name: BINARY_IMAGE
+        value: $(params.output-image)
       runAfter:
       - build-container
       taskRef:
