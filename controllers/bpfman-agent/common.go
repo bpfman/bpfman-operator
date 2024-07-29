@@ -670,13 +670,16 @@ func (r *ReconcilerCommon) unLoadAndDeleteBpfProgramsList(ctx context.Context, b
 			r.Logger.Error(err, "Failed to get bpf program ID")
 			return ctrl.Result{}, nil
 		}
-		r.Logger.Info("Calling bpfman to unload program on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			if strings.Contains(err.Error(), programDoesNotExistErr) {
-				r.Logger.Info("Program not found on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
-			} else {
-				r.Logger.Error(err, "Failed to unload Program")
-				return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+
+		if id != nil {
+			r.Logger.Info("Calling bpfman to unload program on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
+			if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
+				if strings.Contains(err.Error(), programDoesNotExistErr) {
+					r.Logger.Info("Program not found on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
+				} else {
+					r.Logger.Error(err, "Failed to unload Program")
+					return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+				}
 			}
 		}
 
