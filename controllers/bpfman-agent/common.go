@@ -504,6 +504,15 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmani
 	return true
 }
 
+func statusContains(bpfProgram *bpfmaniov1alpha1.BpfProgram, cond bpfmaniov1alpha1.BpfProgramConditionType) bool {
+	for _, c := range bpfProgram.Status.Conditions {
+		if c.Type == string(cond) {
+			return true
+		}
+	}
+	return false
+}
+
 type bpfProgKey struct {
 	appProgId   string
 	attachPoint string
@@ -671,7 +680,7 @@ func (r *ReconcilerCommon) unLoadAndDeleteBpfProgramsList(ctx context.Context, b
 			return ctrl.Result{}, nil
 		}
 
-		if id != nil {
+		if id != nil && !statusContains(&bpfProgram, bpfmaniov1alpha1.BpfProgCondUnloaded) {
 			r.Logger.Info("Calling bpfman to unload program on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
 			if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
 				if strings.Contains(err.Error(), programDoesNotExistErr) {
@@ -680,7 +689,14 @@ func (r *ReconcilerCommon) unLoadAndDeleteBpfProgramsList(ctx context.Context, b
 					r.Logger.Error(err, "Failed to unload Program")
 					return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 				}
+				if r.updateStatus(ctx, &bpfProgram, bpfmaniov1alpha1.BpfProgCondUnloaded) {
+					return ctrl.Result{}, nil
+				}
 			}
+		}
+
+		if r.updateStatus(ctx, &bpfProgram, bpfmaniov1alpha1.BpfProgCondUnloaded) {
+			return ctrl.Result{}, nil
 		}
 
 		if r.removeFinalizer(ctx, &bpfProgram, finalizerString) {
