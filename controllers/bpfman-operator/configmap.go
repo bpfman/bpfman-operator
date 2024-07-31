@@ -173,6 +173,20 @@ func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req 
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
 
+		if r.IsOpenshift {
+			bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{}
+			// one-shot try to delete the bpfman
+			// restricted SCC object but only if it
+			// exists.
+			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanRestrictedSccName}, bpfmanRestrictedSCC); err == nil {
+				r.Logger.Info("Deleting Bpfman restricted SCC object")
+				if err := r.Delete(ctx, bpfmanRestrictedSCC); err != nil {
+					r.Logger.Error(err, "Failed to delete Bpfman restricted SCC")
+					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+				}
+			}
+		}
+
 		controllerutil.RemoveFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer)
 		err = r.Update(ctx, bpfmanConfig)
 		if err != nil {
