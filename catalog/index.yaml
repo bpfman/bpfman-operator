@@ -482,8 +482,10 @@ properties:
     - name: bpfman website
       url: https://bpfman.io/
     maintainers:
-    - email: astoycos@redhat.com
+    - email: astoycos@gmail.com
       name: Andrew Stoycos
+    - email: afredette@redhat.com
+      name: Andre Fredette
     maturity: alpha
     provider:
       name: The bpfman Community
