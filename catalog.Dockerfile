@@ -1,4 +1,4 @@
-FROM registry.redhat.io/openshift4/ose-operator-registry-rhel9:v4.16
+FROM quay.io/operator-framework/opm:v1.45.0
 
 # Configure the entrypoint and command
 ENTRYPOINT ["/bin/opm"]
