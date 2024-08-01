@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-07-12T21:04:11Z"
+    createdAt: "2024-08-01T17:48:50Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -1146,8 +1146,10 @@ spec:
   - name: bpfman website
     url: https://bpfman.io/
   maintainers:
-  - email: astoycos@redhat.com
+  - email: astoycos@gmail.com
     name: Andrew Stoycos
+  - email: afredette@redhat.com
+    name: Andre Fredette
   maturity: alpha
   provider:
     name: The bpfman Community
