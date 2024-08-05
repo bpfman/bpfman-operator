@@ -24,7 +24,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent:{{revision}}
   - name: dockerfile
-    value: Containerfile.bpfman-agent
+    value: Containerfile.bpfman-agent.openshift
   pipelineSpec:
     finally:
     - name: show-sbom

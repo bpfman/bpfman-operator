@@ -27,7 +27,7 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: Containerfile.bpfman-operator
+    value: Containerfile.bpfman-operator.openshift
   pipelineSpec:
     finally:
     - name: show-sbom
