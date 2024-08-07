@@ -318,17 +318,32 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
 
+# These paths map the host's GOCACHE location to the container's
+# location. We want to mount the host's Go cache in the container to
+# speed up builds, particularly during development. Only podman (i.e.,
+# not Docker) permits volumes to be mapped for builds so we do this
+# conditionally.
+ifeq ($(OCI_BIN),podman)
+LOCAL_GOCACHE_PATH ?= $(shell go env GOCACHE)
+CONTAINER_GOCACHE_PATH ?= /root/.cache/go-build
+$(shell mkdir -p $(LOCAL_GOCACHE_PATH))
+endif
+
 .PHONY: build-images
 build-images: ## Build bpfman-agent and bpfman-operator images.
+	$(if $(filter $(OCI_BIN),podman), \
+	  echo "Adding GOCACHE volume mount $(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH).") \
 	$(OCI_BIN) buildx build --load -t ${BPFMAN_OPERATOR_IMG} \
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
 	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  $(if $(filter $(OCI_BIN),podman),--volume "$(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH)") \
 	  -f Containerfile.bpfman-operator .
 	$(OCI_BIN) buildx build --load -t ${BPFMAN_AGENT_IMG} \
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
 	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  $(if $(filter $(OCI_BIN),podman),--volume "$(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH)") \
 	  -f Containerfile.bpfman-agent .
 
 .PHONY: push-images
