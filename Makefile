@@ -332,7 +332,8 @@ endif
 .PHONY: build-images
 build-images: ## Build bpfman-agent and bpfman-operator images.
 	$(if $(filter $(OCI_BIN),podman), \
-	  echo "Adding GOCACHE volume mount $(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH).") \
+	  @echo "Adding GOCACHE volume mount $(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH).")
+	$(OCI_BIN) version
 	$(OCI_BIN) buildx build --load -t ${BPFMAN_OPERATOR_IMG} \
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
