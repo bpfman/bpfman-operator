@@ -1,0 +1,39 @@
+# Build the manager binary
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.22.5-202407301806.g4c8b32d.el9 AS bpfman-operator-build
+
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker/build-push-action in github actions
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETPLATFORM
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
+
+WORKDIR /usr/src/bpfman-operator
+
+# Copy everything except what's excluded by the .dockerignore file.
+COPY . .
+
+# Build
+# the GOARCH has not a default value to allow the binary be built according to the host where the command
+# was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
+# the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
+# by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod vendor -o bpfman-operator ./cmd/bpfman-operator/main.go
+
+FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4
+
+# The following ARGs are set internally by docker or podman on multiarch builds
+ARG TARGETPLATFORM
+
+WORKDIR /
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/openshift/restricted-scc.yaml ./config/openshift/restricted-scc.yaml
+COPY --from=bpfman-operator-build /usr/src/bpfman-operator/bpfman-operator .
+USER 65532:65532
+
+ENTRYPOINT ["/bpfman-operator"]
