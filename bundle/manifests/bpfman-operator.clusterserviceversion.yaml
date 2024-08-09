@@ -1146,7 +1146,7 @@ spec:
   - name: bpfman website
     url: https://bpfman.io/
   maintainers:
-  - email: astoycos@gmail.com
+  - email: astoycos@redhat.com
     name: Andrew Stoycos
   - email: afredette@redhat.com
     name: Andre Fredette
