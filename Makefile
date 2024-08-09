@@ -285,12 +285,11 @@ test: fmt envtest ## Run Unit tests.
 
 .PHONY: test-integration
 test-integration: ## Run Integration tests.
-	go clean -testcache
 	cd config/bpfman-deployment && \
 	  $(SED) -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
 	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
 		  kustomization.yaml.env > kustomization.yaml
-	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
+	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration/...
 
 ## The physical bundle is no longer tracked in git since it should be considered
 ## and treated as a release artifact, rather than something that's updated
