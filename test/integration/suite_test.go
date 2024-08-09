@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/loadimage"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/types/kind"
 	"github.com/kong/kubernetes-testing-framework/pkg/environments"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +21,8 @@ import (
 	"github.com/bpfman/bpfman-operator/internal"
 	"github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
+
+	"github.com/bpfman/bpfman-operator/test/integration/loadimagearchive"
 )
 
 var (
@@ -50,6 +51,11 @@ const (
 func TestMain(m *testing.M) {
 	logf.SetLogger(zap.New())
 
+	ociBin := os.Getenv("OCI_BIN")
+	if ociBin == "" {
+		ociBin = "docker" // default if OCI_BIN is not set.
+	}
+
 	// check that we have the bpfman-agent, and bpfman-operator images to use for the tests.
 	// generally the runner of the tests should have built these from the latest
 	// changes prior to the tests and fed them to the test suite.
@@ -64,7 +70,7 @@ func TestMain(m *testing.M) {
 
 	// to use the provided bpfman-agent, and bpfman-operator images we will need to add
 	// them as images to load in the test cluster via an addon.
-	loadImages, err := loadimage.NewBuilder().WithImage(bpfmanAgentImage)
+	loadImages, err := loadimagearchive.NewBuilder(ociBin).WithImage(bpfmanAgentImage)
 	exitOnErr(err)
 	loadImages, err = loadImages.WithImage(bpfmanOperatorImage)
 	exitOnErr(err)
@@ -93,7 +99,7 @@ func TestMain(m *testing.M) {
 		})
 	}
 
-	// deploy the BPFMAN Operator and revelevant CRDs
+	// deploy the BPFMAN Operator and relevant CRDs.
 	fmt.Println("INFO: deploying bpfman operator to test cluster")
 	exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfmanKustomize))
 	if !keepKustomizeDeploys {

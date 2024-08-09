@@ -355,7 +355,12 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	kind load docker-image ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
+	TMP_DIR=$$(mktemp -d -t bpfman-XXXXXX); \
+	$(OCI_BIN) save -o $$TMP_DIR/bpfman-operator-img.tar ${BPFMAN_OPERATOR_IMG}; \
+	$(OCI_BIN) save -o $$TMP_DIR/bpfman-agent-img.tar ${BPFMAN_AGENT_IMG}; \
+	kind load image-archive --name ${KIND_CLUSTER_NAME} $$TMP_DIR/bpfman-operator-img.tar; \
+	kind load image-archive --name ${KIND_CLUSTER_NAME} $$TMP_DIR/bpfman-agent-img.tar; \
+	$(RM) -r $$TMP_DIR
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
