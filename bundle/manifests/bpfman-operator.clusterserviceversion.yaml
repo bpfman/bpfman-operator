@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-09-23T11:50:54Z"
+    createdAt: "2024-10-08T20:29:08Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -370,6 +370,9 @@ spec:
       displayName: Tc Program
       kind: TcProgram
       name: tcprograms.bpfman.io
+      version: v1alpha1
+    - kind: TcxProgram
+      name: tcxprograms.bpfman.io
       version: v1alpha1
     - description: TracepointProgram is the Schema for the Tracepointprograms API
       displayName: Tracepoint Program
