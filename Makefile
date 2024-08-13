@@ -73,6 +73,7 @@ SHELL = /usr/bin/env bash -o pipefail
 # Image building tool (docker / podman) - docker is preferred in CI
 OCI_BIN_PATH := $(shell which docker 2>/dev/null || which podman)
 OCI_BIN ?= $(shell basename ${OCI_BIN_PATH})
+export OCI_BIN
 
 GOARCH ?= $(shell go env GOHOSTARCH)
 PLATFORM ?= $(shell go env GOHOSTOS)/$(shell go env GOHOSTARCH)
@@ -355,7 +356,7 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	kind load docker-image ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
+	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
