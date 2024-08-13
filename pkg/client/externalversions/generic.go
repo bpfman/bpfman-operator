@@ -65,6 +65,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().KprobePrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tcprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().TcPrograms().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("tcxprograms"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().TcxPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tracepointprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().TracepointPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("uprobeprograms"):
