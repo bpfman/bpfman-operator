@@ -103,6 +103,20 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - tcxprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcxprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - tracepointprograms
   verbs:
   - get

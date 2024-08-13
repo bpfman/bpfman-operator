@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2024-10-17T13:56:37Z"
+    createdAt: "2024-10-21T11:51:40Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -862,6 +862,32 @@ spec:
           - bpfman.io
           resources:
           - tcprograms/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms/status
           verbs:
           - get
           - patch
