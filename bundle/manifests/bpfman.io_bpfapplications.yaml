@@ -575,7 +575,7 @@ spec:
                       type: object
                     tcx:
                       description: tcx defines the desired state of the application's
-                        TcPrograms.
+                        TcxPrograms.
                       properties:
                         bpffunctionname:
                           description: |-
@@ -584,12 +584,17 @@ spec:
                           type: string
                         direction:
                           description: |-
-                            Direction specifies the direction of traffic the tc program should
+                            Direction specifies the direction of traffic the tcx program should
                             attach to for a given network device.
                           enum:
                           - ingress
                           - egress
                           type: string
+                        expectedRevision:
+                          description: ExpectedRevision Attach TCX hook only if the
+                            expected revision matches.
+                          format: int64
+                          type: integer
                         interfaceselector:
                           description: Selector to determine the network interface
                             (or interfaces)
@@ -658,43 +663,25 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        priority:
+                        position:
+                          default: Last
+                          description: Position defines the order of the TCX relative
+                            to other TCX attached to the same interface
+                          enum:
+                          - First
+                          - Last
+                          - Before
+                          - After
+                          type: string
+                        targetprogramname:
                           description: |-
-                            Priority specifies the priority of the tc program in relation to
-                            other programs of the same type with the same attach point. It is a value
-                            from 0 to 1000 where lower values have higher precedence.
-                          format: int32
-                          maximum: 1000
-                          minimum: 0
-                          type: integer
-                        proceedon:
-                          default:
-                          - pipe
-                          - dispatcher_return
-                          description: |-
-                            ProceedOn allows the user to call other tc programs in chain on this exit code.
-                            Multiple values are supported by repeating the parameter.
-                          items:
-                            enum:
-                            - unspec
-                            - ok
-                            - reclassify
-                            - shot
-                            - pipe
-                            - stolen
-                            - queued
-                            - repeat
-                            - redirect
-                            - trap
-                            - dispatcher_return
-                            type: string
-                          maxItems: 11
-                          type: array
+                            TargetProgramName defined the existing TCX program that will be used in case we need set this TCX program
+                            priority against.
+                          type: string
                       required:
                       - bpffunctionname
                       - direction
                       - interfaceselector
-                      - priority
                       type: object
                     tracepoint:
                       description: tracepoint defines the desired state of the application's

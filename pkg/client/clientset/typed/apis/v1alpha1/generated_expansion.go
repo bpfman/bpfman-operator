@@ -30,6 +30,8 @@ type KprobeProgramExpansion interface{}
 
 type TcProgramExpansion interface{}
 
+type TcxProgramExpansion interface{}
+
 type TracepointProgramExpansion interface{}
 
 type UprobeProgramExpansion interface{}

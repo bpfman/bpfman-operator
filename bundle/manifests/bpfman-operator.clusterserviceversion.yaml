@@ -371,6 +371,9 @@ spec:
       kind: TcProgram
       name: tcprograms.bpfman.io
       version: v1alpha1
+    - kind: TcxProgram
+      name: tcxprograms.bpfman.io
+      version: v1alpha1
     - description: TracepointProgram is the Schema for the Tracepointprograms API
       displayName: Tracepoint Program
       kind: TracepointProgram
