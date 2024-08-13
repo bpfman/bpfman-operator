@@ -163,6 +163,32 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - tcxprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcxprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcxprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - tracepointprograms
   verbs:
   - create
