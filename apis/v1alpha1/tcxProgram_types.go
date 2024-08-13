@@ -50,23 +50,6 @@ type TcxProgramSpec struct {
 	BpfAppCommon   `json:",inline"`
 }
 
-// TCXPositionType defines the TCX position string
-type TCXPositionType string
-
-const (
-	// TCXFirst TCX program will be the first program to execute.
-	TCXFirst TCXPositionType = "First"
-
-	// TCXLast TCX program will be the last program to execute.
-	TCXLast TCXPositionType = "Last"
-
-	// TCXBefore TCX program will be before a specific TCX program
-	TCXBefore TCXPositionType = "Before"
-
-	// TCXAfter TCX program will be after a specific TCX program
-	TCXAfter TCXPositionType = "After"
-)
-
 // TcxProgramInfo defines the tc program details
 type TcxProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
@@ -79,20 +62,12 @@ type TcxProgramInfo struct {
 	// +kubebuilder:validation:Enum=ingress;egress
 	Direction string `json:"direction"`
 
-	// TargetProgramName defined the existing TCX program that will be used in case we need set this TCX program
-	// priority against.
-	//+optional
-	TargetProgramName string `json:"targetprogramname,omitempty"`
-
-	// Position defines the order of the TCX relative to other TCX attached to the same interface
-	// +kubebuilder:validation:Enum:="First";"Last";"Before";"After"
-	//+kubebuilder:default:=Last
-	//+optional
-	Position TCXPositionType `json:"position,omitempty"`
-
-	// ExpectedRevision Attach TCX hook only if the expected revision matches.
-	//+optional
-	ExpectedRevision uint64 `json:"expectedRevision,omitempty"`
+	// Priority specifies the priority of the tc program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
 }
 
 // TcxProgramStatus defines the observed state of TcProgram

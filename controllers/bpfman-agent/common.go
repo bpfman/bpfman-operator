@@ -51,6 +51,7 @@ import (
 //+kubebuilder:rbac:groups=bpfman.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfman.io,resources=bpfprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=tcprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfman.io,resources=tcxprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=tracepointprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfman.io,resources=kprobeprograms/finalizers,verbs=update
