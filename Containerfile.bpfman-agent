@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG BUILDPLATFORM=linux/amd64
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 AS bpfman-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS bpfman-agent-build
 
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
