@@ -90,3 +90,6 @@ require (
 	sigs.k8s.io/kind v0.24.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
+
+// HACK
+replace github.com/bpfman/bpfman => github.com/anfredette/bpfman v0.0.0-20240821132158-413bb6317dc7
