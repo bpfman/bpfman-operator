@@ -167,10 +167,10 @@ func TestTcxProgramControllerCreate(t *testing.T) {
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
 		Attach: &gobpfman.AttachInfo{
-			Info: &gobpfman.AttachInfo_TcAttachInfo{
-				TcAttachInfo: &gobpfman.TCAttachInfo{
+			Info: &gobpfman.AttachInfo_TcxAttachInfo{
+				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInt,
-					Priority:  0,
+					Priority:  tcx.Spec.Priority,
 					Direction: direction,
 				},
 			},
@@ -245,7 +245,7 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
 					Interfaces: &fakeInts,
 				},
-				Priority:  0,
+				Priority:  10,
 				Direction: direction,
 			},
 		},
@@ -386,10 +386,10 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
 		Attach: &gobpfman.AttachInfo{
-			Info: &gobpfman.AttachInfo_TcAttachInfo{
-				TcAttachInfo: &gobpfman.TCAttachInfo{
+			Info: &gobpfman.AttachInfo_TcxAttachInfo{
+				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[0],
-					Priority:  0,
+					Priority:  tcx.Spec.Priority,
 					Direction: direction,
 				},
 			},
@@ -407,10 +407,10 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
 		Attach: &gobpfman.AttachInfo{
-			Info: &gobpfman.AttachInfo_TcAttachInfo{
-				TcAttachInfo: &gobpfman.TCAttachInfo{
+			Info: &gobpfman.AttachInfo_TcxAttachInfo{
+				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[1],
-					Priority:  0,
+					Priority:  tcx.Spec.Priority,
 					Direction: direction,
 				},
 			},
