@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -200,14 +199,13 @@ func (r *TcxProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPr
 	if err != nil {
 		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}
-
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentTcxProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tc),
 		Attach: &gobpfman.AttachInfo{
-			Info: &gobpfman.AttachInfo_TcAttachInfo{
-				TcAttachInfo: &gobpfman.TCAttachInfo{
+			Info: &gobpfman.AttachInfo_TcxAttachInfo{
+				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Priority:  r.currentTcxProgram.Spec.Priority,
 					Iface:     bpfProgram.Annotations[internal.TcxProgramInterface],
 					Direction: r.currentTcxProgram.Spec.Direction,

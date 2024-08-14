@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: tcxprogram
   name: tcx-pass-all-nodes
 spec:
-  bpffunctionname: pass
+  bpffunctionname: tcx_pass
   # Select all nodes
   nodeselector: {}
   interfaceselector:
@@ -14,7 +14,7 @@ spec:
   direction: ingress
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/tc_pass:latest
+      url: quay.io/bpfman-bytecode/tcx_test:latest
   globaldata:
     GLOBAL_u8:
       - 0x01
