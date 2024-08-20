@@ -354,8 +354,29 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 	$(OCI_BIN) push ${BPFMAN_IMG}
 
 .PHONY: load-images-kind
+# Function to check if an image exists locally using podman or docker.
+image_exists = \
+  if [ "$(OCI_BIN)" = "podman" ]; then \
+    podman image exists $(1); \
+  elif [ "$(OCI_BIN)" = "docker" ]; then \
+    docker image inspect $(1) > /dev/null 2>&1; \
+  else \
+    echo "Unsupported OCI_BIN value: $(OCI_BIN). Use 'podman' or 'docker'."; \
+    exit 1; \
+  fi
+
+.PHONY: load-images-kind
 load-images-kind: ## Load bpfman, bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} ${BPFMAN_IMG}
+	@set -e; \
+	images="$$BPFMAN_OPERATOR_IMG $$BPFMAN_AGENT_IMG $$BPFMAN_IMG"; \
+	for img in $$images; do \
+	  if $(call image_exists,$$img); then \
+	    echo "Loading image $$img into kind cluster ${KIND_CLUSTER_NAME}"; \
+	    ./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} $$img; \
+	  else \
+	    echo "Image $$img does not exist locally, skipping."; \
+	  fi; \
+	done
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
