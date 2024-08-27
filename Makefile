@@ -354,8 +354,8 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 	$(OCI_BIN) push ${BPFMAN_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: ## Load bpfman, bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} ${BPFMAN_IMG}
+load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
+	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
