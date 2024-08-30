@@ -39,4 +39,13 @@ RUN tar zxvf crictl-${VERSION}-linux-${TARGETARCH}.tar.gz -C /usr/local/bin
 RUN rm -f crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
 RUN ${DNF_CMD} -y clean all
 
+LABEL name="bpfman/bpfman-agent" \
+      com.redhat.component="bpfman-agent" \
+      io.k8s.display-name="Bpfman Agent" \
+      description="The bpfman-agent manage bpfman ebpf programs on every node." \
+      io.k8s.description="The bpfman-agent manage bpfman programs on every node. ." \
+      io.openshift.tags="bpfman-agent" \
+      version="0.5.1" \
+      vendor="Red Hat Inc."
+
 ENTRYPOINT ["/bpfman-agent"]

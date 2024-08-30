@@ -18,6 +18,10 @@ metadata:
   namespace: ocp-bpfman-tenant
 spec:
   params:
+  - name: build-source-image
+    value: "true"
+  #- name: prefetch-input
+  #  value: '{"type": "gomod", "path": "."}'
   - name: git-url
     value: '{{source_url}}'
   - name: revision
@@ -194,7 +198,7 @@ spec:
         - name: name
           value: prefetch-dependencies
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies:0.1@sha256:398d8333d30ea25ec1f766009c960df8dd42e0e3af7b2d782236dbde9a9f4bd9
+          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies:0.1@sha256:058a59f72997c9cf1be20978eb6a145d8d4d436c6098f2460bd96766bb363b20
         - name: kind
           value: task
         resolver: bundles
