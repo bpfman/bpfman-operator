@@ -33,7 +33,7 @@ COPY --from=bpfman-agent-build /usr/src/bpfman-operator/bpfman-agent .
 
 # Install crictl
 RUN ${DNF_CMD} -y install wget tar gzip ca-certificates
-ARG VERSION="v1.28.0"
+ARG VERSION="v1.31.0"
 RUN wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
 RUN tar zxvf crictl-${VERSION}-linux-${TARGETARCH}.tar.gz -C /usr/local/bin
 RUN rm -f crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
