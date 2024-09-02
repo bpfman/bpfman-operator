@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG BUILDPLATFORM=linux/amd64
+ARG BUILDPLATFORM
 
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 AS bpfman-agent-build
 
@@ -7,6 +7,8 @@ FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 AS bpfman-agent-bui
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETPLATFORM
+
+ARG BUILDPLATFORM
 
 RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 

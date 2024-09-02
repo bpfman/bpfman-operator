@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG BUILDPLATFORM=linux/amd64
+ARG BUILDPLATFORM
 
 FROM --platform=$BUILDPLATFORM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:v1.22.5-202407301806.g4c8b32d.el9 AS bpfman-agent-build
 
@@ -7,6 +7,8 @@ FROM --platform=$BUILDPLATFORM brew.registry.redhat.io/rh-osbs/openshift-golang-
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETPLATFORM
+
+ARG BUILDPLATFORM
 
 RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
