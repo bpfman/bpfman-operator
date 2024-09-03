@@ -24,7 +24,7 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
-	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/v5/docker/reference"
 
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
