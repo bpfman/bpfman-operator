@@ -78,11 +78,12 @@ jobs:
         git diff --exit-code -I'^    createdAt: ' bundle
 
   kubernetes-integration-tests:
-    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64)
+    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
         go: ['1.22']
+        oci_bin: ['docker', 'podman']
     env:
       BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
       BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
@@ -120,11 +121,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build Operator and Agent images
+      - name: Install OCI runtime (Docker or Podman)
         run: |
-          make build-images
+          if [ "${{ matrix.oci_bin }}" = "podman" ]; then
+            sudo apt-get update && sudo apt-get install -y podman
+          fi
 
+      - name: Build Operator and Agent images with ${{ matrix.oci_bin }}
+        run: |
+          make OCI_BIN=${{ matrix.oci_bin }} build-images
+
+      # Run integration tests only if OCI_BIN is Docker.
       - name: Run integration tests
+        if: ${{ matrix.oci_bin == 'docker' }}
         run: |
           make test-integration
 
