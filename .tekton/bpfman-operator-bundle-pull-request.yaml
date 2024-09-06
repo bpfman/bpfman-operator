@@ -7,8 +7,11 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
+     (".tekton/single-arch-build-pipeline.yaml".pathChanged() || 
+      ".tekton/bpfman-operator-bundle-pull-request.yaml".pathChanged() || 
+      ".tekton/bpfman-operator-bundle-push.yaml".pathChanged() || 
+      "Containerfile.bundle".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: bpfman-operator
@@ -32,6 +35,8 @@ spec:
     value: 5d
   - name: dockerfile
     value: Containerfile.bundle
+  pipelineRef:
+    name: single-arch-build-pipeline
   pipelineSpec:
     finally:
     - name: show-sbom
