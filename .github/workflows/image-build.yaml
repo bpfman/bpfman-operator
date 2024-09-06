@@ -94,7 +94,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.image.dockerfile }}
-          build-args: ${{ matrix.image.build_args }}
+          build-args: BUILDPLATFORM=linux/amd64
           context: ${{ matrix.image.context }}
 
       - name: Sign the images with GitHub OIDC Token
@@ -160,7 +160,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           containerfiles: ${{ matrix.image.dockerfile }}
-          build-args: ${{ matrix.image.build_args }}
+          build-args: BUILDPLATFORM=linux/amd64
           context: ${{ matrix.image.context }}
 
       - name: Push to registry
