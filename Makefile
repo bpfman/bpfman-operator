@@ -330,7 +330,10 @@ $(shell mkdir -p $(LOCAL_GOCACHE_PATH))
 endif
 
 .PHONY: build-images
-build-images: ## Build bpfman-agent and bpfman-operator images.
+build-images: build-operator-image build-agent-image ## Build bpfman-agent and bpfman-operator images.
+
+.PHONY: build-operator-image
+build-operator-image: ## Build bpfman-operator image.
 	$(if $(filter $(OCI_BIN),podman), \
 	  @echo "Adding GOCACHE volume mount $(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH).")
 	$(OCI_BIN) version
@@ -340,6 +343,9 @@ build-images: ## Build bpfman-agent and bpfman-operator images.
 	  --build-arg BUILDPLATFORM=linux/amd64 \
 	  $(if $(filter $(OCI_BIN),podman),--volume "$(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH):z") \
 	  -f Containerfile.bpfman-operator .
+
+.PHONY: build-agent-image
+build-agent-image: ## Build bpfman-agent image.
 	$(OCI_BIN) buildx build --load -t ${BPFMAN_AGENT_IMG} \
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
