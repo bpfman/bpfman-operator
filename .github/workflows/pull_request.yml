@@ -40,6 +40,10 @@ jobs:
     - name: Checkout bpfman-operator
       uses: actions/checkout@v4
 
+    - name: Check clean vendors
+      if: ${{ matrix.arch.arch == 'amd64' }}
+      run: go mod vendor
+
     - name: Check format
       if: ${{ matrix.arch.arch == 'amd64' }}
       run: make fmt && git add -A && git diff --exit-code
@@ -66,10 +70,6 @@ jobs:
         name: coverage-go
         path: cover.out
         if-no-files-found: error
-
-    - name: Check clean vendors
-      if: ${{ matrix.arch.arch == 'amd64' }}
-      run: go mod vendor
 
     # - name: Ensure Go Modules and Vendor Consistency
     #   if: ${{ matrix.arch.arch == 'amd64' }}
