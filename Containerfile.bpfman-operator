@@ -1,5 +1,5 @@
 # Build the manager binary
-ARG BUILDPLATFORM=linux/amd64
+ARG BUILDPLATFORM
 
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.22 AS bpfman-operator-build
 
