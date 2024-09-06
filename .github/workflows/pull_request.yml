@@ -84,6 +84,7 @@ jobs:
 
   kubernetes-integration-tests:
     name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64)
+    needs: [build-lint-test]
     runs-on: ubuntu-latest
     strategy:
       matrix:
