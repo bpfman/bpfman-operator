@@ -44,6 +44,7 @@ RUN ${DNF_CMD} -y clean all
 LABEL name="bpfman/bpfman-agent" \
       com.redhat.component="bpfman-agent" \
       io.k8s.display-name="Bpfman Agent" \
+      summary="Bpfman agent manages the eBPF programs lifecycle." \
       description="The bpfman-agent manage bpfman ebpf programs on every node." \
       io.k8s.description="The bpfman-agent manage bpfman programs on every node. ." \
       io.openshift.tags="bpfman-agent" \
