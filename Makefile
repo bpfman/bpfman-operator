@@ -365,7 +365,7 @@ load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the runn
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f Containerfile.bundle -t $(BUNDLE_IMG) .
+	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
