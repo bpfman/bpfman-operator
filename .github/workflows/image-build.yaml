@@ -120,7 +120,7 @@ jobs:
             repository: bpfman
             image: bpfman-operator-bundle
             context: .
-            dockerfile: ./Containerfile.bundle
+            dockerfile: ./bundle.Dockerfile
             tags: |
               type=ref,event=branch
               type=ref,event=tag
