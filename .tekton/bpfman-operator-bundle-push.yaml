@@ -27,7 +27,7 @@ spec:
   - name: output-image
     value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator-bundle:{{revision}}
   - name: dockerfile
-    value: Containerfile.bundle
+    value: Containerfile.bundle.openshift
   pipelineRef:
     name: single-arch-build-pipeline
   taskRunTemplate: {}
