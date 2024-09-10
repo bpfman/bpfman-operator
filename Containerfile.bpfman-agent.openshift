@@ -24,7 +24,7 @@ COPY . .
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod vendor -o bpfman-agent ./cmd/bpfman-agent/main.go
 
-FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227
+FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298
 ARG DNF_CMD="microdnf"
 
 ARG TARGETARCH

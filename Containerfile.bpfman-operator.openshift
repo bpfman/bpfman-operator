@@ -24,7 +24,7 @@ COPY . .
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod vendor -o bpfman-operator ./cmd/bpfman-operator/main.go
 
-FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227
+FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298
 
 # The following ARGs are set internally by docker or podman on multiarch builds
 ARG TARGETPLATFORM
