@@ -11,7 +11,9 @@ COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 COPY bundle/tests/scorecard /tests/scorecard/
 COPY hack/update_bundle.sh .
+COPY hack/update_configmap.sh .
 RUN ./update_bundle.sh
+RUN ./update_configmap.sh
 
 FROM scratch
 
