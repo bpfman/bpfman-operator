@@ -1,4 +1,6 @@
-FROM quay.io/operator-framework/opm:v1.47.0
+# The base image is expected to contain
+# /bin/opm (with a serve subcommand) and /bin/grpc_health_probe
+FROM brew.registry.redhat.io/rh-osbs/openshift-ose-operator-registry-rhel9:v4.17
 
 # Configure the entrypoint and command
 ENTRYPOINT ["/bin/opm"]
