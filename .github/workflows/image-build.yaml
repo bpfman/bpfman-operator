@@ -1,4 +1,4 @@
-name: bpfman-image-build
+name: operator-image-build
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -7,7 +7,10 @@ on: # yamllint disable-line rule:truthy
       - v*
 
   pull_request:
-    paths: [.github/workflows/image-build.yaml]
+    paths:
+      - .github/workflows/image-build.yaml
+      - Containerfile.bpfman-agent
+      - Containerfile.bpfman-operator
 
 jobs:
   build-and-push-images:
