@@ -63,7 +63,7 @@ bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/
 bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/token-auth-aws'] = 'false'
 bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/token-auth-azure'] = 'false'
 bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/token-auth-gcp'] = 'false'
-bpfman_operator_csv['metadata']['annotations']['repository'] = 'https://github.com/stolostron/bpfman_operator-operator'
+bpfman_operator_csv['metadata']['annotations']['repository'] = 'https://github.com/bpfman/bpfman-operator'
 bpfman_operator_csv['metadata']['annotations']['containerImage'] = os.getenv('BPFMAN_OPERATOR_IMAGE_PULLSPEC', '')
 
 dump_manifest(os.getenv('CSV_FILE'), bpfman_operator_csv)
