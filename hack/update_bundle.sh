@@ -3,14 +3,11 @@ set -eu
 
 #!/usr/bin/env bash
 
-export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:fab09f62c443d5f5227b4b3441c2594ce5ad219c40b3e735dfb1ed8be9e63c79"
-
 export BPFMAN_OPERATOR_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator@sha256:c8985a0507cdc8bfa215a2295f23b387e4cb9995c774a2e3b3afd9d6799f217f"
 
 export CSV_FILE=/manifests/bpfman-operator.clusterserviceversion.yaml
 
-sed -i -e "s|quay.io/bpfman/bpfman-agent:v.*|\"${BPFMAN_AGENT_IMAGE_PULLSPEC}\"|g" \
-	-e "s|quay.io/bpfman/bpfman-operator:v.*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
+sed -i -e "s|quay.io/bpfman/bpfman-operator:v.*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
 	"${CSV_FILE}"
 
 export AMD64_BUILT=$(skopeo inspect --raw docker://${BPFMAN_OPERATOR_IMAGE_PULLSPEC} | jq -e '.manifests[] | select(.platform.architecture=="amd64")')

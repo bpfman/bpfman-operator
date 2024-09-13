@@ -6,8 +6,12 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main" &&
+      (".tekton/***".pathChanged() ||
+      "Containerfile.catalog.openshift".pathChanged() ||
+      "catalog/***".pathChanged() ||
+      "hack/update_bundle.sh".pathChanged() ||
+      "hack/update_configmap.sh".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: fbc-4-17
