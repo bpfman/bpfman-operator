@@ -3,9 +3,9 @@ set -eu
 
 #!/usr/bin/env bash
 
-export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent:c96ca94adc23ae27d5c6a2b20897a7f50767d8fe"
+export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:c96ca94adc23ae27d5c6a2b20897a7f50767d8fe"
 
-export BPFMAN_OPERATOR_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator:c96ca94adc23ae27d5c6a2b20897a7f50767d8fe"
+export BPFMAN_OPERATOR_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator@sha256:c96ca94adc23ae27d5c6a2b20897a7f50767d8fe"
 
 export CSV_FILE=/manifests/bpfman-operator.clusterserviceversion.yaml
 
