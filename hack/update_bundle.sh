@@ -5,7 +5,7 @@ set -eu
 
 export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:fab09f62c443d5f5227b4b3441c2594ce5ad219c40b3e735dfb1ed8be9e63c79"
 
-export BPFMAN_OPERATOR_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator@sha256:c96ca94adc23ae27d5c6a2b20897a7f50767d8fe"
+export BPFMAN_OPERATOR_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-operator@sha256:c8985a0507cdc8bfa215a2295f23b387e4cb9995c774a2e3b3afd9d6799f217f"
 
 export CSV_FILE=/manifests/bpfman-operator.clusterserviceversion.yaml
 
