@@ -3,7 +3,7 @@ set -eu
 
 #!/usr/bin/env bash
 
-export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:fab09f62c443d5f5227b4b3441c2594ce5ad219c40b3e735dfb1ed8be9e63c79"
+export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:6fd0e2e6d911f52c61d89e3acf6a1396008b0f89bebaee39a8b7c5b7a71ee936"
 
 export BPFMAN_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman/bpfman@sha256:729eab13361ba3ac810cf4e825d84e9e981e46924f293eded034b92c72f347eb"
 
