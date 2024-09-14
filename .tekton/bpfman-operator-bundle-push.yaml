@@ -7,11 +7,12 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main"  &&
-      (".tekton/***".pathChanged() ||
+      (".tekton/single-arch-build-pipeline.yaml".pathChanged() || 
+      ".tekton/bpfman-operator-bundle-pull-request.yaml".pathChanged() || 
+      ".tekton/bpfman-operator-bundle-push.yaml".pathChanged() || 
       "Containerfile.bundle.openshift".pathChanged() ||
       "bundle/***".pathChanged() ||
-      "hack/update_bundle.sh".pathChanged() ||
-      "hack/update_configmap.sh".pathChanged())
+      "hack/***".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: bpfman-operator
