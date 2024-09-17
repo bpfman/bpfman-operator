@@ -5,7 +5,7 @@ set -eu
 
 export BPFMAN_AGENT_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-operator/bpfman-agent@sha256:5b5136f2b3052ad9668da30fc3e86468cb78071a23d767d35a6f02e6ae99e599"
 
-export BPFMAN_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman/bpfman@sha256:c534b52a2babd944fdae044626438a630ebfe3aafa99b97fe8d5823407243aa3"
+export BPFMAN_IMAGE_PULLSPEC="quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman/bpfman@sha256:5ce263b0a698143d596bcdedf6482e5b1a5ea2298f836b650736c228f2a70817"
 
 export CONFIG_MAP=/manifests/bpfman-config_v1_configmap.yaml
 
