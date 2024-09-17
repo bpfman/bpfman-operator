@@ -17,7 +17,6 @@ metadata:
       "Containerfile.bpfman-operator.openshift".pathChanged() ||
       "go.mod".pathChanged() ||
       "go.sum".pathChanged() ||
-      "hack/***".pathChanged() ||
       "Makefile".pathChanged() ||
       "pkg/***".pathChanged() ||
       "internal/***".pathChanged() ||
