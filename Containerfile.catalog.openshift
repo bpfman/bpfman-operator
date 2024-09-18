@@ -1,3 +1,15 @@
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as builder-runner
+RUN microdnf install -y skopeo jq python3 python3-pip
+RUN pip3 install --upgrade pip && pip3 install ruamel.yaml==0.17.9
+
+# Use a new stage to enable caching of the package installations for local development
+FROM builder-runner as builder
+
+#Copy files to locations specified by labels.
+COPY catalog /configs/bpfman-operator
+COPY hack/update_catalog.sh .
+RUN ./update_catalog.sh
+
 # The base image is expected to contain
 # /bin/opm (with a serve subcommand) and /bin/grpc_health_probe
 FROM brew.registry.redhat.io/rh-osbs/openshift-ose-operator-registry-rhel9:v4.16
@@ -7,7 +19,8 @@ ENTRYPOINT ["/bin/opm"]
 CMD ["serve", "/configs", "--cache-dir=/tmp/cache"]
 
 # Copy declarative config root into image at /configs and pre-populate serve cache
-ADD catalog /configs/bpfman-operator
+COPY --from=builder /configs/bpfman-operator /configs/bpfman-operator
+
 RUN ["/bin/opm", "serve", "/configs", "--cache-dir=/tmp/cache", "--cache-only"]
 
 # Set DC-specific label for the location of the DC root directory
