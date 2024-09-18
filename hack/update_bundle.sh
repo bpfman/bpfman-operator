@@ -8,7 +8,8 @@ export BPFMAN_OPERATOR_IMAGE_PULLSPEC="registry.redhat.io/bpfman/bpfman-rhel9-op
 export CSV_FILE=/manifests/bpfman-operator.clusterserviceversion.yaml
 
 sed -i -e "s|quay.io/bpfman/bpfman-operator:v.*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
-	"${CSV_FILE}"
+       -e "s|quay.io/bpfman/bpfman-operator:latest*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
+	     "${CSV_FILE}"
 
 export AMD64_BUILT=$(skopeo inspect --raw docker://${BPFMAN_OPERATOR_IMAGE_PULLSPEC} | jq -e '.manifests[] | select(.platform.architecture=="amd64")')
 export ARM64_BUILT=$(skopeo inspect --raw docker://${BPFMAN_OPERATOR_IMAGE_PULLSPEC} | jq -e '.manifests[] | select(.platform.architecture=="arm64")')
