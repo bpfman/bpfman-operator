@@ -23,7 +23,7 @@ spec:
   - name: build-source-image
     value: "true"
   - name: prefetch-input
-    value: '{"type": "pip", "path": "."}'
+    value: '{"packages": [{"type": "rpm"}]}'
   - name: git-url
     value: '{{source_url}}'
   - name: revision
@@ -104,8 +104,7 @@ spec:
       description: Execute the build with network isolation
       name: hermetic
       type: string
-    - default: '{"packages": [{"type": "rpm"}]}'
-      description: Build dependencies to be prefetched by Cachi2
+    - description: Build dependencies to be prefetched by Cachi2
       name: prefetch-input
       type: string
     - default: "true"
@@ -186,24 +185,27 @@ spec:
       params:
       - name: input
         value: $(params.prefetch-input)
-      - name: SOURCE_ARTIFACT
-        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
-      - name: ociStorage
-        value: $(params.output-image).prefetch
-      - name: ociArtifactExpiresAfter
-        value: $(params.image-expires-after)
+      - name: dev-package-managers
+        value: $(params.prefetch-dev-package-managers-enabled)
       runAfter:
       - clone-repository
       taskRef:
         params:
         - name: name
-          value: prefetch-dependencies-oci-ta
+          value: prefetch-dependencies
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies-oci-ta:0.1@sha256:8e2a8de8e8a55a8e657922d5f8303fefa065f7ec2f8a49a666bf749540d63679
+          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies:0.1@sha256:fe7234e3824d1e65d6a7aac352e7a6bbce623d90d8d7da9aceeee108ad2c61be
         - name: kind
           value: task
         resolver: bundles
+      when:
+      - input: $(params.prefetch-input)
+        operator: notin
+        values:
+        - ""
       workspaces:
+      - name: source
+        workspace: workspace
       - name: git-basic-auth
         workspace: git-auth
       - name: netrc

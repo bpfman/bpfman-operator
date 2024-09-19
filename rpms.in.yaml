@@ -1,5 +1,4 @@
 contentOrigin:
   repofiles:
     - ./ubi.repo
-packages: [skopeo, jq, python3, python3-pip]
-
+packages: [skopeo, jq, python3, python3-ruamel-yaml-clib, python3-ruamel-yaml]
