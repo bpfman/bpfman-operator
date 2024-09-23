@@ -63,7 +63,7 @@ properties:
 - type: olm.package
   value:
     packageName: bpfman-operator
-    version: 0.5.0
+    version: 0.5.1
 - type: olm.csv.metadata
   value:
     annotations:
@@ -361,7 +361,7 @@ properties:
       capabilities: Basic Install
       categories: OpenShift Optional
       containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-      createdAt: "2024-07-12T21:04:11Z"
+      createdAt: "2024-08-20T11:07:37Z"
       features.operators.openshift.io/cnf: "false"
       features.operators.openshift.io/cni: "false"
       features.operators.openshift.io/csi: "true"
@@ -451,8 +451,8 @@ properties:
       `bpfman-config` configmap is automatically created in the `bpfman` namespace
       and used to configure the bpfman deployment.\n\nTo edit the config simply run\n\n```bash\nkubectl
       edit cm bpfman-config\n```\n\nThe following fields are adjustable\n\n- `bpfman.agent.image`:
-      The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n-
-      `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
+      The image used for the bpfman-agent`\n-
+      `bpfman.image`: The image used for bpfman`\n-
       `bpfman.log.level`: the log level for bpfman, currently supports `debug`, `info`,
       `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`:
       the log level for the bpfman-agent currently supports `info`, `debug`, and `trace`
