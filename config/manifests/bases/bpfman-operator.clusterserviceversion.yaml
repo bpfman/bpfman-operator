@@ -101,8 +101,8 @@ spec:
     Configuration\n\nThe `bpfman-config` configmap is automatically created in the `bpfman`
     namespace and used to configure the bpfman deployment.\n\nTo edit the config simply
     run\n\n```bash\nkubectl edit cm bpfman-config\n```\n\nThe following fields are adjustable\n\n-
-    `bpfman.agent.image`: The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n-
-    `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
+    `bpfman.agent.image`: The image used for the bpfman-agent`\n-
+    `bpfman.image`: The image used for bpfman`\n-
     `bpfman.log.level`: the log level for bpfman, currently supports
     `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports `info`, `debug`, and `trace` \n\nThe bpfman operator
     deploys eBPF programs via CRDs. The following CRDs are currently available, \n\n-
