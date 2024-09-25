@@ -443,7 +443,7 @@ properties:
         kind: XdpProgram
         name: xdpprograms.bpfman.io
         version: v1alpha1
-    description: "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
+    description: "The eBPF manager Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
       a system daemon\nfor managing eBPF programs. It deploys bpfman itself along
       with CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n##
       Quick Start\n\nTo get bpfman up and running quickly simply click 'install' to
@@ -460,7 +460,7 @@ properties:
       currently available, \n\n- XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n-
       UprobeProgram\n- FentryProgram\n- FexitProgram\n\n## More information\n\nPlease
       checkout the [bpfman community website](https://bpfman.io/) for more information."
-    displayName: Bpfman Operator
+    displayName: eBPF Manager Operator
     installModes:
     - supported: false
       type: OwnNamespace
