@@ -488,8 +488,8 @@ properties:
       name: Andre Fredette
     maturity: alpha
     provider:
-      name: The bpfman Community
-      url: https://bpfman.io/
+      name: Red Hat
+      url: https://www.redhat.com
 relatedImages:
 - image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
   name: ""
