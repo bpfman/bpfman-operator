@@ -9,6 +9,8 @@ export CSV_FILE=/manifests/bpfman-operator.clusterserviceversion.yaml
 
 sed -i -e "s|quay.io/bpfman/bpfman-operator:v.*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
        -e "s|quay.io/bpfman/bpfman-operator:latest*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
+       -e "s|displayName: Bpfman Operator|displayName: eBPF Manager Operator|g" \
+       -e "s|The bpfman Operator|The eBPF manager Operator|g" \
 	     "${CSV_FILE}"
 
 export AMD64_BUILT=$(skopeo inspect --raw docker://${BPFMAN_OPERATOR_IMAGE_PULLSPEC} | jq -e '.manifests[] | select(.platform.architecture=="amd64")')
@@ -63,6 +65,7 @@ bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/
 bpfman_operator_csv['metadata']['annotations']['features.operators.openshift.io/token-auth-gcp'] = 'false'
 bpfman_operator_csv['metadata']['annotations']['repository'] = 'https://github.com/bpfman/bpfman-operator'
 bpfman_operator_csv['metadata']['annotations']['containerImage'] = os.getenv('BPFMAN_OPERATOR_IMAGE_PULLSPEC', '')
+bpfman_operator_csv['spec']['displayName'] = 'eBPF Manager Operator'
 
 dump_manifest(os.getenv('CSV_FILE'), bpfman_operator_csv)
 CSV_UPDATE
