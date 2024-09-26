@@ -52,6 +52,11 @@ BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
+# These environment variable keys need to be exported as the
+# integration tests expect them to be defined.
+export BPFMAN_AGENT_IMG
+export BPFMAN_OPERATOR_IMG
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
 K8S_CODEGEN_VERSION = v0.30.1
