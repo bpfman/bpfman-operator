@@ -11,6 +11,8 @@ sed -i -e "s|quay.io/bpfman/bpfman-operator:v.*|\"${BPFMAN_OPERATOR_IMAGE_PULLSP
        -e "s|quay.io/bpfman/bpfman-operator:latest*|\"${BPFMAN_OPERATOR_IMAGE_PULLSPEC}\"|g" \
        -e "s|displayName: Bpfman Operator|displayName: eBPF Manager Operator|g" \
        -e "s|The bpfman Operator|The eBPF manager Operator|g" \
+       -e "s|name: The bpfman Community|name: Red Hat|g" \
+       -e "s|url: https://bpfman.io|url: https://www.redhat.com|g" \
 	     "${CSV_FILE}"
 
 export AMD64_BUILT=$(skopeo inspect --raw docker://${BPFMAN_OPERATOR_IMAGE_PULLSPEC} | jq -e '.manifests[] | select(.platform.architecture=="amd64")')
