@@ -33,7 +33,7 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: dockerfile
-    value: Containerfile.catalog.openshift
+    value: Containerfile.catalog.openshift-4.17
   pipelineSpec:
     finally:
     - name: show-sbom

@@ -14,10 +14,10 @@ metadata:
       "hack/update_catalog.sh".pathChanged())
   creationTimestamp: null
   labels:
-    appstudio.openshift.io/application: fbc-4-17
+    appstudio.openshift.io/application: fbc-4-18
     appstudio.openshift.io/component: bpfman-operator-catalog
     pipelines.appstudio.openshift.io/type: build
-  name: bpfman-operator-catalog-on-push
+  name: bpfman-operator-catalog-ocp4.18-on-push
   namespace: ocp-bpfman-tenant
 spec:
   params:
@@ -30,9 +30,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/fbc-4-17/bpfman-operator-catalog:{{revision}}
+    value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/fbc-4-18/bpfman-operator-catalog-ocp4-18:{{revision}}
   - name: dockerfile
-    value: Containerfile.catalog.openshift-4.17
+    value: Containerfile.catalog.openshift-4.18
   pipelineSpec:
     finally:
     - name: show-sbom
