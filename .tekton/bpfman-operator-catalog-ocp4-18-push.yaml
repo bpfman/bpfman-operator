@@ -6,25 +6,17 @@ metadata:
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main" &&
-     ( ".tekton/bpfman-operator-catalog-ocp4-18-pull-request.yaml".pathChanged() || 
-      ".tekton/bpfman-operator-catalog-ocp-4-18-push.yaml".pathChanged() || 
-      "Containerfile.catalog.openshift-4.18".pathChanged() ||
-      "catalog/***".pathChanged() ||
-      "hack/update_catalog.sh".pathChanged())
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+      == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: fbc-4-18
-    appstudio.openshift.io/component: bpfman-operator-catalog
+    appstudio.openshift.io/component: bpfman-operator-catalog-ocp4-18
     pipelines.appstudio.openshift.io/type: build
-  name: bpfman-operator-catalog-ocp4.18-on-push
+  name: bpfman-operator-catalog-ocp4-18-on-push
   namespace: ocp-bpfman-tenant
 spec:
   params:
-  - name: build-source-image
-    value: "true"
-  - name: prefetch-input
-    value: '{"packages": [{"type": "rpm"}]}'
   - name: git-url
     value: '{{source_url}}'
   - name: revision
@@ -34,6 +26,11 @@ spec:
   - name: dockerfile
     value: Containerfile.catalog.openshift-4.18
   pipelineSpec:
+    description: |
+      This pipeline is ideal for building and verifying [file-based catalogs](https://konflux-ci.dev/docs/advanced-how-tos/building-olm.adoc#building-the-file-based-catalog).
+
+      _Uses `buildah` to create a container image. Its build-time tests are limited to verifying the included catalog and do not scan the image.
+      This pipeline is pushed as a Tekton bundle to [quay.io](https://quay.io/repository/konflux-ci/tekton-catalog/pipeline-fbc-builder?tab=tags)_
     finally:
     - name: show-sbom
       params:
@@ -99,16 +96,13 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
-    - default: "false"
+    - default: "true"
       description: Execute the build with network isolation
       name: hermetic
       type: string
-    - description: Build dependencies to be prefetched by Cachi2
+    - default: ""
+      description: Build dependencies to be prefetched by Cachi2
       name: prefetch-input
-      type: string
-    - default: "true"
-      description: Enable dev-package-managers in prefetch task
-      name: prefetch-dev-package-managers-enabled
       type: string
     - default: ""
       description: Image tag expiration time, time values could be something like
@@ -180,35 +174,6 @@ spec:
         workspace: workspace
       - name: basic-auth
         workspace: git-auth
-    - name: prefetch-dependencies
-      params:
-      - name: input
-        value: $(params.prefetch-input)
-      - name: dev-package-managers
-        value: $(params.prefetch-dev-package-managers-enabled)
-      runAfter:
-      - clone-repository
-      taskRef:
-        params:
-        - name: name
-          value: prefetch-dependencies
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-prefetch-dependencies:0.1@sha256:fe7234e3824d1e65d6a7aac352e7a6bbce623d90d8d7da9aceeee108ad2c61be
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.prefetch-input)
-        operator: notin
-        values:
-        - ""
-      workspaces:
-      - name: source
-        workspace: workspace
-      - name: git-basic-auth
-        workspace: git-auth
-      - name: netrc
-        workspace: netrc
     - name: build-container
       params:
       - name: IMAGE
@@ -218,19 +183,19 @@ spec:
       - name: CONTEXT
         value: $(params.path-context)
       - name: HERMETIC
-        value: "true"
+        value: $(params.hermetic)
       - name: IMAGE_EXPIRES_AFTER
         value: $(params.image-expires-after)
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       runAfter:
-      - prefetch-dependencies
+      - clone-repository
       taskRef:
         params:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.2@sha256:e107cfdf4ee68741ad366b2768cd33e2d5f99569b639f95f50df8b9835c2d144
+          value: quay.io/konflux-ci/tekton-catalog/task-buildah:0.2@sha256:8cc93c901e612b744a5fad4692f00ba48c08fcd18d4877d6356847906d5f3147
         - name: kind
           value: task
         resolver: bundles
