@@ -51,6 +51,17 @@ metadata:
                 "type": "TC"
               },
               {
+                "tcx": {
+                  "bpffunctionname": "tcx_stats",
+                  "direction": "ingress",
+                  "interfaceselector": {
+                    "primarynodeinterface": true
+                  },
+                  "priority": 500
+                },
+                "type": "TCX"
+              },
+              {
                 "type": "Uprobe",
                 "uprobe": {
                   "bpffunctionname": "uprobe_counter",
