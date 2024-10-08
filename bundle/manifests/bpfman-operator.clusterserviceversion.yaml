@@ -51,6 +51,17 @@ metadata:
                 "type": "TC"
               },
               {
+                "tcx": {
+                  "bpffunctionname": "tcx_stats",
+                  "direction": "ingress",
+                  "interfaceselector": {
+                    "primarynodeinterface": true
+                  },
+                  "priority": 500
+                },
+                "type": "TCX"
+              },
+              {
                 "type": "Uprobe",
                 "uprobe": {
                   "bpffunctionname": "uprobe_counter",
@@ -296,7 +307,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-10-08T20:31:46Z"
+    createdAt: "2024-10-08T20:32:37Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
