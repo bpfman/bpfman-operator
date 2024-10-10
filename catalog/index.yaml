@@ -6,8 +6,8 @@ icon:
 name: bpfman-operator
 schema: olm.package
 ---
-image: quay.io/bpfman/bpfman-operator-bundle:v0.5.1
-name: bpfman-operator.v0.5.1
+image: quay.io/bpfman/bpfman-operator-bundle:v0.5.2
+name: bpfman-operator.v0.5.2
 package: bpfman-operator
 properties:
 - type: olm.gvk
@@ -63,7 +63,7 @@ properties:
 - type: olm.package
   value:
     packageName: bpfman-operator
-    version: 0.5.1
+    version: 0.5.2
 - type: olm.csv.metadata
   value:
     annotations:
@@ -493,9 +493,9 @@ properties:
 relatedImages:
 - image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
   name: ""
-- image: quay.io/bpfman/bpfman-operator-bundle:v0.5.1
+- image: quay.io/bpfman/bpfman-operator-bundle:v0.5.2
   name: ""
-- image: quay.io/bpfman/bpfman-operator:v0.5.1
+- image: quay.io/bpfman/bpfman-operator:v0.5.2
   name: ""
 schema: olm.bundle
 ---
@@ -503,4 +503,4 @@ schema: olm.channel
 package: bpfman-operator
 name: latest
 entries:
-  - name: bpfman-operator.v0.5.1
+  - name: bpfman-operator.v0.5.2
