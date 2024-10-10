@@ -575,7 +575,7 @@ spec:
                       type: object
                     tcx:
                       description: tcx defines the desired state of the application's
-                        TcPrograms.
+                        TcxPrograms.
                       properties:
                         bpffunctionname:
                           description: |-
@@ -584,7 +584,7 @@ spec:
                           type: string
                         direction:
                           description: |-
-                            Direction specifies the direction of traffic the tc program should
+                            Direction specifies the direction of traffic the tcx program should
                             attach to for a given network device.
                           enum:
                           - ingress
@@ -667,29 +667,6 @@ spec:
                           maximum: 1000
                           minimum: 0
                           type: integer
-                        proceedon:
-                          default:
-                          - pipe
-                          - dispatcher_return
-                          description: |-
-                            ProceedOn allows the user to call other tc programs in chain on this exit code.
-                            Multiple values are supported by repeating the parameter.
-                          items:
-                            enum:
-                            - unspec
-                            - ok
-                            - reclassify
-                            - shot
-                            - pipe
-                            - stolen
-                            - queued
-                            - repeat
-                            - redirect
-                            - trap
-                            - dispatcher_return
-                            type: string
-                          maxItems: 11
-                          type: array
                       required:
                       - bpffunctionname
                       - direction

@@ -36,6 +36,8 @@ type Interface interface {
 	KprobePrograms() KprobeProgramInformer
 	// TcPrograms returns a TcProgramInformer.
 	TcPrograms() TcProgramInformer
+	// TcxPrograms returns a TcxProgramInformer.
+	TcxPrograms() TcxProgramInformer
 	// TracepointPrograms returns a TracepointProgramInformer.
 	TracepointPrograms() TracepointProgramInformer
 	// UprobePrograms returns a UprobeProgramInformer.
@@ -83,6 +85,11 @@ func (v *version) KprobePrograms() KprobeProgramInformer {
 // TcPrograms returns a TcProgramInformer.
 func (v *version) TcPrograms() TcProgramInformer {
 	return &tcProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// TcxPrograms returns a TcxProgramInformer.
+func (v *version) TcxPrograms() TcxProgramInformer {
+	return &tcxProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // TracepointPrograms returns a TracepointProgramInformer.
