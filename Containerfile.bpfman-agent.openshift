@@ -48,7 +48,7 @@ LABEL name="bpfman/bpfman-agent" \
       description="The bpfman-agent manage bpfman ebpf programs on every node." \
       io.k8s.description="The bpfman-agent manage bpfman programs on every node. ." \
       io.openshift.tags="bpfman-agent" \
-      version="0.5.1" \
+      version="0.5.2" \
       vendor="Red Hat, Inc."
 
 ENTRYPOINT ["/bpfman-agent"]
