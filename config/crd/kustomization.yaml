@@ -4,6 +4,7 @@
 resources:
   - bases/bpfman.io_bpfprograms.yaml
   - bases/bpfman.io_tcprograms.yaml
+  - bases/bpfman.io_tcxprograms.yaml
   - bases/bpfman.io_tracepointprograms.yaml
   - bases/bpfman.io_xdpprograms.yaml
   - bases/bpfman.io_kprobeprograms.yaml

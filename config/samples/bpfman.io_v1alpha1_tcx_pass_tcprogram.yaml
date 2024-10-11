@@ -1,0 +1,25 @@
+apiVersion: bpfman.io/v1alpha1
+kind: TcxProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: tcxprogram
+  name: tcx-pass-all-nodes
+spec:
+  bpffunctionname: tcx_pass
+  # Select all nodes
+  nodeselector: {}
+  interfaceselector:
+    primarynodeinterface: true
+  priority: 0
+  direction: ingress
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/tcx_test:latest
+  globaldata:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A

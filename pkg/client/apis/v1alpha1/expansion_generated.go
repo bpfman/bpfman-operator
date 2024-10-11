@@ -42,6 +42,10 @@ type KprobeProgramListerExpansion interface{}
 // TcProgramLister.
 type TcProgramListerExpansion interface{}
 
+// TcxProgramListerExpansion allows custom methods to be added to
+// TcxProgramLister.
+type TcxProgramListerExpansion interface{}
+
 // TracepointProgramListerExpansion allows custom methods to be added to
 // TracepointProgramLister.
 type TracepointProgramListerExpansion interface{}

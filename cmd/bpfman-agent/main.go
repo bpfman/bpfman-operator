@@ -161,6 +161,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&bpfmanagent.TcxProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create tcxProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	if err = (&bpfmanagent.TracepointProgramReconciler{
 		ReconcilerCommon: common,
 	}).SetupWithManager(mgr); err != nil {

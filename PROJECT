@@ -37,6 +37,13 @@ resources:
       crdVersion: v1
     controller: true
     domain: bpfman.io
+    kind: TcxProgram
+    path: github.com/bpfman/bpfman-operator/apis/v1alpha1
+    version: v1alpha1
+  - api:
+      crdVersion: v1
+    controller: true
+    domain: bpfman.io
     kind: TracePointProgram
     path: github.com/bpfman/bpfman-operator/apis/v1alpha1
     version: v1alpha1

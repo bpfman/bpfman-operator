@@ -52,6 +52,10 @@ func (c *FakeBpfmanV1alpha1) TcPrograms() v1alpha1.TcProgramInterface {
 	return &FakeTcPrograms{c}
 }
 
+func (c *FakeBpfmanV1alpha1) TcxPrograms() v1alpha1.TcxProgramInterface {
+	return &FakeTcxPrograms{c}
+}
+
 func (c *FakeBpfmanV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInterface {
 	return &FakeTracepointPrograms{c}
 }
