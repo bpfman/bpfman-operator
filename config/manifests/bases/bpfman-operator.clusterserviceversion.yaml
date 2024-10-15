@@ -5,7 +5,7 @@ metadata:
     alm-examples: "[]"
     categories: OpenShift Optional
     capabilities: Basic Install
-    containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
+    containerImage: quay.io/bpfman/bpfman-operator:latest
     repository: https://github.com/bpfman/bpfman
     operatorframework.io/suggested-namespace: bpfman
     operatorframework.io/suggested-namespace-template: |-
@@ -101,13 +101,15 @@ spec:
     Configuration\n\nThe `bpfman-config` configmap is automatically created in the `bpfman`
     namespace and used to configure the bpfman deployment.\n\nTo edit the config simply
     run\n\n```bash\nkubectl edit cm bpfman-config\n```\n\nThe following fields are adjustable\n\n-
-    `bpfman.agent.image`: The image used for the bpfman-agent`\n-
-    `bpfman.image`: The image used for bpfman`\n-
-    `bpfman.log.level`: the log level for bpfman, currently supports
-    `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports `info`, `debug`, and `trace` \n\nThe bpfman operator
-    deploys eBPF programs via CRDs. The following CRDs are currently available, \n\n-
-    XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n- UprobeProgram\n- FentryProgram\n- FexitProgram\n\n## More information\n\nPlease
-    checkout the [bpfman community website](https://bpfman.io/) for more information."
+    `bpfman.agent.image`: The image used for the bpfman-agent`\n- `bpfman.image`: The 
+    image used for bpfman`\n- `bpfman.log.level`: the log level for bpfman, currently 
+    supports `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- 
+    `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports 
+    `info`, `debug`, and `trace` \n\nThe bpfman operator deploys eBPF programs via CRDs. 
+    The following CRDs are currently available, \n\n- BpfApplication\n- XdpProgram\n- TcProgram\n
+    - TracepointProgram\n- KprobeProgram\n- UprobeProgram\n- FentryProgram\n- FexitProgram\n\n
+    ## More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/) 
+    for more information."
   displayName: Bpfman Operator
   icon:
     - base64data: |

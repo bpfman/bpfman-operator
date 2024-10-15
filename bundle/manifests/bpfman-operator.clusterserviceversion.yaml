@@ -295,8 +295,8 @@ metadata:
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
-    containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
-    createdAt: "2024-10-10T19:42:33Z"
+    containerImage: quay.io/bpfman/bpfman-operator:latest
+    createdAt: "2024-10-15T17:00:13Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -399,8 +399,8 @@ spec:
     `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`:
     the log level for the bpfman-agent currently supports `info`, `debug`, and `trace`
     \n\nThe bpfman operator deploys eBPF programs via CRDs. The following CRDs are
-    currently available, \n\n- XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n-
-    UprobeProgram\n- FentryProgram\n- FexitProgram\n\n## More information\n\nPlease
+    currently available, \n\n- BpfApplication\n- XdpProgram\n- TcProgram\n - TracepointProgram\n-
+    KprobeProgram\n- UprobeProgram\n- FentryProgram\n- FexitProgram\n\n ## More information\n\nPlease
     checkout the [bpfman community website](https://bpfman.io/) for more information."
   displayName: Bpfman Operator
   icon:
