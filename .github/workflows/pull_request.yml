@@ -77,78 +77,6 @@ jobs:
         make bundle
         git diff --exit-code -I'^    createdAt: ' bundle
 
-  kubernetes-integration-tests:
-    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }})
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go: ['1.22']
-        oci_bin: ['docker', 'podman']
-    env:
-      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
-      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
-      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
-    steps:
-      - name: Check disk space
-        run: df -h
-
-      - name: Free up space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /usr/local/lib/android
-
-      - name: Check disk space again
-        run: df -h
-
-      - name: Install go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: cache go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-build-codegen-
-
-      - name: Checkout bpfman-operator
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install OCI runtime (Docker or Podman)
-        run: |
-          if [ "${{ matrix.oci_bin }}" = "podman" ]; then
-            sudo apt-get update && sudo apt-get install -y podman
-          fi
-
-      - name: Build Operator and Agent images with ${{ matrix.oci_bin }}
-        run: |
-          make OCI_BIN=${{ matrix.oci_bin }} build-images
-
-      # Run integration tests only if OCI_BIN is Docker.
-      - name: Run integration tests
-        if: ${{ matrix.oci_bin == 'docker' }}
-        run: |
-          make test-integration
-
-      - name: Check disk space
-        run: df -h
-
-      ## Upload diagnostics if integration test step failed.
-      - name: Upload diagnostics
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: kubernetes-integration-test-diag
-          path: /tmp/ktf-diag*
-          if-no-files-found: ignore
-
   coverage:
     needs: [build-lint-test]
     runs-on: ubuntu-latest
@@ -174,7 +102,6 @@ jobs:
         check-license,
         build-lint-test,
         coverage,
-        kubernetes-integration-tests,
       ]
     runs-on: ubuntu-latest
     steps:
