@@ -296,7 +296,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2024-10-15T17:00:13Z"
+    createdAt: "2024-10-17T13:56:37Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -335,7 +335,7 @@ metadata:
     operatorframework.io/arch.arm64: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/arch.s390x: supported
-  name: bpfman-operator.v0.5.2
+  name: bpfman-operator.v0.5.4
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1153,4 +1153,4 @@ spec:
   provider:
     name: The bpfman Community
     url: https://bpfman.io/
-  version: 0.5.2
+  version: 0.5.4

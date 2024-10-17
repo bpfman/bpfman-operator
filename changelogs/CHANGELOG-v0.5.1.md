@@ -50,3 +50,9 @@ The v0.5.1 release is a patch release which mainly contains bug fixes and enhanc
 * @OlivierCazade made their first contribution in https://github.com/bpfman/bpfman-operator/pull/82
 
 **Full Changelog**: https://github.com/bpfman/bpfman-operator/compare/v0.5.0...v0.5.1
+
+## Known Issues
+* Release v0.5.1 and earlier do not work due to a change in the Cosign API
+  ([Issue 1241](https://github.com/bpfman/bpfman/issues/1241)).  In follow-on
+  releases, whether to use Cosign was made configurable, but for release v0.5.1
+  and earlier, there is no workaround other than to use a later release.

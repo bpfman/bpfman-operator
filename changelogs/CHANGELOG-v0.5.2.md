@@ -17,3 +17,8 @@ ppc64le and s390x, and contains several minor internal updates.
 * @ralphbean made their first contribution in https://github.com/bpfman/bpfman-operator/pull/210
 
 **Full Changelog**: https://github.com/bpfman/bpfman-operator/compare/v0.5.1...v0.5.2
+
+## Known Issues
+* The the OpenShift console should not be used to install the v0.5.2 bpfman
+  community operator because it will use the latest version of the bpfman
+  container image which may or may not work. 
