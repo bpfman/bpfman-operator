@@ -206,7 +206,7 @@ object to find references to the bpfMap pinpoints (`spec.maps`) to configure the
 ## Developer
 
 For more architecture details about `bpfman-operator`, refer to
-[Developing the bpfman-operator](https://bpfman.io/v0.5.2/developer-guide/develop-operator)
+[Developing the bpfman-operator](https://bpfman.io/v0.5.4/developer-guide/develop-operator)
 
 ### Bpfman-agent profiling
 
