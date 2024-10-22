@@ -40,8 +40,18 @@ func doTcCheck(t *testing.T, output *bytes.Buffer) bool {
 }
 
 func doAppTcCheck(t *testing.T, output *bytes.Buffer) bool {
-	if strings.Contains(output.String(), "TC:") && strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
-		t.Log("TC BPF program is functioning")
+	str := `TC: received (\d+) packets`
+	if ok, count := doProbeCommonCheck(t, output, str); ok {
+		t.Logf("TC BPF program is functioning packets: %d", count)
+		return true
+	}
+	return false
+}
+
+func doAppTcxCheck(t *testing.T, output *bytes.Buffer) bool {
+	str := `TCX: received (\d+) packets`
+	if ok, count := doProbeCommonCheck(t, output, str); ok {
+		t.Logf("TCX BPF program is functioning packets: %d", count)
 		return true
 	}
 	return false
@@ -92,8 +102,9 @@ func doXdpCheck(t *testing.T, output *bytes.Buffer) bool {
 }
 
 func doAppXdpCheck(t *testing.T, output *bytes.Buffer) bool {
-	if strings.Contains(output.String(), "XDP:") && strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
-		t.Log("XDP BPF program is functioning")
+	str := `XDP: received (\d+) packets`
+	if ok, count := doProbeCommonCheck(t, output, str); ok {
+		t.Logf("XDP BPF program is functioning packets: %d", count)
 		return true
 	}
 	return false
