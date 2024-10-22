@@ -11,7 +11,7 @@ jobs:
 
   kubernetes-integration-tests:
     name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         go: ['1.22']
