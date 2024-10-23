@@ -34,6 +34,7 @@ type BpfmanV1alpha1Interface interface {
 	FexitProgramsGetter
 	KprobeProgramsGetter
 	TcProgramsGetter
+	TcxProgramsGetter
 	TracepointProgramsGetter
 	UprobeProgramsGetter
 	XdpProgramsGetter
@@ -66,6 +67,10 @@ func (c *BpfmanV1alpha1Client) KprobePrograms() KprobeProgramInterface {
 
 func (c *BpfmanV1alpha1Client) TcPrograms() TcProgramInterface {
 	return newTcPrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) TcxPrograms() TcxProgramInterface {
+	return newTcxPrograms(c)
 }
 
 func (c *BpfmanV1alpha1Client) TracepointPrograms() TracepointProgramInterface {

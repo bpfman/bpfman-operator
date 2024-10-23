@@ -51,6 +51,17 @@ metadata:
                 "type": "TC"
               },
               {
+                "tcx": {
+                  "bpffunctionname": "tcx_stats",
+                  "direction": "ingress",
+                  "interfaceselector": {
+                    "primarynodeinterface": true
+                  },
+                  "priority": 500
+                },
+                "type": "TCX"
+              },
+              {
                 "type": "Uprobe",
                 "uprobe": {
                   "bpffunctionname": "uprobe_counter",
@@ -296,7 +307,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2024-10-17T13:56:37Z"
+    createdAt: "2024-10-21T11:51:40Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -370,6 +381,9 @@ spec:
       displayName: Tc Program
       kind: TcProgram
       name: tcprograms.bpfman.io
+      version: v1alpha1
+    - kind: TcxProgram
+      name: tcxprograms.bpfman.io
       version: v1alpha1
     - description: TracepointProgram is the Schema for the Tracepointprograms API
       displayName: Tracepoint Program
@@ -859,6 +873,32 @@ spec:
           - bpfman.io
           resources:
           - tcprograms/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - tcxprograms/status
           verbs:
           - get
           - patch

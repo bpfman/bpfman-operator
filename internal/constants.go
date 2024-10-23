@@ -21,6 +21,7 @@ import "fmt"
 const (
 	XdpProgramInterface         = "bpfman.io.xdpprogramcontroller/interface"
 	TcProgramInterface          = "bpfman.io.tcprogramcontroller/interface"
+	TcxProgramInterface         = "bpfman.io.tcxprogramcontroller/interface"
 	TracepointProgramTracepoint = "bpfman.io.tracepointprogramcontroller/tracepoint"
 	KprobeProgramFunction       = "bpfman.io.kprobeprogramcontroller/function"
 	UprobeProgramTarget         = "bpfman.io.uprobeprogramcontroller/target"
@@ -76,6 +77,9 @@ const (
 	// TcProgramControllerFinalizer is the finalizer that holds an Tc BpfProgram
 	// object from deletion until cleanup can be performed.
 	TcProgramControllerFinalizer = "bpfman.io.tcprogramcontroller/finalizer"
+	// TcxProgramControllerFinalizer is the finalizer that holds an Tcx BpfProgram
+	// object from deletion until cleanup can be performed.
+	TcxProgramControllerFinalizer = "bpfman.io.tcxprogramcontroller/finalizer"
 	// TracepointProgramControllerFinalizer is the finalizer that holds an Tracepoint
 	// BpfProgram object from deletion until cleanup can be performed.
 	TracepointProgramControllerFinalizer = "bpfman.io.tracepointprogramcontroller/finalizer"
@@ -241,6 +245,7 @@ const UprobeString = "uprobe"
 const FentryString = "fentry"
 const FexitString = "fexit"
 const ApplicationString = "application"
+const TcxString = "tcx"
 
 type ReconcileResult uint8
 

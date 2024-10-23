@@ -7,7 +7,7 @@ on:
 jobs:
 
   check-license:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
 
     steps:
@@ -17,7 +17,7 @@ jobs:
 
   build-lint-test:
     name: Build (Go ${{ matrix.go }} - ${{ matrix.arch.arch }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -79,7 +79,7 @@ jobs:
 
   coverage:
     needs: [build-lint-test]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download golang coverage artifacts
         uses: actions/download-artifact@v4
@@ -103,7 +103,7 @@ jobs:
         build-lint-test,
         coverage,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Build Complete
         run: echo "Build Complete"

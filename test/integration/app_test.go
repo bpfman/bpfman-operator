@@ -58,6 +58,7 @@ func TestApplicationGoCounter(t *testing.T) {
 	checkFunctions := []func(t *testing.T, output *bytes.Buffer) bool{
 		doAppKprobeCheck,
 		doAppTcCheck,
+		doAppTcxCheck,
 		doAppTracepointCheck,
 		doAppUprobeCheck,
 		doAppXdpCheck,
