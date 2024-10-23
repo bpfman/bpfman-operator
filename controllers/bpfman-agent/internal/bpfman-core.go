@@ -210,12 +210,12 @@ func Build_kernel_info_annotations(p *gobpfman.ListResponse_ListResult) map[stri
 func GetID(p *bpfmaniov1alpha1.BpfProgram) (*uint32, error) {
 	idString, ok := p.Annotations[internal.IdAnnotation]
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("failed to get program ID because no annotations")
 	}
 
 	id, err := strconv.ParseUint(idString, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get program ID: %v", err)
+		return nil, fmt.Errorf("failed to parse program ID: %v", err)
 	}
 	uid := uint32(id)
 	return &uid, nil
