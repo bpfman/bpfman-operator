@@ -47,7 +47,7 @@ func (r *TcxProgramReconciler) getFinalizer() string {
 func (r *TcxProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfmaniov1alpha1.TcxProgram{}).
-		// Watch bpfPrograms which are owned by TcPrograms
+		// Watch bpfPrograms which are owned by TcxPrograms
 		Watches(
 			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
@@ -65,7 +65,7 @@ func (r *TcxProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	tcxProgram := &bpfmaniov1alpha1.TcxProgram{}
 	if err := r.Get(ctx, req.NamespacedName, tcxProgram); err != nil {
-		// list all TcProgram objects with
+		// list all TcxProgram objects with
 		if errors.IsNotFound(err) {
 			bpfProgram := &bpfmaniov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
@@ -87,7 +87,7 @@ func (r *TcxProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				if errors.IsNotFound(err) {
 					r.Logger.Info("tcxProgram from ownerRef not found stale reconcile exiting", "Name", req.NamespacedName)
 				} else {
-					r.Logger.Error(err, "failed getting TcProgram Object from ownerRef", "Name", req.NamespacedName)
+					r.Logger.Error(err, "failed getting TcxProgram Object from ownerRef", "Name", req.NamespacedName)
 				}
 				return ctrl.Result{}, nil
 			}
@@ -102,7 +102,7 @@ func (r *TcxProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *TcxProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
-	// Sometimes we end up with a stale TcProgram due to races, do this
+	// Sometimes we end up with a stale TcxProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfmaniov1alpha1.TcxProgram{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {

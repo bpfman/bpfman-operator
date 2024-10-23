@@ -35,6 +35,7 @@ import (
 // +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
 // +kubebuilder:printcolumn:name="Position",type=string,JSONPath=`.spec.position`,priority=1
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 type TcxProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -41,9 +41,9 @@ func TestTcxGoCounter(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tcx-counter"})
 	require.NoError(t, err)
-	gotcCounterPod := pods.Items[0]
+	gotcxCounterPod := pods.Items[0]
 
-	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(gotcCounterPod.Name, &corev1.PodLogOptions{})
+	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(gotcxCounterPod.Name, &corev1.PodLogOptions{})
 
 	require.Eventually(t, func() bool {
 		logs, err := req.Stream(ctx)
@@ -54,6 +54,6 @@ func TestTcxGoCounter(t *testing.T) {
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
 
-		return doTcCheck(t, output)
+		return doTcxCheck(t, output)
 	}, 30*time.Second, time.Second)
 }
