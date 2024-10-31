@@ -9,7 +9,7 @@ A great first step in understanding some of the functionality can be to just run
 [![license](https://img.shields.io/github/license/bpfman/bpfman-operator.svg?maxAge=2592000)](https://github.com/bpfman/bpfman-operator/blob/main/LICENSE)
 [![Project maturity: alpha](https://img.shields.io/badge/maturity-alpha-orange.svg)]() 
 [![Go report card](https://goreportcard.com/badge/github.com/bpfman/bpfman-operator)](https://goreportcard.com/report/github.com/bpfman/bpfman-operator)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/{owner}/{repo}/badge)](https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo})
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bpfman/bpfman-operator/badge)](https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman-operator)
 
 ## Deploy bpfman Operator
 
