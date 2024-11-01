@@ -37,7 +37,6 @@ import (
 	osv1 "github.com/openshift/api/security/v1"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/bpfman/bpfman-operator/internal"
 )
@@ -73,7 +72,7 @@ func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("configMap")
 
 	bpfmanConfig := &corev1.ConfigMap{}
 	if err := r.Get(ctx, req.NamespacedName, bpfmanConfig); err != nil {

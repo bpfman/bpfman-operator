@@ -27,7 +27,6 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -61,7 +60,8 @@ func (r *TcxProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:rbac:groups=bpfman.io,resources=tcxprograms/finalizers,verbs=update
 
 func (r *TcxProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("tcx")
+	r.Logger.Info("bpfman-operator enter: tcx", "Name", req.NamespacedName.Name)
 
 	tcxProgram := &bpfmaniov1alpha1.TcxProgram{}
 	if err := r.Get(ctx, req.NamespacedName, tcxProgram); err != nil {

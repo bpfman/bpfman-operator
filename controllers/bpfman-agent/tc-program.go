@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -195,8 +194,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tc")
 
-	ctxLogger := log.FromContext(ctx)
-	ctxLogger.Info("Reconcile TC: Enter", "ReconcileKey", req)
+	r.Logger.Info("bpfman-agent enter: TC", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {

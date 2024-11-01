@@ -27,7 +27,6 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -61,7 +60,8 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *FentryProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("fentry")
+	r.Logger.Info("bpfman-operator enter: fentry", "Name", req.NamespacedName.Name)
 
 	fentryProgram := &bpfmaniov1alpha1.FentryProgram{}
 	if err := r.Get(ctx, req.NamespacedName, fentryProgram); err != nil {

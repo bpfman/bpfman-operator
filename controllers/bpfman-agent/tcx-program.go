@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -160,8 +160,7 @@ func (r *TcxProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tcx")
 
-	ctxLogger := log.FromContext(ctx)
-	ctxLogger.Info("Reconcile TCX: Enter", "ReconcileKey", req)
+	r.Logger.Info("bpfman-agent enter: tcx", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {

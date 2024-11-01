@@ -28,7 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
@@ -66,7 +65,8 @@ func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("application")
+	r.Logger.Info("bpfman-operator enter: application", "Name", req.NamespacedName.Name)
 
 	appProgram := &bpfmaniov1alpha1.BpfApplication{}
 	if err := r.Get(ctx, req.NamespacedName, appProgram); err != nil {

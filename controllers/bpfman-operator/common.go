@@ -66,7 +66,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	r := rec.getRecCommon()
 	progName := prog.GetName()
 
-	r.Logger.V(1).Info("Reconciling Program", "ProgramName", progName)
+	r.Logger.V(1).Info("Reconciling Program", "Name", progName)
 
 	if !controllerutil.ContainsFinalizer(prog, internal.BpfmanOperatorFinalizer) {
 		return r.addFinalizer(ctx, prog, internal.BpfmanOperatorFinalizer)
@@ -147,7 +147,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 }
 
 func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
-	r.Logger.V(1).Info("Program is deleted remove finalizer", "ProgramName", prog.GetName())
+	r.Logger.Info("Calling KubeAPI to delete Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
 
 	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
 		err := r.Update(ctx, prog)
@@ -163,6 +163,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
 	controllerutil.AddFinalizer(prog, finalizer)
 
+	r.Logger.Info("Calling KubeAPI to add Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
 	err := r.Update(ctx, prog)
 	if err != nil {
 		r.Logger.V(1).Info("failed adding bpfman-operator finalizer to Program...requeuing")
@@ -201,6 +202,7 @@ func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Objec
 
 		if numConditions == 1 {
 			if (*conditions)[0].Type == string(cond) {
+				r.Logger.Info("No change in status", "existing condition", (*conditions)[0].Type)
 				// No change, so just return false -- not updated
 				return ctrl.Result{}, nil
 			} else {
@@ -220,6 +222,8 @@ func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Objec
 
 	meta.SetStatusCondition(conditions, cond.Condition(message))
 
+	r.Logger.Info("Calling KubeAPI to update Program condition", "Type", obj.GetObjectKind().GroupVersionKind().Kind,
+		"Name", obj.GetName(), "condition", cond.Condition(message).Type)
 	if err := r.Status().Update(ctx, obj); err != nil {
 		r.Logger.V(1).Info("failed to set *Program object status...requeuing", "error", err)
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil

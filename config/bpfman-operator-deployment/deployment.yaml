@@ -74,7 +74,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: GO_LOG
-              value: debug
+              value: info
           name: bpfman-operator
           securityContext:
             allowPrivilegeEscalation: false
