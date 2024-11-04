@@ -78,7 +78,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		for j, p := range a.Spec.Programs {
 			switch p.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fentry.FunctionName))
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fentry.FunctionName), p.Fentry.BpfFunctionName)
 				fentryProgram := bpfmaniov1alpha1.FentryProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -100,7 +100,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, fentryObjects)
 
 			case bpfmaniov1alpha1.ProgTypeFexit:
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fexit.FunctionName))
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Fexit.FunctionName), p.Fexit.BpfFunctionName)
 				fexitProgram := bpfmaniov1alpha1.FexitProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -123,7 +123,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 			case bpfmaniov1alpha1.ProgTypeKprobe,
 				bpfmaniov1alpha1.ProgTypeKretprobe:
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Kprobe.FunctionName))
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Kprobe.FunctionName), p.Kprobe.BpfFunctionName)
 				kprobeProgram := bpfmaniov1alpha1.KprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -146,7 +146,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 			case bpfmaniov1alpha1.ProgTypeUprobe,
 				bpfmaniov1alpha1.ProgTypeUretprobe:
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Uprobe.FunctionName))
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Uprobe.FunctionName), p.Uprobe.BpfFunctionName)
 				uprobeProgram := bpfmaniov1alpha1.UprobeProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -168,7 +168,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, uprobeObjects)
 
 			case bpfmaniov1alpha1.ProgTypeTracepoint:
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), sanitize(p.Tracepoint.Names[0]))
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), p.Tracepoint.BpfFunctionName)
 				tracepointProgram := bpfmaniov1alpha1.TracepointProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -190,13 +190,13 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, tracepointObjects)
 
 			case bpfmaniov1alpha1.ProgTypeTC:
-				interfaces, ifErr := getInterfaces(&p.TC.InterfaceSelector, r.ourNode)
+				_, ifErr := getInterfaces(&p.TC.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
 					ctxLogger.Error(ifErr, "failed to get interfaces for TC Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
-				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TC.Direction, interfaces[0])
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TC.Direction, p.TC.BpfFunctionName)
 				tcProgram := bpfmaniov1alpha1.TcProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -218,13 +218,13 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, tcObjects)
 
 			case bpfmaniov1alpha1.ProgTypeTCX:
-				interfaces, ifErr := getInterfaces(&p.TCX.InterfaceSelector, r.ourNode)
+				_, ifErr := getInterfaces(&p.TCX.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
 					ctxLogger.Error(ifErr, "failed to get interfaces for TCX Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
-				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TCX.Direction, interfaces[0])
+				appProgramId := fmt.Sprintf("%s-%s-%s", strings.ToLower(string(p.Type)), p.TCX.Direction, p.TCX.BpfFunctionName)
 				tcxProgram := bpfmaniov1alpha1.TcxProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),
@@ -246,13 +246,13 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, tcxObjects)
 
 			case bpfmaniov1alpha1.ProgTypeXDP:
-				interfaces, ifErr := getInterfaces(&p.XDP.InterfaceSelector, r.ourNode)
+				_, ifErr := getInterfaces(&p.XDP.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
 					ctxLogger.Error(ifErr, "failed to get interfaces for XDP Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
-				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), interfaces[0])
+				appProgramId := fmt.Sprintf("%s-%s", strings.ToLower(string(p.Type)), p.XDP.BpfFunctionName)
 				xdpProgram := bpfmaniov1alpha1.XdpProgram{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   buildProgramName(a, p),

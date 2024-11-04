@@ -36,14 +36,14 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		// fentry program config
 		bpfFentryFunctionName = "fentry_test"
 		fentryFunctionName    = "do_unlinkat"
-		fentryAppProgramId    = fmt.Sprintf("%s-%s", "fentry", sanitize(fentryFunctionName))
+		fentryAppProgramId    = fmt.Sprintf("%s-%s-%s", "fentry", sanitize(fentryFunctionName), bpfFentryFunctionName)
 		fentryAttachPoint     = sanitize(fentryFunctionName)
 		fentryBpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fentryFakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 		// kprobe program config
 		bpfKprobeFunctionName       = "kprobe_test"
 		kprobeFunctionName          = "try_to_wake_up"
-		kprobeAppProgramId          = fmt.Sprintf("%s-%s", "kprobe", sanitize(kprobeFunctionName))
+		kprobeAppProgramId          = fmt.Sprintf("%s-%s-%s", "kprobe", sanitize(kprobeFunctionName), bpfKprobeFunctionName)
 		kprobeAttachPoint           = sanitize(kprobeFunctionName)
 		kprobeBpfProg               = &bpfmaniov1alpha1.BpfProgram{}
 		kprobeFakeUID               = "ef71d42c-aa21-48e8-a697-82391d801a82"
