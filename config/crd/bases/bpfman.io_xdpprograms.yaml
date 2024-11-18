@@ -128,10 +128,46 @@ spec:
                 properties:
                   interfaces:
                     description: |-
-                      Interfaces refers to a list of network interfaces to attach the BPF
+                      Interfaces contains a list of network interfaces to attach the BPF
                       program to.
                     items:
                       type: string
+                    type: array
+                  netnsinterfaces:
+                    description: |-
+                      NetnsInterfaces contains a list of network interfaces that may be
+                      qualified by network namespace.
+                    items:
+                      description: Identifies interfaces that may be in a network
+                        namespace.
+                      properties:
+                        excludeInterfaces:
+                          description: |-
+                            ExcludeInterfaces contains the interface names that are excluded from
+                            selection. An entry enclosed by slashes, such as `/br-/`, is matched as a
+                            regular expression. Otherwise it is matched as a case-sensitive string.
+                          items:
+                            type: string
+                          type: array
+                        interfaces:
+                          description: |-
+                            Interfaces contains the interface names to which the BPF program should
+                            be attached. If empty, all the interfaces in the system are selected,
+                            except the ones listed in ExcludeInterfaces. An entry enclosed by
+                            slashes, such as `/br-/`, is matched as a regular expression. Otherwise
+                            it is matched as a case-sensitive string.
+                          items:
+                            type: string
+                          type: array
+                        networknamespaces:
+                          description: |-
+                            NetworkNamespaces contains a list of network namespaces in which to look
+                            for the listed interfaces. If empty, all network namespaces in the
+                            system are selected.
+                          items:
+                            type: string
+                          type: array
+                      type: object
                     type: array
                   primarynodeinterface:
                     description: Attach BPF program to the primary interface on the

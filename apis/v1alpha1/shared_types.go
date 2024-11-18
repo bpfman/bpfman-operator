@@ -21,14 +21,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Identifies interfaces that may be in a network namespace.
+type NetnsInterface struct {
+	// Interfaces contains the interface names to which the BPF program should
+	// be attached. If empty, all the interfaces in the system are selected,
+	// except the ones listed in ExcludeInterfaces. An entry enclosed by
+	// slashes, such as `/br-/`, is matched as a regular expression. Otherwise
+	// it is matched as a case-sensitive string.
+	// +optional
+	Interfaces *[]string `json:"interfaces,omitempty"`
+
+	// ExcludeInterfaces contains the interface names that are excluded from
+	// selection. An entry enclosed by slashes, such as `/br-/`, is matched as a
+	// regular expression. Otherwise it is matched as a case-sensitive string.
+	// +optional
+	ExcludeInterfaces *[]string `json:"excludeInterfaces,omitempty"`
+
+	// NetworkNamespaces contains a list of network namespaces in which to look
+	// for the listed interfaces. If empty, all network namespaces in the
+	// system are selected.
+	// +optional
+	NetworkNamespaces *[]string `json:"networknamespaces,omitempty"`
+}
+
 // InterfaceSelector defines interface to attach to.
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type InterfaceSelector struct {
-	// Interfaces refers to a list of network interfaces to attach the BPF
+	// Interfaces contains a list of network interfaces to attach the BPF
 	// program to.
 	// +optional
 	Interfaces *[]string `json:"interfaces,omitempty"`
+
+	// NetnsInterfaces contains a list of network interfaces that may be
+	// qualified by network namespace.
+	// +optional
+	NetnsInterfaces *[]NetnsInterface `json:"netnsinterfaces,omitempty"`
 
 	// Attach BPF program to the primary interface on the node. Only 'true' accepted.
 	// +optional
