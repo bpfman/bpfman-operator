@@ -32,6 +32,36 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// Figure out the list of container pids in which the program should be
+// attached.
+func getContainers(
+	ctx context.Context,
+	containerSelector *bpfmaniov1alpha1.ContainerSelector,
+	nodeName string,
+	logger logr.Logger) (*[]containerInfo, error) {
+
+	clientSet, err := getClientset()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clientset: %v", err)
+	}
+
+	// Get the list of pods that match the selector.
+	podList, err := getPodsForNode(ctx, clientSet, containerSelector, nodeName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod list: %v", err)
+	}
+
+	// Get the list of containers in the list of pods that match the selector.
+	containerList, err := getContainerInfo(podList, containerSelector.ContainerNames, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container info: %v", err)
+	}
+
+	logger.V(1).Info("from getContainerInfo", "containers", containerList)
+
+	return containerList, nil
+}
+
 // getPodsForNode returns a list of pods on the given node that match the given
 // container selector.
 func getPodsForNode(ctx context.Context, clientset kubernetes.Interface,

@@ -97,12 +97,9 @@ spec:
               name: mountpoint-dir
             - mountPath: /tmp
               name: tmp-dir
-            # host-proc is used to attach programs inside of containers
+            # Used to attach programs inside of containers
             - mountPath: /host/proc
               name: host-proc
-            # host-netns is used to attach programs inside of network namespaces
-            - mountPath: /host/netns
-              name: host-netns
             - name: bpfman-config
               mountPath: /etc/bpfman/bpfman.toml
               subPath: bpfman.toml
@@ -213,9 +210,6 @@ spec:
         - hostPath:
             path: /proc
           name: host-proc
-        - hostPath:
-            path: /var/run/netns
-          name: host-netns
         - hostPath:
             path: /run/containerd/containerd.sock
           name: host-containerd
