@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -40,7 +42,7 @@ import (
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type XdpProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentXdpProgram *bpfmaniov1alpha1.XdpProgram
 	interfaces        []string
 	ourNode           *v1.Node
@@ -68,6 +70,10 @@ func (r *XdpProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *XdpProgramReconciler) getName() string {
 	return r.currentXdpProgram.Name
+}
+
+func (r *XdpProgramReconciler) getNamespace() string {
+	return r.currentXdpProgram.Namespace
 }
 
 func (r *XdpProgramReconciler) getNode() *v1.Node {

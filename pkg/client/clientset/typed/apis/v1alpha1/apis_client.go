@@ -29,6 +29,7 @@ import (
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfApplicationsGetter
+	BpfNsProgramsGetter
 	BpfProgramsGetter
 	FentryProgramsGetter
 	FexitProgramsGetter
@@ -37,6 +38,7 @@ type BpfmanV1alpha1Interface interface {
 	TcxProgramsGetter
 	TracepointProgramsGetter
 	UprobeProgramsGetter
+	XdpNsProgramsGetter
 	XdpProgramsGetter
 }
 
@@ -47,6 +49,10 @@ type BpfmanV1alpha1Client struct {
 
 func (c *BpfmanV1alpha1Client) BpfApplications() BpfApplicationInterface {
 	return newBpfApplications(c)
+}
+
+func (c *BpfmanV1alpha1Client) BpfNsPrograms(namespace string) BpfNsProgramInterface {
+	return newBpfNsPrograms(c, namespace)
 }
 
 func (c *BpfmanV1alpha1Client) BpfPrograms() BpfProgramInterface {
@@ -79,6 +85,10 @@ func (c *BpfmanV1alpha1Client) TracepointPrograms() TracepointProgramInterface {
 
 func (c *BpfmanV1alpha1Client) UprobePrograms() UprobeProgramInterface {
 	return newUprobePrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) XdpNsPrograms(namespace string) XdpNsProgramInterface {
+	return newXdpNsPrograms(c, namespace)
 }
 
 func (c *BpfmanV1alpha1Client) XdpPrograms() XdpProgramInterface {

@@ -212,12 +212,13 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 
 // Check if the annotation is set to indicate that no containers on this node
 // matched the container selector.
-func noContainersOnNode(bpfProgram *bpfmaniov1alpha1.BpfProgram) bool {
+func noContainersOnNode[T BpfProg](bpfProgram *T) bool {
 	if bpfProgram == nil {
 		return false
 	}
 
-	noContainersOnNode, ok := bpfProgram.Annotations[internal.UprobeNoContainersOnNode]
+	annotations := (*bpfProgram).GetAnnotations()
+	noContainersOnNode, ok := annotations[internal.UprobeNoContainersOnNode]
 	if ok && noContainersOnNode == "true" {
 		return true
 	}

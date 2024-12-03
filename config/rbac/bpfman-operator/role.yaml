@@ -45,6 +45,14 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
   - bpfprograms
   verbs:
   - get
@@ -241,6 +249,32 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - xdpnsprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - xdpprograms
   verbs:
   - create
@@ -301,3 +335,44 @@ rules:
   - get
   - list
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: operator-role
+  namespace: bpfman
+rules:
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms/status
+  verbs:
+  - get
+  - patch
+  - update

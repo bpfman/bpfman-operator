@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -206,9 +205,11 @@ func Build_kernel_info_annotations(p *gobpfman.ListResponse_ListResult) map[stri
 	return nil
 }
 
+/*
 // get the program ID from a bpfProgram
-func GetID(p *bpfmaniov1alpha1.BpfProgram) (*uint32, error) {
-	idString, ok := p.Annotations[internal.IdAnnotation]
+func GetID[T bpfmanagent.BpfProg](p *T) (*uint32, error) {
+	annotations := (*p).GetAnnotations()
+	idString, ok := annotations[internal.IdAnnotation]
 	if !ok {
 		return nil, fmt.Errorf("failed to get program ID because no annotations")
 	}
@@ -220,3 +221,4 @@ func GetID(p *bpfmaniov1alpha1.BpfProgram) (*uint32, error) {
 	uid := uint32(id)
 	return &uid, nil
 }
+*/

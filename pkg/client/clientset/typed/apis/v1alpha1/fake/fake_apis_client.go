@@ -32,6 +32,10 @@ func (c *FakeBpfmanV1alpha1) BpfApplications() v1alpha1.BpfApplicationInterface 
 	return &FakeBpfApplications{c}
 }
 
+func (c *FakeBpfmanV1alpha1) BpfNsPrograms(namespace string) v1alpha1.BpfNsProgramInterface {
+	return &FakeBpfNsPrograms{c, namespace}
+}
+
 func (c *FakeBpfmanV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
 	return &FakeBpfPrograms{c}
 }
@@ -62,6 +66,10 @@ func (c *FakeBpfmanV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInte
 
 func (c *FakeBpfmanV1alpha1) UprobePrograms() v1alpha1.UprobeProgramInterface {
 	return &FakeUprobePrograms{c}
+}
+
+func (c *FakeBpfmanV1alpha1) XdpNsPrograms(namespace string) v1alpha1.XdpNsProgramInterface {
+	return &FakeXdpNsPrograms{c, namespace}
 }
 
 func (c *FakeBpfmanV1alpha1) XdpPrograms() v1alpha1.XdpProgramInterface {

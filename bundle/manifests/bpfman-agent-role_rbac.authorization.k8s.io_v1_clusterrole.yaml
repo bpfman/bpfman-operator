@@ -21,6 +21,32 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfnsprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - bpfprograms
   verbs:
   - create
@@ -142,6 +168,14 @@ rules:
   - uprobeprograms/finalizers
   verbs:
   - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - bpfman.io
   resources:

@@ -139,7 +139,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	common := bpfmanagent.ReconcilerCommon{
+	common := bpfmanagent.ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		GrpcConn:     conn,
@@ -147,64 +147,87 @@ func main() {
 		NodeName:     nodeName,
 	}
 
-	if err = (&bpfmanagent.XdpProgramReconciler{
+	commonCluster := bpfmanagent.ClusterProgramReconciler{
 		ReconcilerCommon: common,
+	}
+
+	commonNs := bpfmanagent.ReconcilerCommon[bpfmaniov1alpha1.BpfNsProgram, bpfmaniov1alpha1.BpfNsProgramList]{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GrpcConn:     conn,
+		BpfmanClient: gobpfman.NewBpfmanClient(conn),
+		NodeName:     nodeName,
+	}
+
+	commonNamespace := bpfmanagent.NamespaceProgramReconciler{
+		ReconcilerCommon: commonNs,
+	}
+
+	if err = (&bpfmanagent.XdpProgramReconciler{
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create xdpProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
+	if err = (&bpfmanagent.XdpNsProgramReconciler{
+		NamespaceProgramReconciler: commonNamespace,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create xdpsProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	if err = (&bpfmanagent.TcProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.TcxProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tcxProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.TracepointProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.KprobeProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create kprobeProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.UprobeProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create uprobeProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.FentryProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create fentryProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.FexitProgramReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create fexitProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 
 	if err = (&bpfmanagent.BpfApplicationReconciler{
-		ReconcilerCommon: common,
+		ClusterProgramReconciler: commonCluster,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create BpfApplicationProgram controller", "controller", "BpfProgram")
 		os.Exit(1)

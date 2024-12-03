@@ -63,6 +63,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&BpfApplication{},
 		&BpfApplicationList{},
+		&BpfNsProgram{},
+		&BpfNsProgramList{},
 		&BpfProgram{},
 		&BpfProgramList{},
 		&FentryProgram{},
@@ -79,6 +81,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TracepointProgramList{},
 		&UprobeProgram{},
 		&UprobeProgramList{},
+		&XdpNsProgram{},
+		&XdpNsProgramList{},
 		&XdpProgram{},
 		&XdpProgramList{},
 	)
