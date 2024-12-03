@@ -52,20 +52,50 @@ spec:
         kind: BpfApplication
         name: bpfapplications.bpfman.io
         version: v1alpha1
+      - description: BpfNsApplication is the Schema for the BpfNsApplications API
+        displayName: Bpf Namespaced Application
+        kind: BpfNsApplication
+        name: bpfnsapplications.bpfman.io
+        version: v1alpha1
       - description: BpfProgram is the Schema for the BpfProgram API
         displayName: Bpf Program
         kind: BpfProgram
         name: bpfprograms.bpfman.io
+        version: v1alpha1
+      - description: BpfNsProgram is the Schema for the BpfNsProgram API
+        displayName: Bpf Namespaced Program
+        kind: BpfNsProgram
+        name: bpfnsprograms.bpfman.io
         version: v1alpha1
       - description: XdpProgram is the Schema for the Xdpprograms API
         displayName: Xdp Program
         kind: XdpProgram
         name: xdpprograms.bpfman.io
         version: v1alpha1
+      - description: XdpNsProgram is the Schema for the Xdpnsprograms API
+        displayName: Xdp Namespaced Program
+        kind: XdpNsProgram
+        name: xdpnsprograms.bpfman.io
+        version: v1alpha1
       - description: TcProgram is the Schema for the Tcprograms API
-        displayName: Tc Program
+        displayName: TC Program
         kind: TcProgram
         name: tcprograms.bpfman.io
+        version: v1alpha1
+      - description: TcNsProgram is the Schema for the Tcnsprograms API
+        displayName: TC Namespaced Program
+        kind: TcNsProgram
+        name: tcnsprograms.bpfman.io
+        version: v1alpha1
+      - description: TcxProgram is the Schema for the Tcxprograms API
+        displayName: TCX Program
+        kind: TcxProgram
+        name: tcxprograms.bpfman.io
+        version: v1alpha1
+      - description: TcxNsProgram is the Schema for the Tcxnsprograms API
+        displayName: TCX Namespaced Program
+        kind: TcxNsProgram
+        name: tcxnsprograms.bpfman.io
         version: v1alpha1
       - description: TracepointProgram is the Schema for the Tracepointprograms API
         displayName: Tracepoint Program
@@ -81,6 +111,11 @@ spec:
         displayName: Uprobe Program
         kind: UprobeProgram
         name: uprobeprograms.bpfman.io
+        version: v1alpha1
+      - description: UprobeNsProgram is the Schema for the Uprobensprograms API
+        displayName: Uprobe Namespaced Program
+        kind: UprobeNsProgram
+        name: uprobensprograms.bpfman.io
         version: v1alpha1
       - description: FentryProgram is the Schema for the Fentryprograms API
         displayName: Fentry Program
@@ -106,8 +141,9 @@ spec:
     supports `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- 
     `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports 
     `info`, `debug`, and `trace` \n\nThe bpfman operator deploys eBPF programs via CRDs. 
-    The following CRDs are currently available, \n\n- BpfApplication\n- XdpProgram\n- TcProgram\n
-    - TracepointProgram\n- KprobeProgram\n- UprobeProgram\n- FentryProgram\n- FexitProgram\n\n
+    The following CRDs are currently available, \n\n- BpfApplication\n- FentryProgram\n- FexitProgram\n
+    - KprobeProgram\n- TcProgram\n- TcxProgram\n- TracepointProgram\n- UprobeProgram\n- XdpProgram\n
+    - BpfNsApplication\n- TcProgram\n- TcxNsProgram\n- UprobeNsProgram\n- XdpNsProgram\n\n
     ## More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/) 
     for more information."
   displayName: Bpfman Operator

@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanoperator
 
 import (
@@ -35,11 +37,11 @@ import (
 //+kubebuilder:rbac:groups=bpfman.io,resources=fentryprograms/finalizers,verbs=update
 
 type FentryProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 }
 
-func (r *FentryProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+func (r *FentryProgramReconciler) getRecCommon() *ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList] {
+	return &r.ClusterProgramReconciler.ReconcilerCommon
 }
 
 func (r *FentryProgramReconciler) getFinalizer() string {
@@ -54,7 +56,7 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.FentryString))),
+			builder.WithPredicates(predicate.And(statusChangedPredicateCluster(), internal.BpfProgramTypePredicate(internal.FentryString))),
 		).
 		Complete(r)
 }
@@ -101,7 +103,7 @@ func (r *FentryProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return reconcileBpfProgram(ctx, r, fentryProgram)
 }
 
-func (r *FentryProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+func (r *FentryProgramReconciler) updateStatus(ctx context.Context, _namespace string, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale FentryProgram due to races, do this
 	// get to ensure we're up to date before attempting a status update.
 	prog := &bpfmaniov1alpha1.FentryProgram{}
