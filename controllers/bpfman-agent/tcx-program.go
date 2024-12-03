@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -41,7 +43,7 @@ import (
 // TcxProgramReconciler reconciles a tcxProgram object by creating multiple
 // bpfProgram objects and managing bpfman for each one.
 type TcxProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentTcxProgram *bpfmaniov1alpha1.TcxProgram
 	interfaces        []string
 	ourNode           *v1.Node
@@ -69,6 +71,14 @@ func (r *TcxProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *TcxProgramReconciler) getName() string {
 	return r.currentTcxProgram.Name
+}
+
+func (r *TcxProgramReconciler) getNamespace() string {
+	return r.currentTcxProgram.Namespace
+}
+
+func (r *TcxProgramReconciler) getNoContAnnotationIndex() string {
+	return internal.TcxNoContainersOnNode
 }
 
 func (r *TcxProgramReconciler) getNode() *v1.Node {
@@ -149,7 +159,13 @@ func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentTcxProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(
+			ctx,
+			r.currentTcxProgram.Spec.Containers.Namespace,
+			r.currentTcxProgram.Spec.Containers.Pods,
+			r.currentTcxProgram.Spec.Containers.ContainerNames,
+			r.Logger,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}

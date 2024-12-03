@@ -24,7 +24,6 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	agenttestutils "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal/test-utils"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	testutils "github.com/bpfman/bpfman-operator/internal/test-utils"
@@ -115,18 +114,21 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 
 	cli := agenttestutils.NewBpfmanClientFake()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client:       cl,
 		Scheme:       s,
 		BpfmanClient: cli,
 		NodeName:     fakeNode.Name,
+	}
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &XdpProgramReconciler{ReconcilerCommon: rc, ourNode: fakeNode}
+	r := &XdpProgramReconciler{ClusterProgramReconciler: cpr, ourNode: fakeNode}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -144,7 +146,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 	}
 
 	// Check the first BpfProgram Object was created successfully
-	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
+	err = r.getBpfProgram(ctx, r, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProgEth0)
@@ -195,11 +197,11 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 	}
 
 	// Check that the bpfProgram's maps was correctly updated
-	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
+	err = r.getBpfProgram(ctx, r, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
-	id0, err := bpfmanagentinternal.GetID(bpfProgEth0)
+	id0, err := GetID(bpfProgEth0)
 	require.NoError(t, err)
 
 	// Check the bpfLoadRequest was correctly built
@@ -235,7 +237,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 	require.False(t, res.Requeue)
 
 	// Get program object
-	err = rc.getBpfProgram(ctx, name, appProgramId0, attachPoint0, bpfProgEth0)
+	err = r.getBpfProgram(ctx, r, name, appProgramId0, attachPoint0, bpfProgEth0)
 	require.NoError(t, err)
 
 	// Check that the bpfProgram's status was correctly updated
@@ -255,7 +257,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 		require.False(t, res.Requeue)
 
 		// Check the Second BpfProgram Object was created successfully
-		err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
+		err = r.getBpfProgram(ctx, r, name, appProgramId1, attachPoint1, bpfProgEth1)
 		require.NoError(t, err)
 
 		require.NotEmpty(t, bpfProgEth1)
@@ -315,11 +317,11 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 		}
 
 		// Check that the bpfProgram's maps was correctly updated
-		err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
+		err = r.getBpfProgram(ctx, r, name, appProgramId1, attachPoint1, bpfProgEth1)
 		require.NoError(t, err)
 
 		// prog ID should already have been set
-		id1, err := bpfmanagentinternal.GetID(bpfProgEth1)
+		id1, err := GetID(bpfProgEth1)
 		require.NoError(t, err)
 
 		// Check the bpfLoadRequest was correctly built
@@ -329,7 +331,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 		}
 
 		// Get program object
-		err = rc.getBpfProgram(ctx, name, appProgramId1, attachPoint1, bpfProgEth1)
+		err = r.getBpfProgram(ctx, r, name, appProgramId1, attachPoint1, bpfProgEth1)
 		require.NoError(t, err)
 
 		// Check that the bpfProgram's status was correctly updated

@@ -135,16 +135,20 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(App).WithRuntimeObjects(objs...).Build()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client: cl,
 		Scheme: s,
+	}
+
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ApplicationProgram object with the scheme and fake client.
-	r := &BpfApplicationReconciler{ReconcilerCommon: rc}
+	r := &BpfApplicationReconciler{ClusterProgramReconciler: cpr}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .

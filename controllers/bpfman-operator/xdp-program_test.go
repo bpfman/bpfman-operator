@@ -89,7 +89,7 @@ func TestXdpProgramReconcile(t *testing.T) {
 			Finalizers: []string{internal.TcProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
-			Type: "tc",
+			Type: "xdp",
 		},
 		Status: bpfmaniov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfmaniov1alpha1.BpfProgCondLoaded.Condition()},
@@ -108,16 +108,20 @@ func TestXdpProgramReconcile(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(Xdp).WithRuntimeObjects(objs...).Build()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client: cl,
 		Scheme: s,
+	}
+
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &XdpProgramReconciler{ReconcilerCommon: rc}
+	r := &XdpProgramReconciler{ClusterProgramReconciler: cpr}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -157,5 +161,4 @@ func TestXdpProgramReconcile(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, Xdp.Status.Conditions[0].Type, string(bpfmaniov1alpha1.ProgramReconcileSuccess))
-
 }

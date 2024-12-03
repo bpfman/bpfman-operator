@@ -19,7 +19,6 @@ package bpfmanoperator
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -29,8 +28,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
@@ -39,47 +36,73 @@ import (
 )
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=bpfprograms,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=bpfnsprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,namespace=bpfman,resources=bpfnsprograms,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 const (
 	retryDurationOperator = 5 * time.Second
 )
 
+type BpfProgOper interface {
+	GetName() string
+
+	GetLabels() map[string]string
+	GetStatus() *bpfmaniov1alpha1.BpfProgramStatus
+}
+
+type BpfProgListOper[T any] interface {
+	// bpfmniov1alpha1.BpfProgramList | bpfmaniov1alpha1.BpfNsProgramList
+
+	GetItems() []T
+}
+
 // ReconcilerCommon reconciles a BpfProgram object
-type ReconcilerCommon struct {
+type ReconcilerCommon[T BpfProgOper, TL BpfProgListOper[T]] struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Logger logr.Logger
 }
 
 // bpfmanReconciler defines a k8s reconciler which can program bpfman.
-type ProgramReconciler interface {
-	getRecCommon() *ReconcilerCommon
+type ProgramReconciler[T BpfProgOper, TL BpfProgListOper[T]] interface {
+	// BPF Cluster of Namespaced Reconciler
+	getBpfList(ctx context.Context,
+		progName string,
+		progNamespace string,
+	) (*TL, error)
+	containsFinalizer(bpfProgram *T, finalizer string) bool
+
+	// *Program Reconciler
+	getRecCommon() *ReconcilerCommon[T, TL]
 	updateStatus(ctx context.Context,
+		namespace string,
 		name string,
 		cond bpfmaniov1alpha1.ProgramConditionType,
 		message string) (ctrl.Result, error)
 	getFinalizer() string
 }
 
-func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client.Object) (ctrl.Result, error) {
+func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
+	ctx context.Context,
+	rec ProgramReconciler[T, TL],
+	prog client.Object,
+) (ctrl.Result, error) {
 	r := rec.getRecCommon()
 	progName := prog.GetName()
+	progNamespace := prog.GetNamespace()
 
-	r.Logger.V(1).Info("Reconciling Program", "Name", progName)
+	r.Logger.V(1).Info("Reconciling Program", "Namespace", progNamespace, "Name", progName)
 
 	if !controllerutil.ContainsFinalizer(prog, internal.BpfmanOperatorFinalizer) {
+		r.Logger.V(1).Info("Add Finalizer", "Namespace", progNamespace, "ProgramName", progName)
 		return r.addFinalizer(ctx, prog, internal.BpfmanOperatorFinalizer)
 	}
 
 	// reconcile Program Object on all other events
 	// list all existing bpfProgram state for the given Program
-	bpfPrograms := &bpfmaniov1alpha1.BpfProgramList{}
-
-	// Only list bpfPrograms for this Program
-	opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwner: progName}}
-
-	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
+	bpfPrograms, err := rec.getBpfList(ctx, progName, progNamespace)
+	if err != nil {
 		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
 	}
@@ -96,7 +119,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	if prog.GetDeletionTimestamp().IsZero() {
 		for _, node := range nodes.Items {
 			nodeFound := false
-			for _, program := range bpfPrograms.Items {
+			for _, program := range (*bpfPrograms).GetItems() {
 				bpfProgramNode := program.GetLabels()[internal.K8sHostLabel]
 				if node.Name == bpfProgramNode {
 					nodeFound = true
@@ -104,7 +127,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 				}
 			}
 			if !nodeFound {
-				return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramNotYetLoaded, "")
+				return rec.updateStatus(ctx, progNamespace, progName, bpfmaniov1alpha1.ProgramNotYetLoaded, "")
 			}
 		}
 	}
@@ -112,14 +135,15 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	failedBpfPrograms := []string{}
 	finalApplied := []string{}
 	// Make sure no bpfPrograms had any issues in the loading or unloading process
-	for _, bpfProgram := range bpfPrograms.Items {
+	for _, bpfProgram := range (*bpfPrograms).GetItems() {
 
-		if controllerutil.ContainsFinalizer(&bpfProgram, rec.getFinalizer()) {
-			finalApplied = append(finalApplied, bpfProgram.Name)
+		if rec.containsFinalizer(&bpfProgram, rec.getFinalizer()) {
+			finalApplied = append(finalApplied, bpfProgram.GetName())
 		}
 
-		if bpfmanHelpers.IsBpfProgramConditionFailure(&bpfProgram.Status.Conditions) {
-			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
+		status := bpfProgram.GetStatus()
+		if bpfmanHelpers.IsBpfProgramConditionFailure(&status.Conditions) {
+			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.GetName())
 		}
 	}
 
@@ -132,21 +156,21 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		}
 
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramDeleteError, fmt.Sprintf("Program Deletion failed on the following bpfProgram Objects: %v",
-			finalApplied))
+		return rec.updateStatus(ctx, progNamespace, progName, bpfmaniov1alpha1.ProgramDeleteError,
+			fmt.Sprintf("Program Deletion failed on the following bpfProgram Objects: %v", finalApplied))
 	}
 
 	if len(failedBpfPrograms) != 0 {
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramReconcileError,
+		return rec.updateStatus(ctx, progNamespace, progName, bpfmaniov1alpha1.ProgramReconcileError,
 			fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v", failedBpfPrograms))
 	}
 
 	// Causes Requeue
-	return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramReconcileSuccess, "")
+	return rec.updateStatus(ctx, progNamespace, progName, bpfmaniov1alpha1.ProgramReconcileSuccess, "")
 }
 
-func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
+func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
 	r.Logger.Info("Calling KubeAPI to delete Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
 
 	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
@@ -160,7 +184,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
+func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
 	controllerutil.AddFinalizer(prog, finalizer)
 
 	r.Logger.Info("Calling KubeAPI to add Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
@@ -173,27 +197,13 @@ func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object,
 	return ctrl.Result{}, nil
 }
 
-// Only reconcile if a bpfprogram object's status has been updated.
-func statusChangedPredicate() predicate.Funcs {
-	return predicate.Funcs{
-		GenericFunc: func(e event.GenericEvent) bool {
-			return false
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			return false
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfProgram)
-			return !reflect.DeepEqual(oldObject.Status, newObject.Status)
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return false
-		},
-	}
-}
-
-func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Object, conditions *[]metav1.Condition, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+func (r *ReconcilerCommon[T, TL]) updateCondition(
+	ctx context.Context,
+	obj client.Object,
+	conditions *[]metav1.Condition,
+	cond bpfmaniov1alpha1.ProgramConditionType,
+	message string,
+) (ctrl.Result, error) {
 
 	r.Logger.V(1).Info("updateCondition()", "existing conds", conditions, "new cond", cond)
 

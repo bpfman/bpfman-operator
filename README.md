@@ -173,32 +173,48 @@ xdp-pass-all-nodes   pass              {}             0          {"primarynodein
 
 ## API Types Overview
 
-Refer to [api-spec.md](https://bpfman.io/main/developer-guide/api-spec/) for a detailed description of all the bpfman Kubernetes API types.
+Refer to [api-spec.md](https://bpfman.io/main/developer-guide/api-spec/) for a more detailed description of all the
+bpfman Kubernetes API types.
+
+### Cluster Scoped Versus Namespaced Scoped CRDs
+
+For security reasons, cluster admins may want to limit certain applications to only loading eBPF programs
+within a given namespace.
+To provide these tighter controls on eBPF program loading, some of the bpfman Custom Resource Definitions (CRDs)
+are Namespace scoped.
+Not all eBPF programs make sense to be namespaced scoped.
+The namespaced scoped CRDs use the "<ProgramType\>NsProgram" identifier and cluster scoped CRDs to use "<ProgramType\>Program"
+identifier.
 
 ### Multiple Program CRDs
 
-The multiple `*Program` CRDs are the bpfman Kubernetes API objects most relevant to users.
-They express how and where eBPF programs are to be deployed within a Kubernetes cluster. Currently, 
-bpfman supports:
+The multiple `*Program` CRDs are the bpfman Kubernetes API objects most relevant to users and can be used to
+understand clusterwide state for an eBPF program.
+It's designed to express how, and where eBPF programs are to be deployed within a Kubernetes cluster.
+Currently bpfman supports:
 
 * `fentryProgram`
 * `fexitProgram`
 * `kprobeProgram`
-* `tcProgram`
+* `tcProgram` and `tcNsProgram`
+* `tcxProgram` and `tcxNsProgram`
 * `tracepointProgram`
-* `uprobeProgram`
-* `xdpProgram`
+* `uprobeProgram` and `uprobeNsProgam`
+* `xdpProgram` and `xdpNsProgram`
 
-## BpfApplication CRD
+There is also the `bpfApplication` and `bpfNsApplication` CRDs, which are
+designed for managing eBPF programs at an application level within a Kubernetes cluster.
+These CRD allows Kubernetes users to define which eBPF programs are essential for an application's operations
+and specify how these programs should be deployed across the cluster.
+With cluster scoped variant (`bpfApplication`), any variation of the cluster scoped
+eBPF programs can be loaded.
+With namespace scoped variant (`bpfNsApplication`), any variation of the namespace scoped
+eBPF programs can be loaded.
 
-The `BpfApplication` CRD is designed for managing eBPF programs at an application level within a Kubernetes cluster.
-This CRD allows Kubernetes users to define which eBPF programs are essential for an application's operations and specify
-how these programs should be deployed across the cluster.
+### BpfProgram and BpfNsProgram CRD
 
-## BpfProgram CRD
-
-The `BpfProgram` CRD is used internally by the `bpfman-deployment` to keep track of per-node `bpfman` state,
-such as map pinpoints, and to report node-specific errors back to the user.
+The `BpfProgram` and  `BpfNsProgram` CRDs are used internally by the bpfman-deployment to keep track of per
+node bpfman state such as map pin points, and to report node specific errors back to the user.
 Kubernetes' users/controllers are only allowed to view these objects, NOT create or edit them.
 
 Applications wishing to use `bpfman` to deploy/manage their eBPF programs in Kubernetes will make use of this

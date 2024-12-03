@@ -29,14 +29,20 @@ import (
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfApplicationsGetter
+	BpfNsApplicationsGetter
+	BpfNsProgramsGetter
 	BpfProgramsGetter
 	FentryProgramsGetter
 	FexitProgramsGetter
 	KprobeProgramsGetter
+	TcNsProgramsGetter
 	TcProgramsGetter
+	TcxNsProgramsGetter
 	TcxProgramsGetter
 	TracepointProgramsGetter
+	UprobeNsProgramsGetter
 	UprobeProgramsGetter
+	XdpNsProgramsGetter
 	XdpProgramsGetter
 }
 
@@ -47,6 +53,14 @@ type BpfmanV1alpha1Client struct {
 
 func (c *BpfmanV1alpha1Client) BpfApplications() BpfApplicationInterface {
 	return newBpfApplications(c)
+}
+
+func (c *BpfmanV1alpha1Client) BpfNsApplications(namespace string) BpfNsApplicationInterface {
+	return newBpfNsApplications(c, namespace)
+}
+
+func (c *BpfmanV1alpha1Client) BpfNsPrograms(namespace string) BpfNsProgramInterface {
+	return newBpfNsPrograms(c, namespace)
 }
 
 func (c *BpfmanV1alpha1Client) BpfPrograms() BpfProgramInterface {
@@ -65,8 +79,16 @@ func (c *BpfmanV1alpha1Client) KprobePrograms() KprobeProgramInterface {
 	return newKprobePrograms(c)
 }
 
+func (c *BpfmanV1alpha1Client) TcNsPrograms(namespace string) TcNsProgramInterface {
+	return newTcNsPrograms(c, namespace)
+}
+
 func (c *BpfmanV1alpha1Client) TcPrograms() TcProgramInterface {
 	return newTcPrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) TcxNsPrograms(namespace string) TcxNsProgramInterface {
+	return newTcxNsPrograms(c, namespace)
 }
 
 func (c *BpfmanV1alpha1Client) TcxPrograms() TcxProgramInterface {
@@ -77,8 +99,16 @@ func (c *BpfmanV1alpha1Client) TracepointPrograms() TracepointProgramInterface {
 	return newTracepointPrograms(c)
 }
 
+func (c *BpfmanV1alpha1Client) UprobeNsPrograms(namespace string) UprobeNsProgramInterface {
+	return newUprobeNsPrograms(c, namespace)
+}
+
 func (c *BpfmanV1alpha1Client) UprobePrograms() UprobeProgramInterface {
 	return newUprobePrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) XdpNsPrograms(namespace string) XdpNsProgramInterface {
+	return newXdpNsPrograms(c, namespace)
 }
 
 func (c *BpfmanV1alpha1Client) XdpPrograms() XdpProgramInterface {

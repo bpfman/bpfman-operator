@@ -40,13 +40,15 @@ import (
 
 // BpfApplicationReconciler reconciles a BpfApplication object
 type BpfApplicationReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 }
 
-func (r *BpfApplicationReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+//lint:ignore U1000 Linter claims function unused, but generics confusing linter
+func (r *BpfApplicationReconciler) getRecCommon() *ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList] {
+	return &r.ClusterProgramReconciler.ReconcilerCommon
 }
 
+//lint:ignore U1000 Linter claims function unused, but generics confusing linter
 func (r *BpfApplicationReconciler) getFinalizer() string {
 	return internal.BpfApplicationControllerFinalizer
 }
@@ -59,7 +61,7 @@ func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.ApplicationString))),
+			builder.WithPredicates(predicate.And(statusChangedPredicateCluster(), internal.BpfProgramTypePredicate(internal.ApplicationString))),
 		).
 		Complete(r)
 }
@@ -106,7 +108,8 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return reconcileBpfProgram(ctx, r, appProgram)
 }
 
-func (r *BpfApplicationReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+//lint:ignore U1000 Linter claims function unused, but generics confusing linter
+func (r *BpfApplicationReconciler) updateStatus(ctx context.Context, _namespace string, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale FentryProgram due to races, do this
 	// get to ensure we're up to date before attempting a status update.
 	app := &bpfmaniov1alpha1.BpfApplication{}
