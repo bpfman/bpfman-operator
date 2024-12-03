@@ -43,6 +43,24 @@ func BpfProgramTypePredicate(kind string) predicate.Funcs {
 	}
 }
 
+// Only reconcile if a bpfnsprogram has been created for the controller's program type.
+func BpfNsProgramTypePredicate(kind string) predicate.Funcs {
+	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Object.(*bpfmaniov1alpha1.BpfNsProgram).Spec.Type == kind
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Object.(*bpfmaniov1alpha1.BpfNsProgram).Spec.Type == kind
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.(*bpfmaniov1alpha1.BpfNsProgram).Spec.Type == kind
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return e.Object.(*bpfmaniov1alpha1.BpfNsProgram).Spec.Type == kind
+		},
+	}
+}
+
 // Only reconcile if a bpfprogram has been created for a controller's node.
 func BpfProgramNodePredicate(nodeName string) predicate.Funcs {
 	return predicate.Funcs{

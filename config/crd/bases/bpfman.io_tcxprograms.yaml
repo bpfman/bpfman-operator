@@ -117,7 +117,7 @@ spec:
                 type: object
               containers:
                 description: |-
-                  Containers identifes the set of containers in which to attach the eBPF
+                  Containers identifies the set of containers in which to attach the eBPF
                   program. If Containers is not specified, the BPF program will be attached
                   in the root network namespace.
                 properties:
@@ -335,7 +335,7 @@ spec:
             - priority
             type: object
           status:
-            description: TcxProgramStatus defines the observed state of TcProgram
+            description: TcxProgramStatus defines the observed state of TcxProgram
             properties:
               conditions:
                 description: |-

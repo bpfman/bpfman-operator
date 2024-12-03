@@ -24,7 +24,6 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	agenttestutils "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal/test-utils"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	testutils "github.com/bpfman/bpfman-operator/internal/test-utils"
@@ -97,18 +96,21 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 
 	cli := agenttestutils.NewBpfmanClientFake()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client:       cl,
 		Scheme:       s,
 		BpfmanClient: cli,
 		NodeName:     fakeNode.Name,
+	}
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &KprobeProgramReconciler{ReconcilerCommon: rc, ourNode: fakeNode}
+	r := &KprobeProgramReconciler{ClusterProgramReconciler: cpr, ourNode: fakeNode}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -126,7 +128,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check the BpfProgram Object was created successfully
-	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
+	err = r.getBpfProgram(ctx, r, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, bpfProg)
@@ -178,11 +180,11 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
+	err = r.getBpfProgram(ctx, r, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
-	id, err := bpfmanagentinternal.GetID(bpfProg)
+	id, err := GetID(bpfProg)
 	require.NoError(t, err)
 
 	// Check the bpfLoadRequest was correctly Built
@@ -202,7 +204,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = rc.getBpfProgram(ctx, name, appProgramId, attachPoint, bpfProg)
+	err = r.getBpfProgram(ctx, r, name, appProgramId, attachPoint, bpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)
