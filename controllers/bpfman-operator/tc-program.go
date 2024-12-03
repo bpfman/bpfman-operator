@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanoperator
 
 import (
@@ -31,11 +33,11 @@ import (
 )
 
 type TcProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 }
 
-func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList] {
+	return &r.ClusterProgramReconciler.ReconcilerCommon
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
@@ -50,7 +52,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.Tc.String()))),
+			builder.WithPredicates(predicate.And(statusChangedPredicateCluster(), internal.BpfProgramTypePredicate(internal.Tc.String()))),
 		).
 		Complete(r)
 }
@@ -101,7 +103,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return reconcileBpfProgram(ctx, r, tcProgram)
 }
 
-func (r *TcProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+func (r *TcProgramReconciler) updateStatus(ctx context.Context, _namespace string, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale TcProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfmaniov1alpha1.TcProgram{}

@@ -19,43 +19,59 @@ package internal
 import "fmt"
 
 const (
-	XdpProgramInterface         = "bpfman.io.xdpprogramcontroller/interface"
-	XdpContainerPid             = "bpfman.io.xdpprogramcontroller/containerpid"
-	XdpNoContainersOnNode       = "bpfman.io.xdpprogramcontroller/nocontainersonnode"
-	TcProgramInterface          = "bpfman.io.tcprogramcontroller/interface"
-	TcContainerPid              = "bpfman.io.tcprogramcontroller/containerpid"
-	TcNoContainersOnNode        = "bpfman.io.tcprogramcontroller/nocontainersonnode"
-	TcxProgramInterface         = "bpfman.io.tcxprogramcontroller/interface"
-	TcxContainerPid             = "bpfman.io.tcxprogramcontroller/containerpid"
-	TcxNoContainersOnNode       = "bpfman.io.tcxprogramcontroller/nocontainersonnode"
-	TracepointProgramTracepoint = "bpfman.io.tracepointprogramcontroller/tracepoint"
-	KprobeProgramFunction       = "bpfman.io.kprobeprogramcontroller/function"
-	UprobeProgramTarget         = "bpfman.io.uprobeprogramcontroller/target"
-	UprobeContainerPid          = "bpfman.io.uprobeprogramcontroller/containerpid"
-	UprobeNoContainersOnNode    = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
-	FentryProgramFunction       = "bpfman.io.fentryprogramcontroller/function"
-	FexitProgramFunction        = "bpfman.io.fexitprogramcontroller/function"
-	K8sHostLabel                = "kubernetes.io/hostname"
-	DiscoveredLabel             = "bpfman.io/discoveredProgram"
-	IdAnnotation                = "bpfman.io/ProgramId"
-	UuidMetadataKey             = "bpfman.io/uuid"
-	ProgramNameKey              = "bpfman.io/ProgramName"
-	BpfmanNs                    = "bpfman"
-	BpfmanOperatorName          = "bpfman-operator"
-	BpfmanDsName                = "bpfman-daemon"
-	BpfmanConfigName            = "bpfman-config"
-	BpfmanCsiDriverName         = "csi.bpfman.io"
-	BpfmanRestrictedSccName     = "bpfman-restricted"
-	BpfmanContainerName         = "bpfman"
-	BpfmanAgentContainerName    = "bpfman-agent"
-	BpfmanDaemonManifestPath    = "./config/bpfman-deployment/daemonset.yaml"
-	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
-	BpfmanRestrictedSCCPath     = "./config/openshift/restricted-scc.yaml"
-	BpfmanMapFs                 = "/run/bpfman/fs/maps"
-	DefaultType                 = "tcp"
-	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
-	DefaultPort                 = 50051
-	DefaultEnabled              = true
+	FentryProgramFunction        = "bpfman.io.fentryprogramcontroller/function"
+	FentryNoContainersOnNode     = "bpfman.io.fentryprogramcontroller/nocontainersonnode"
+	FexitProgramFunction         = "bpfman.io.fexitprogramcontroller/function"
+	FexitNoContainersOnNode      = "bpfman.io.fexitprogramcontroller/nocontainersonnode"
+	KprobeProgramFunction        = "bpfman.io.kprobeprogramcontroller/function"
+	KprobeNoContainersOnNode     = "bpfman.io.kprobeprogramcontroller/nocontainersonnode"
+	TcProgramInterface           = "bpfman.io.tcprogramcontroller/interface"
+	TcContainerPid               = "bpfman.io.tcprogramcontroller/containerpid"
+	TcNoContainersOnNode         = "bpfman.io.tcprogramcontroller/nocontainersonnode"
+	TcNsProgramInterface         = "bpfman.io.tcnsprogramcontroller/interface"
+	TcNsContainerPid             = "bpfman.io.tcnsprogramcontroller/containerpid"
+	TcNsNoContainersOnNode       = "bpfman.io.tcnsprogramcontroller/nocontainersonnode"
+	TcxProgramInterface          = "bpfman.io.tcxprogramcontroller/interface"
+	TcxContainerPid              = "bpfman.io.tcxprogramcontroller/containerpid"
+	TcxNoContainersOnNode        = "bpfman.io.tcxprogramcontroller/nocontainersonnode"
+	TcxNsProgramInterface        = "bpfman.io.tcxnsprogramcontroller/interface"
+	TcxNsContainerPid            = "bpfman.io.tcxnsprogramcontroller/containerpid"
+	TcxNsNoContainersOnNode      = "bpfman.io.tcxnsprogramcontroller/nocontainersonnode"
+	TracepointProgramTracepoint  = "bpfman.io.tracepointprogramcontroller/tracepoint"
+	TracepointNoContainersOnNode = "bpfman.io.tracepointprogramcontroller/nocontainersonnode"
+	UprobeProgramTarget          = "bpfman.io.uprobeprogramcontroller/target"
+	UprobeContainerPid           = "bpfman.io.uprobeprogramcontroller/containerpid"
+	UprobeNoContainersOnNode     = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
+	UprobeNsProgramTarget        = "bpfman.io.uprobensprogramcontroller/target"
+	UprobeNsContainerPid         = "bpfman.io.uprobensprogramcontroller/containerpid"
+	UprobeNsNoContainersOnNode   = "bpfman.io.uprobensprogramcontroller/nocontainersonnode"
+	XdpProgramInterface          = "bpfman.io.xdpprogramcontroller/interface"
+	XdpContainerPid              = "bpfman.io.xdpprogramcontroller/containerpid"
+	XdpNoContainersOnNode        = "bpfman.io.xdpprogramcontroller/nocontainersonnode"
+	XdpNsProgramInterface        = "bpfman.io.xdpnsprogramcontroller/interface"
+	XdpNsContainerPid            = "bpfman.io.xdpnsprogramcontroller/containerpid"
+	XdpNsNoContainersOnNode      = "bpfman.io.xdpnsprogramcontroller/nocontainersonnode"
+	K8sHostLabel                 = "kubernetes.io/hostname"
+	DiscoveredLabel              = "bpfman.io/discoveredProgram"
+	IdAnnotation                 = "bpfman.io/ProgramId"
+	UuidMetadataKey              = "bpfman.io/uuid"
+	ProgramNameKey               = "bpfman.io/ProgramName"
+	BpfmanNs                     = "bpfman"
+	BpfmanOperatorName           = "bpfman-operator"
+	BpfmanDsName                 = "bpfman-daemon"
+	BpfmanConfigName             = "bpfman-config"
+	BpfmanCsiDriverName          = "csi.bpfman.io"
+	BpfmanRestrictedSccName      = "bpfman-restricted"
+	BpfmanContainerName          = "bpfman"
+	BpfmanAgentContainerName     = "bpfman-agent"
+	BpfmanDaemonManifestPath     = "./config/bpfman-deployment/daemonset.yaml"
+	BpfmanCsiDriverPath          = "./config/bpfman-deployment/csidriverinfo.yaml"
+	BpfmanRestrictedSCCPath      = "./config/openshift/restricted-scc.yaml"
+	BpfmanMapFs                  = "/run/bpfman/fs/maps"
+	DefaultType                  = "tcp"
+	DefaultPath                  = "/run/bpfman-sock/bpfman.sock"
+	DefaultPort                  = 50051
+	DefaultEnabled               = true
 	// BpfProgramOwner is the name of the object that owns the BpfProgram
 	// object. In the case of a *Program, it will be the name of the *Program
 	// object. In the case of a BpfApplication, it will be the name of the
@@ -80,12 +96,21 @@ const (
 	// XdpProgramControllerFinalizer is the finalizer that holds an Xdp BpfProgram
 	// object from deletion until cleanup can be performed.
 	XdpProgramControllerFinalizer = "bpfman.io.xdpprogramcontroller/finalizer"
+	// XdpNsProgramControllerFinalizer is the finalizer that holds a Namespaced Xdp BpfProgram
+	// object from deletion until cleanup can be performed.
+	XdpNsProgramControllerFinalizer = "bpfman.io.xdpnsprogramcontroller/finalizer"
 	// TcProgramControllerFinalizer is the finalizer that holds an Tc BpfProgram
 	// object from deletion until cleanup can be performed.
 	TcProgramControllerFinalizer = "bpfman.io.tcprogramcontroller/finalizer"
+	// TcNsProgramControllerFinalizer is the finalizer that holds a Namespaced Tc BpfProgram
+	// object from deletion until cleanup can be performed.
+	TcNsProgramControllerFinalizer = "bpfman.io.tcnsprogramcontroller/finalizer"
 	// TcxProgramControllerFinalizer is the finalizer that holds an Tcx BpfProgram
 	// object from deletion until cleanup can be performed.
 	TcxProgramControllerFinalizer = "bpfman.io.tcxprogramcontroller/finalizer"
+	// TcxNsProgramControllerFinalizer is the finalizer that holds a Namespaced Tcx BpfProgram
+	// object from deletion until cleanup can be performed.
+	TcxNsProgramControllerFinalizer = "bpfman.io.tcxnsprogramcontroller/finalizer"
 	// TracepointProgramControllerFinalizer is the finalizer that holds an Tracepoint
 	// BpfProgram object from deletion until cleanup can be performed.
 	TracepointProgramControllerFinalizer = "bpfman.io.tracepointprogramcontroller/finalizer"
@@ -95,6 +120,9 @@ const (
 	// UprobeProgramControllerFinalizer is the finalizer that holds a Uprobe
 	// BpfProgram object from deletion until cleanup can be performed.
 	UprobeProgramControllerFinalizer = "bpfman.io.uprobeprogramcontroller/finalizer"
+	// UprobeNsProgramControllerFinalizer is the finalizer that holds a Namespaced Uprobe
+	// BpfProgram object from deletion until cleanup can be performed.
+	UprobeNsProgramControllerFinalizer = "bpfman.io.uprobensprogramcontroller/finalizer"
 	// FentryProgramControllerFinalizer is the finalizer that holds a Fentry
 	// BpfProgram object from deletion until cleanup can be performed.
 	FentryProgramControllerFinalizer = "bpfman.io.fentryprogramcontroller/finalizer"
@@ -103,6 +131,8 @@ const (
 	FexitProgramControllerFinalizer = "bpfman.io.fexitprogramcontroller/finalizer"
 	// BpfApplicationFinalizer is the finalizer that holds a BpfApplication
 	BpfApplicationControllerFinalizer = "bpfman.io.bpfapplicationcontroller/finalizer"
+	// BpfApplicationFinalizer is the finalizer that holds a BpfApplication
+	BpfNsApplicationControllerFinalizer = "bpfman.io.bpfnsapplicationcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.

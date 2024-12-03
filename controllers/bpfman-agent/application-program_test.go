@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	agenttestutils "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal/test-utils"
 	"github.com/bpfman/bpfman-operator/internal"
 	testutils "github.com/bpfman/bpfman-operator/internal/test-utils"
@@ -105,19 +104,22 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	cli := agenttestutils.NewBpfmanClientFake()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client:       cl,
 		Scheme:       s,
 		BpfmanClient: cli,
 		NodeName:     fakeNode.Name,
 		appOwner:     App,
 	}
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
+	}
 
 	// Set development Logger, so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &BpfApplicationReconciler{ReconcilerCommon: rc, ourNode: fakeNode}
+	r := &BpfApplicationReconciler{ClusterProgramReconciler: cpr, ourNode: fakeNode}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -135,7 +137,8 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check the BpfProgram Object was created successfully
-	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
+	rfentry := &FentryProgramReconciler{ClusterProgramReconciler: cpr, ourNode: fakeNode}
+	err = r.getBpfProgram(ctx, rfentry, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, fentryBpfProg)
@@ -186,11 +189,11 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
+	err = r.getBpfProgram(ctx, rfentry, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
-	id, err := bpfmanagentinternal.GetID(fentryBpfProg)
+	id, err := GetID(fentryBpfProg)
 	require.NoError(t, err)
 
 	// Check the bpfLoadRequest was correctly Built
@@ -210,7 +213,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = rc.getBpfProgram(ctx, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
+	err = r.getBpfProgram(ctx, rfentry, name, fentryAppProgramId, fentryAttachPoint, fentryBpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), fentryBpfProg.Status.Conditions[0].Type)
@@ -222,7 +225,8 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 
-	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
+	rkprobe := &KprobeProgramReconciler{ClusterProgramReconciler: cpr, ourNode: fakeNode}
+	err = r.getBpfProgram(ctx, rkprobe, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	require.NotEmpty(t, kprobeBpfProg)
@@ -275,11 +279,11 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	}
 
 	// Check that the bpfProgram's programs was correctly updated
-	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
+	err = r.getBpfProgram(ctx, rkprobe, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	// prog ID should already have been set
-	id, err = bpfmanagentinternal.GetID(kprobeBpfProg)
+	id, err = GetID(kprobeBpfProg)
 	require.NoError(t, err)
 
 	// Check the bpfLoadRequest was correctly Built
@@ -299,7 +303,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
-	err = rc.getBpfProgram(ctx, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
+	err = r.getBpfProgram(ctx, rkprobe, name, kprobeAppProgramId, kprobeAttachPoint, kprobeBpfProg)
 	require.NoError(t, err)
 
 	require.Equal(t, string(bpfmaniov1alpha1.BpfProgCondLoaded), kprobeBpfProg.Status.Conditions[0].Type)

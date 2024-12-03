@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -39,7 +41,7 @@ import (
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type KprobeProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentKprobeProgram *bpfmaniov1alpha1.KprobeProgram
 	ourNode              *v1.Node
 }
@@ -66,6 +68,14 @@ func (r *KprobeProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *KprobeProgramReconciler) getName() string {
 	return r.currentKprobeProgram.Name
+}
+
+func (r *KprobeProgramReconciler) getNamespace() string {
+	return r.currentKprobeProgram.Namespace
+}
+
+func (r *KprobeProgramReconciler) getNoContAnnotationIndex() string {
+	return internal.KprobeNoContainersOnNode
 }
 
 func (r *KprobeProgramReconciler) getNode() *v1.Node {
