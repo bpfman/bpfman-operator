@@ -27,7 +27,6 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -61,7 +60,8 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("tracepoint")
+	r.Logger.Info("bpfman-operator enter: tracepoint", "Name", req.NamespacedName.Name)
 
 	tracepointProgram := &bpfmaniov1alpha1.TracepointProgram{}
 	if err := r.Get(ctx, req.NamespacedName, tracepointProgram); err != nil {

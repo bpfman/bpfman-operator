@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -40,8 +39,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	r.finalizer = internal.BpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
 
-	ctxLogger := log.FromContext(ctx)
-	ctxLogger.Info("Reconcile Application: Enter", "ReconcileKey", req)
+	r.Logger.Info("bpfman-agent enter: application", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -192,7 +190,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			case bpfmaniov1alpha1.ProgTypeTC:
 				_, ifErr := getInterfaces(&p.TC.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
-					ctxLogger.Error(ifErr, "failed to get interfaces for TC Program",
+					r.Logger.Error(ifErr, "failed to get interfaces for TC Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
@@ -220,7 +218,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			case bpfmaniov1alpha1.ProgTypeTCX:
 				_, ifErr := getInterfaces(&p.TCX.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
-					ctxLogger.Error(ifErr, "failed to get interfaces for TCX Program",
+					r.Logger.Error(ifErr, "failed to get interfaces for TCX Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
@@ -248,7 +246,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			case bpfmaniov1alpha1.ProgTypeXDP:
 				_, ifErr := getInterfaces(&p.XDP.InterfaceSelector, r.ourNode)
 				if ifErr != nil {
-					ctxLogger.Error(ifErr, "failed to get interfaces for XDP Program",
+					r.Logger.Error(ifErr, "failed to get interfaces for XDP Program",
 						"app program name", a.Name, "program index", j)
 					continue
 				}
@@ -274,12 +272,12 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				complete, res, err = r.reconcileCommon(ctx, rec, xdpObjects)
 
 			default:
-				ctxLogger.Error(fmt.Errorf("unsupported bpf program type"), "unsupported bpf program type", "ProgType", p.Type)
+				r.Logger.Error(fmt.Errorf("unsupported bpf program type"), "unsupported bpf program type", "ProgType", p.Type)
 				// Skip this program and continue to the next one
 				continue
 			}
 
-			ctxLogger.V(1).Info("Reconcile Application", "Application", i, "Program", j, "Name", a.Name,
+			r.Logger.V(1).Info("Reconcile Application", "Application", i, "Program", j, "Name", a.Name,
 				"type", p.Type, "Complete", complete, "Result", res, "Error", err)
 
 			if complete {
@@ -296,20 +294,20 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			// find programs that need to be deleted and delete them
 			opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwner: a.Name}}
 			if err := r.List(ctx, bpfPrograms, opts...); err != nil {
-				ctxLogger.Error(err, "failed to get freshPrograms for full reconcile")
+				r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 				return ctrl.Result{}, err
 			}
 			for _, bpfProgram := range bpfPrograms.Items {
 				id := bpfProgram.Labels[internal.AppProgramId]
 				if _, ok := appProgramMap[id]; !ok {
-					ctxLogger.Info("Deleting BpfProgram", "AppProgramId", id, "BpfProgram", bpfProgram.Name)
+					r.Logger.Info("Deleting BpfProgram", "AppProgramId", id, "BpfProgram", bpfProgram.Name)
 					bpfDeletedPrograms.Items = append(bpfDeletedPrograms.Items, bpfProgram)
 				}
 			}
 			// Delete BpfPrograms that are no longer needed
 			res, err = r.unLoadAndDeleteBpfProgramsList(ctx, bpfDeletedPrograms, internal.BpfApplicationControllerFinalizer)
 			if err != nil {
-				ctxLogger.Error(err, "failed to delete programs")
+				r.Logger.Error(err, "failed to delete programs")
 				return ctrl.Result{}, err
 			}
 			// We've completed reconciling all programs for this application, continue to the next one
