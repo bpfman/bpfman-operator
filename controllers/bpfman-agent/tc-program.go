@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -166,21 +167,87 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).
+		// Watch for changes in Pod resources in case we are using a container selector.
+		Watches(
+			&v1.Pod{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(podOnNodePredicate(r.NodeName)),
+		).
 		Complete(r)
 }
 
 func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
-	for _, iface := range r.interfaces {
-		attachPoint := iface + "-" + r.currentTcProgram.Spec.Direction
-		annotations := map[string]string{internal.TcProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(attachPoint, r, annotations)
+	if r.currentTcProgram.Spec.Containers != nil {
+
+		// There is a container selector, so see if there are any matching
+		// containers on this node.
+		containerInfo, err := getContainers(ctx, r.currentTcProgram.Spec.Containers, r.NodeName, r.Logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
+			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
 
-		progs.Items = append(progs.Items, *prog)
+		if containerInfo == nil || len(*containerInfo) == 0 {
+			// There were no errors, but the container selector didn't
+			// select any containers on this node.
+			for _, iface := range r.interfaces {
+				attachPoint := fmt.Sprintf("%s-%s-%s",
+					iface,
+					r.currentTcProgram.Spec.Direction,
+					"no-containers-on-node",
+				)
+
+				annotations := map[string]string{
+					internal.TcProgramInterface:   iface,
+					internal.TcNoContainersOnNode: "true",
+				}
+
+				prog, err := r.createBpfProgram(attachPoint, r, annotations)
+				if err != nil {
+					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
+				}
+
+				progs.Items = append(progs.Items, *prog)
+			}
+		} else {
+			// Containers were found, so create bpfPrograms.
+			for i := range *containerInfo {
+				container := (*containerInfo)[i]
+				for _, iface := range r.interfaces {
+					attachPoint := fmt.Sprintf("%s-%s-%s-%s",
+						iface,
+						r.currentTcProgram.Spec.Direction,
+						container.podName,
+						container.containerName,
+					)
+
+					annotations := map[string]string{
+						internal.TcProgramInterface: iface,
+						internal.TcContainerPid:     strconv.FormatInt(container.pid, 10),
+					}
+
+					prog, err := r.createBpfProgram(attachPoint, r, annotations)
+					if err != nil {
+						return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
+					}
+
+					progs.Items = append(progs.Items, *prog)
+				}
+			}
+		}
+	} else {
+		for _, iface := range r.interfaces {
+			attachPoint := iface + "-" + r.currentTcProgram.Spec.Direction
+			annotations := map[string]string{internal.TcProgramInterface: iface}
+
+			prog, err := r.createBpfProgram(attachPoint, r, annotations)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
+			}
+
+			progs.Items = append(progs.Items, *prog)
+		}
 	}
 
 	return progs, nil
@@ -233,18 +300,26 @@ func (r *TcProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPro
 		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}
 
+	attachInfo := &gobpfman.TCAttachInfo{
+		Priority:  r.currentTcProgram.Spec.Priority,
+		Iface:     bpfProgram.Annotations[internal.TcProgramInterface],
+		Direction: r.currentTcProgram.Spec.Direction,
+		ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
+	}
+
+	containerPidStr, ok := bpfProgram.Annotations[internal.TcContainerPid]
+	if ok {
+		netns := fmt.Sprintf("/host/proc/%s/ns/net", containerPidStr)
+		attachInfo.Netns = &netns
+	}
+
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentTcProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tc),
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_TcAttachInfo{
-				TcAttachInfo: &gobpfman.TCAttachInfo{
-					Priority:  r.currentTcProgram.Spec.Priority,
-					Iface:     bpfProgram.Annotations[internal.TcProgramInterface],
-					Direction: r.currentTcProgram.Spec.Direction,
-					ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
-				},
+				TcAttachInfo: attachInfo,
 			},
 		},
 		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.getOwner().GetName()},

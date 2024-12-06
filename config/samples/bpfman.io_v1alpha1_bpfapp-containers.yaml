@@ -1,0 +1,57 @@
+apiVersion: bpfman.io/v1alpha1
+kind: BpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfapplication
+  name: bpfapp-containers
+spec:
+  # Select all nodes
+  nodeselector: {}
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/go-app-counter:latest
+  programs:
+    - type: TC
+      tc:
+        bpffunctionname: stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 55
+        direction: ingress
+        containers:
+          namespace: bpfman
+          pods:
+            matchLabels:
+              name: bpfman-daemon
+          containernames:
+            - bpfman
+            - bpfman-agent
+    - type: TCX
+      tcx:
+        bpffunctionname: tcx_stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 500
+        direction: ingress
+        containers:
+          namespace: bpfman
+          pods:
+            matchLabels:
+              name: bpfman-daemon
+          containernames:
+            - bpfman
+            - bpfman-agent
+    - type: XDP
+      xdp:
+        bpffunctionname: xdp_stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 55
+        containers:
+          namespace: bpfman
+          pods:
+            matchLabels:
+              name: bpfman-daemon
+          containernames:
+            - bpfman
+            - bpfman-agent

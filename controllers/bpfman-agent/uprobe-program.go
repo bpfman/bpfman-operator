@@ -131,40 +131,16 @@ func (r *UprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Figure out the list of container pids the uProbe needs to be attached to.
-func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*[]containerInfo, error) {
-
-	clientSet, err := getClientset()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get clientset: %v", err)
-	}
-
-	// Get the list of pods that match the selector.
-	podList, err := getPodsForNode(ctx, clientSet, r.currentUprobeProgram.Spec.Containers, r.NodeName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pod list: %v", err)
-	}
-
-	// Get the list of containers in the list of pods that match the selector.
-	containers, err := getContainerInfo(podList, r.currentUprobeProgram.Spec.Containers.ContainerNames, r.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get container info: %v", err)
-	}
-
-	r.Logger.V(1).Info("from getContainerInfo", "containers", containers)
-
-	return containers, nil
-}
-
 func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanatizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target) + "-" + sanitize(r.currentUprobeProgram.Spec.FunctionName)
+	sanitizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target) + "-" + sanitize(r.currentUprobeProgram.Spec.FunctionName)
 
 	if r.currentUprobeProgram.Spec.Containers != nil {
 
-		// Some containers were specified, so we need to get the containers
-		containerInfo, err := r.getUprobeContainerInfo(ctx)
+		// There is a container selector, so see if there are any matching
+		// containers on this node.
+		containerInfo, err := getContainers(ctx, r.currentUprobeProgram.Spec.Containers, r.NodeName, r.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -177,7 +153,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 				internal.UprobeNoContainersOnNode: "true",
 			}
 
-			attachPoint := sanatizedUprobe + "-no-containers-on-node"
+			attachPoint := sanitizedUprobe + "-no-containers-on-node"
 
 			prog, err := r.createBpfProgram(attachPoint, r, annotations)
 			if err != nil {
@@ -187,7 +163,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 			progs.Items = append(progs.Items, *prog)
 		} else {
 
-			// We got some containers, so create the bpfPrograms for each one.
+			// Containers were found, so create bpfPrograms.
 			for i := range *containerInfo {
 				container := (*containerInfo)[i]
 
@@ -195,7 +171,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 				annotations[internal.UprobeContainerPid] = strconv.FormatInt(container.pid, 10)
 
 				attachPoint := fmt.Sprintf("%s-%s-%s",
-					sanatizedUprobe,
+					sanitizedUprobe,
 					container.podName,
 					container.containerName,
 				)
@@ -211,7 +187,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		attachPoint := sanatizedUprobe
+		attachPoint := sanitizedUprobe
 
 		prog, err := r.createBpfProgram(attachPoint, r, annotations)
 		if err != nil {
