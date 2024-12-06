@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -41,7 +43,7 @@ import (
 // TcProgramReconciler reconciles a tcProgram object by creating multiple
 // bpfProgram objects and managing bpfman for each one.
 type TcProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentTcProgram *bpfmaniov1alpha1.TcProgram
 	interfaces       []string
 	ourNode          *v1.Node
@@ -69,6 +71,10 @@ func (r *TcProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *TcProgramReconciler) getName() string {
 	return r.currentTcProgram.Name
+}
+
+func (r *TcProgramReconciler) getNamespace() string {
+	return r.currentTcProgram.Namespace
 }
 
 func (r *TcProgramReconciler) getNode() *v1.Node {

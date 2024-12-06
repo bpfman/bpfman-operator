@@ -102,16 +102,20 @@ func TestTracepointProgramReconcile(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(Tracepoint).WithRuntimeObjects(objs...).Build()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client: cl,
 		Scheme: s,
+	}
+
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a TracepointProgram object with the scheme and fake client.
-	r := &TracepointProgramReconciler{ReconcilerCommon: rc}
+	r := &TracepointProgramReconciler{ClusterProgramReconciler: cpr}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .

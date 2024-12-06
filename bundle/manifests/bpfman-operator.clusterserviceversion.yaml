@@ -307,7 +307,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2024-12-06T14:27:05Z"
+    createdAt: "2024-12-06T16:46:28Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -357,6 +357,11 @@ spec:
       kind: BpfApplication
       name: bpfapplications.bpfman.io
       version: v1alpha1
+    - description: BpfNsProgram is the Schema for the BpfNsProgram API
+      displayName: Bpf NS Program
+      kind: BpfNsProgram
+      name: bpfnsprograms.bpfman.io
+      version: v1alpha1
     - description: BpfProgram is the Schema for the BpfProgram API
       displayName: Bpf Program
       kind: BpfProgram
@@ -394,6 +399,11 @@ spec:
       displayName: Uprobe Program
       kind: UprobeProgram
       name: uprobeprograms.bpfman.io
+      version: v1alpha1
+    - description: XdpNsProgram is the Schema for the Xdpnsprograms API
+      displayName: Xdp NS Program
+      kind: XdpNsProgram
+      name: xdpnsprograms.bpfman.io
       version: v1alpha1
     - description: XdpProgram is the Schema for the Xdpprograms API
       displayName: Xdp Program
@@ -762,6 +772,14 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
+          - bpfnsprograms
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
           - bpfprograms
           verbs:
           - get
@@ -951,6 +969,32 @@ spec:
           - bpfman.io
           resources:
           - uprobeprograms/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms/status
           verbs:
           - get
           - patch
@@ -1167,6 +1211,40 @@ spec:
           verbs:
           - create
           - patch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfnsprograms
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - xdpnsprograms/status
+          verbs:
+          - get
+          - patch
+          - update
         serviceAccountName: bpfman-operator
     strategy: deployment
   installModes:

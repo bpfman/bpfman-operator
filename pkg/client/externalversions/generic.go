@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=bpfman.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("bpfapplications"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().BpfApplications().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("bpfnsprograms"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().BpfNsPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("bpfprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().BpfPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("fentryprograms"):
@@ -71,6 +73,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().TracepointPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("uprobeprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().UprobePrograms().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("xdpnsprograms"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().XdpNsPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("xdpprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().XdpPrograms().Informer()}, nil
 

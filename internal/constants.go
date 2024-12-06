@@ -22,6 +22,9 @@ const (
 	XdpProgramInterface         = "bpfman.io.xdpprogramcontroller/interface"
 	XdpContainerPid             = "bpfman.io.xdpprogramcontroller/containerpid"
 	XdpNoContainersOnNode       = "bpfman.io.xdpprogramcontroller/nocontainersonnode"
+	XdpNsProgramInterface       = "bpfman.io.xdpnsprogramcontroller/interface"
+	XdpNsContainerPid           = "bpfman.io.xdpnsprogramcontroller/containerpid"
+	XdpNsNoContainersOnNode     = "bpfman.io.xdpnsprogramcontroller/nocontainersonnode"
 	TcProgramInterface          = "bpfman.io.tcprogramcontroller/interface"
 	TcContainerPid              = "bpfman.io.tcprogramcontroller/containerpid"
 	TcNoContainersOnNode        = "bpfman.io.tcprogramcontroller/nocontainersonnode"
@@ -80,6 +83,9 @@ const (
 	// XdpProgramControllerFinalizer is the finalizer that holds an Xdp BpfProgram
 	// object from deletion until cleanup can be performed.
 	XdpProgramControllerFinalizer = "bpfman.io.xdpprogramcontroller/finalizer"
+	// XdpNsProgramControllerFinalizer is the finalizer that holds an Xdp BpfProgram
+	// object from deletion until cleanup can be performed.
+	XdpNsProgramControllerFinalizer = "bpfman.io.xdpnsprogramcontroller/finalizer"
 	// TcProgramControllerFinalizer is the finalizer that holds an Tc BpfProgram
 	// object from deletion until cleanup can be performed.
 	TcProgramControllerFinalizer = "bpfman.io.tcprogramcontroller/finalizer"
@@ -252,6 +258,7 @@ const FentryString = "fentry"
 const FexitString = "fexit"
 const ApplicationString = "application"
 const TcxString = "tcx"
+const XdpNsString = "xdp"
 
 type ReconcileResult uint8
 

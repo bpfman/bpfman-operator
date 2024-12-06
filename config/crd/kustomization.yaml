@@ -12,6 +12,8 @@ resources:
   - bases/bpfman.io_fentryprograms.yaml
   - bases/bpfman.io_fexitprograms.yaml
   - bases/bpfman.io_bpfapplications.yaml
+  - bases/bpfman.io_bpfnsprograms.yaml
+  - bases/bpfman.io_xdpnsprograms.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -20,6 +22,7 @@ patchesStrategicMerge:
 #- patches/webhook_in_bpfprograms.yaml
 #- patches/webhook_in_tcprograms.yaml
 #- patches/webhook_in_xdpprograms.yaml
+#- patches/webhook_in_xdpnsprograms.yaml
 #- patches/webhook_in_tracepointprograms.yaml
 #- patches/webhook_in_kprobeprograms.yaml
 #- patches/webhook_in_uprobeprograms.yaml

@@ -57,10 +57,20 @@ spec:
         kind: BpfProgram
         name: bpfprograms.bpfman.io
         version: v1alpha1
+      - description: BpfNsProgram is the Schema for the BpfNsProgram API
+        displayName: Bpf NS Program
+        kind: BpfNsProgram
+        name: bpfnsprograms.bpfman.io
+        version: v1alpha1
       - description: XdpProgram is the Schema for the Xdpprograms API
         displayName: Xdp Program
         kind: XdpProgram
         name: xdpprograms.bpfman.io
+        version: v1alpha1
+      - description: XdpNsProgram is the Schema for the Xdpnsprograms API
+        displayName: Xdp NS Program
+        kind: XdpNsProgram
+        name: xdpnsprograms.bpfman.io
         version: v1alpha1
       - description: TcProgram is the Schema for the Tcprograms API
         displayName: Tc Program

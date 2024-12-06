@@ -22,6 +22,14 @@ package v1alpha1
 // BpfApplicationLister.
 type BpfApplicationListerExpansion interface{}
 
+// BpfNsProgramListerExpansion allows custom methods to be added to
+// BpfNsProgramLister.
+type BpfNsProgramListerExpansion interface{}
+
+// BpfNsProgramNamespaceListerExpansion allows custom methods to be added to
+// BpfNsProgramNamespaceLister.
+type BpfNsProgramNamespaceListerExpansion interface{}
+
 // BpfProgramListerExpansion allows custom methods to be added to
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}
@@ -53,6 +61,14 @@ type TracepointProgramListerExpansion interface{}
 // UprobeProgramListerExpansion allows custom methods to be added to
 // UprobeProgramLister.
 type UprobeProgramListerExpansion interface{}
+
+// XdpNsProgramListerExpansion allows custom methods to be added to
+// XdpNsProgramLister.
+type XdpNsProgramListerExpansion interface{}
+
+// XdpNsProgramNamespaceListerExpansion allows custom methods to be added to
+// XdpNsProgramNamespaceLister.
+type XdpNsProgramNamespaceListerExpansion interface{}
 
 // XdpProgramListerExpansion allows custom methods to be added to
 // XdpProgramLister.
