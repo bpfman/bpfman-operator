@@ -138,7 +138,7 @@ type BpfApplicationSpec struct {
 
 // BpfApplicationStatus defines the observed state of BpfApplication
 type BpfApplicationStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+	BpfAppStatus `json:",inline"`
 }
 
 // +genclient

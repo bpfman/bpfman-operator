@@ -95,17 +95,6 @@ func (c *FakeFentryPrograms) Update(ctx context.Context, fentryProgram *v1alpha1
 	return obj.(*v1alpha1.FentryProgram), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeFentryPrograms) UpdateStatus(ctx context.Context, fentryProgram *v1alpha1.FentryProgram, opts v1.UpdateOptions) (*v1alpha1.FentryProgram, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(fentryprogramsResource, "status", fentryProgram), &v1alpha1.FentryProgram{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.FentryProgram), err
-}
-
 // Delete takes name of the fentryProgram and deletes it. Returns an error if one occurs.
 func (c *FakeFentryPrograms) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

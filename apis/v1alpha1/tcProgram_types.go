@@ -41,8 +41,6 @@ type TcProgram struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec TcProgramSpec `json:"spec"`
-	// +optional
-	Status TcProgramStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=unspec;ok;reclassify;shot;pipe;stolen;queued;repeat;redirect;trap;dispatcher_return
@@ -57,7 +55,13 @@ type TcProgramSpec struct {
 // TcProgramInfo defines the tc program details
 type TcProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcAttachInfo `json:"attach_points"`
+}
 
+type TcAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -85,11 +89,6 @@ type TcProgramInfo struct {
 	// +kubebuilder:validation:MaxItems=11
 	// +kubebuilder:default:={pipe,dispatcher_return}
 	ProceedOn []TcProceedOnValue `json:"proceedon"`
-}
-
-// TcProgramStatus defines the observed state of TcProgram
-type TcProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

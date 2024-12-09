@@ -40,7 +40,6 @@ type FentryProgramsGetter interface {
 type FentryProgramInterface interface {
 	Create(ctx context.Context, fentryProgram *v1alpha1.FentryProgram, opts v1.CreateOptions) (*v1alpha1.FentryProgram, error)
 	Update(ctx context.Context, fentryProgram *v1alpha1.FentryProgram, opts v1.UpdateOptions) (*v1alpha1.FentryProgram, error)
-	UpdateStatus(ctx context.Context, fentryProgram *v1alpha1.FentryProgram, opts v1.UpdateOptions) (*v1alpha1.FentryProgram, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.FentryProgram, error)
@@ -122,21 +121,6 @@ func (c *fentryPrograms) Update(ctx context.Context, fentryProgram *v1alpha1.Fen
 	err = c.client.Put().
 		Resource("fentryprograms").
 		Name(fentryProgram.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(fentryProgram).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *fentryPrograms) UpdateStatus(ctx context.Context, fentryProgram *v1alpha1.FentryProgram, opts v1.UpdateOptions) (result *v1alpha1.FentryProgram, err error) {
-	result = &v1alpha1.FentryProgram{}
-	err = c.client.Put().
-		Resource("fentryprograms").
-		Name(fentryProgram.Name).
-		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(fentryProgram).
 		Do(ctx).

@@ -95,17 +95,6 @@ func (c *FakeKprobePrograms) Update(ctx context.Context, kprobeProgram *v1alpha1
 	return obj.(*v1alpha1.KprobeProgram), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeKprobePrograms) UpdateStatus(ctx context.Context, kprobeProgram *v1alpha1.KprobeProgram, opts v1.UpdateOptions) (*v1alpha1.KprobeProgram, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(kprobeprogramsResource, "status", kprobeProgram), &v1alpha1.KprobeProgram{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.KprobeProgram), err
-}
-
 // Delete takes name of the kprobeProgram and deletes it. Returns an error if one occurs.
 func (c *FakeKprobePrograms) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

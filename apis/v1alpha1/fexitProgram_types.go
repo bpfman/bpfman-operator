@@ -38,8 +38,6 @@ type FexitProgram struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec FexitProgramSpec `json:"spec"`
-	// +optional
-	Status FexitProgramStatus `json:"status,omitempty"`
 }
 
 // FexitProgramSpec defines the desired state of FexitProgram
@@ -52,13 +50,19 @@ type FexitProgramSpec struct {
 // FexitProgramInfo defines the Fexit program details
 type FexitProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
-	// Function to attach the fexit to.
-	FunctionName string `json:"func_name"`
+	FexitLoadInfo    `json:",inline"`
+	// Whether the program should be attached to the function.
+	// This may be updated after the program has been loaded.
+	// +optional
+	// +kubebuilder:default=false
+	attach bool `json:"attach,omitempty"`
 }
 
-// FexitProgramStatus defines the observed state of FexitProgram
-type FexitProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+// FexitLoadInfo contains the program-specific load information for Fexit
+// programs
+type FexitLoadInfo struct {
+	// FunctionName is the name of the function to attach the Fexit program to.
+	FunctionName string `json:"function_name"`
 }
 
 // +kubebuilder:object:root=true

@@ -40,7 +40,6 @@ type UprobeProgramsGetter interface {
 type UprobeProgramInterface interface {
 	Create(ctx context.Context, uprobeProgram *v1alpha1.UprobeProgram, opts v1.CreateOptions) (*v1alpha1.UprobeProgram, error)
 	Update(ctx context.Context, uprobeProgram *v1alpha1.UprobeProgram, opts v1.UpdateOptions) (*v1alpha1.UprobeProgram, error)
-	UpdateStatus(ctx context.Context, uprobeProgram *v1alpha1.UprobeProgram, opts v1.UpdateOptions) (*v1alpha1.UprobeProgram, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.UprobeProgram, error)
@@ -122,21 +121,6 @@ func (c *uprobePrograms) Update(ctx context.Context, uprobeProgram *v1alpha1.Upr
 	err = c.client.Put().
 		Resource("uprobeprograms").
 		Name(uprobeProgram.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(uprobeProgram).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *uprobePrograms) UpdateStatus(ctx context.Context, uprobeProgram *v1alpha1.UprobeProgram, opts v1.UpdateOptions) (result *v1alpha1.UprobeProgram, err error) {
-	result = &v1alpha1.UprobeProgram{}
-	err = c.client.Put().
-		Resource("uprobeprograms").
-		Name(uprobeProgram.Name).
-		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(uprobeProgram).
 		Do(ctx).
