@@ -71,7 +71,8 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfFentryFunctionName,
 						},
-						FunctionName: fentryFunctionName,
+						FentryLoadInfo: bpfmaniov1alpha1.FentryLoadInfo{FunctionName: fentryFunctionName},
+						Attach:         true,
 					},
 				},
 				{
@@ -80,9 +81,13 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfKprobeFunctionName,
 						},
-						FunctionName: kprobeFunctionName,
-						Offset:       uint64(kprobeOffset),
-						RetProbe:     kprobeRetprobe,
+						AttachPoints: []bpfmaniov1alpha1.KprobeAttachInfo{
+							{
+								FunctionName: kprobeFunctionName,
+								Offset:       uint64(kprobeOffset),
+								RetProbe:     kprobeRetprobe,
+							},
+						},
 					},
 				},
 			},

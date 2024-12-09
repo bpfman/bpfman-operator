@@ -64,13 +64,15 @@ func TestXdpProgramReconcile(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority: 0,
-				ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
-					bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
-				},
+				AttachPoints: []bpfmaniov1alpha1.XdpAttachInfo{{
+					InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+						Interfaces: &[]string{fakeInt},
+					},
+					Priority: 0,
+					ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
+						bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+					},
+				}},
 			},
 		},
 	}

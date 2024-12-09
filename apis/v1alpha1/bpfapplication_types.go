@@ -138,7 +138,7 @@ type BpfApplicationSpec struct {
 
 // BpfApplicationStatus defines the observed state of BpfApplication
 type BpfApplicationStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+	BpfAppStatus `json:",inline"`
 }
 
 // +genclient
@@ -155,8 +155,8 @@ type BpfApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BpfApplicationSpec   `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Spec   BpfApplicationSpec `json:"spec,omitempty"`
+	Status BpfAppStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
