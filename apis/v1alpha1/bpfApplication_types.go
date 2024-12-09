@@ -129,16 +129,11 @@ type BpfApplicationProgram struct {
 type BpfApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
 
-	// Programs is a list of bpf programs supported for a specific application.
-	// It's possible that the application can selectively choose which program(s)
-	// to run from this list.
-	// +kubebuilder:validation:MinItems:=1
-	Programs []BpfApplicationProgram `json:"programs,omitempty"`
-}
-
-// BpfApplicationStatus defines the observed state of BpfApplication
-type BpfApplicationStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+	// Programs is the list of bpf programs in the BpfApplication that should be
+	// loaded. The application can selectively choose which program(s) to run
+	// from this list based on the optional attach points provided.  The list is
+	// implemented as a map from the bpf function name to BpfApplicationProgram.
+	Programs map[string]BpfApplicationProgram `json:"programs,omitempty"`
 }
 
 // +genclient
@@ -155,8 +150,8 @@ type BpfApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BpfApplicationSpec   `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Spec   BpfApplicationSpec `json:"spec,omitempty"`
+	Status BpfAppStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

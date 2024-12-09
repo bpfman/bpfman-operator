@@ -40,9 +40,8 @@ type TcProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec TcProgramSpec `json:"spec"`
-	// +optional
-	Status TcProgramStatus `json:"status,omitempty"`
+	Spec   TcProgramSpec `json:"spec"`
+	Status BpfAppStatus  `json:"status,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=unspec;ok;reclassify;shot;pipe;stolen;queued;repeat;redirect;trap;dispatcher_return
@@ -57,7 +56,13 @@ type TcProgramSpec struct {
 // TcProgramInfo defines the tc program details
 type TcProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcAttachInfo `json:"attach_points"`
+}
 
+type TcAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -87,15 +92,52 @@ type TcProgramInfo struct {
 	ProceedOn []TcProceedOnValue `json:"proceedon"`
 }
 
-// TcProgramStatus defines the observed state of TcProgram
-type TcProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
-}
-
 // +kubebuilder:object:root=true
 // TcProgramList contains a list of TcPrograms
 type TcProgramList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []TcProgram `json:"items"`
+}
+
+type TcProgramInfoState struct {
+	// The list of points to which the program should be attached.
+	// TcAttachInfoState is similar to TcAttachInfo, but the interface and
+	// container selectors are expanded, and we have one instance of
+	// TcAttachInfoState for each unique attach point. The list is optional and
+	// may be udated after the bpf program has been loaded.
+	// +optional
+	AttachPoints []TcAttachInfoState `json:"attach_points"`
+}
+
+type TcAttachInfoState struct {
+	AttachInfoCommon `json:",inline"`
+	// An identifier for the attach point assigned by bpfman. This field is
+	// empty until the program is successfully attached and bpfman returns the
+	// id.
+	AttachId *uint32 `json:"attachid"`
+
+	// Interface name to attach the tc program to.
+	IfName string `json:"ifname"`
+
+	// Optional container pid to attach the tc program in.
+	// +optional
+	ContainerPid *uint32 `json:"containerpid"`
+
+	// Priority specifies the priority of the tc program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
+
+	// Direction specifies the direction of traffic the tc program should
+	// attach to for a given network device.
+	// +kubebuilder:validation:Enum=ingress;egress
+	Direction string `json:"direction"`
+
+	// ProceedOn allows the user to call other tc programs in chain on this exit code.
+	// Multiple values are supported by repeating the parameter.
+	// +kubebuilder:validation:MaxItems=11
+	ProceedOn []TcProceedOnValue `json:"proceedon"`
 }

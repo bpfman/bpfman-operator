@@ -61,8 +61,8 @@ func BpfNsProgramTypePredicate(kind string) predicate.Funcs {
 	}
 }
 
-// Only reconcile if a bpfprogram has been created for a controller's node.
-func BpfProgramNodePredicate(nodeName string) predicate.Funcs {
+// Only reconcile if a program has been created for a controller's node.
+func BpfNodePredicate(nodeName string) predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {
 			return e.Object.GetLabels()[K8sHostLabel] == nodeName

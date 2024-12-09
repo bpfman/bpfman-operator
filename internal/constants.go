@@ -76,7 +76,8 @@ const (
 	// object. In the case of a *Program, it will be the name of the *Program
 	// object. In the case of a BpfApplication, it will be the name of the
 	// BpfApplication object.
-	BpfProgramOwner = "bpfman.io/ownedByProgram"
+	BpfProgramOwner  = "bpfman.io/ownedByProgram"
+	BpfAppStateOwner = "bpfman.io/ownedByProgram"
 	// AppProgramId is an identifier that is used to identify individual
 	// programs that are part of a given BpfApplication object.  *Programs have
 	// an AppProgramId of "".

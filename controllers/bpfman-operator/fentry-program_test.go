@@ -63,11 +63,11 @@ func fentryProgramReconcile(t *testing.T, multiCondition bool) {
 				},
 			},
 			FentryProgramInfo: bpfmaniov1alpha1.FentryProgramInfo{
-
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
+				FentryLoadInfo:   bpfmaniov1alpha1.FentryLoadInfo{FunctionName: functionName},
+				FentryAttachInfo: bpfmaniov1alpha1.FentryAttachInfo{Attach: true},
 			},
 		},
 	}

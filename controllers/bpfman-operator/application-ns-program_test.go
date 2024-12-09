@@ -79,14 +79,18 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfTcFunctionName,
 						},
-						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-							Interfaces: &[]string{tcFakeInt},
-						},
-						Priority:  0,
-						Direction: tcDirection,
-						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						AttachPoints: []bpfmaniov1alpha1.TcNsAttachInfo{
+							{
+								InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+									Interfaces: &[]string{tcFakeInt},
+								},
+								Priority:  0,
+								Direction: tcDirection,
+								ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+									bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+									bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+								},
+							},
 						},
 					},
 				},
@@ -96,20 +100,22 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfUprobeFunctionName,
 						},
-						FunctionName: uprobeFunctionName,
-						Target:       uprobeTarget,
-						Offset:       uint64(uprobeOffset),
-						RetProbe:     uprobeRetprobe,
-					},
-					/*
-						Containers: &bpfmaniov1alpha1.ContainerNsSelector{
-							Pods: metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"app": "test",
-								},
+						AttachPoints: []bpfmaniov1alpha1.UprobeNsAttachInfo{
+							{
+								FunctionName: uprobeFunctionName,
+								Target:       uprobeTarget,
+								Offset:       uint64(uprobeOffset),
+								RetProbe:     uprobeRetprobe,
+								// Containers: bpfmaniov1alpha1.ContainerNsSelector{
+								// 	Pods: metav1.LabelSelector{
+								// 		MatchLabels: map[string]string{
+								// 			"app": "test",
+								// 		},
+								// 	},
+								// },
 							},
 						},
-					*/
+					},
 				},
 				{
 					Type: bpfmaniov1alpha1.ProgTypeXDP,
@@ -117,17 +123,21 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfXdpFunctionName,
 						},
-						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-							Interfaces: &[]string{xdpFakeInt},
-						},
-						Priority: 0,
-						ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
-							bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
-						},
-						Containers: bpfmaniov1alpha1.ContainerNsSelector{
-							Pods: metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"app": "test",
+						AttachPoints: []bpfmaniov1alpha1.XdpNsAttachInfo{
+							{
+								InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+									Interfaces: &[]string{xdpFakeInt},
+								},
+								Priority: 0,
+								ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
+									bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+								},
+								Containers: bpfmaniov1alpha1.ContainerNsSelector{
+									Pods: metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"app": "test",
+										},
+									},
 								},
 							},
 						},

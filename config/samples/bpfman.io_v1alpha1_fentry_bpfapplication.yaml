@@ -1,0 +1,19 @@
+apiVersion: bpfman.io/v1alpha1
+kind: BpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfapplication
+  name: bpfapplication-fentry
+spec:
+  # Select all nodes
+  nodeselector: {}
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/fentry:latest
+  programs:
+    test_fentry:
+      type: Fentry
+      fentry:
+        bpffunctionname: test_fentry
+        function_name: do_unlinkat
+        attach: true

@@ -111,7 +111,7 @@ func (r *TcNsProgramReconciler) setCurrentProgram(program client.Object) error {
 		return fmt.Errorf("failed to cast program to TcNsProgram")
 	}
 
-	r.interfaces, err = getInterfaces(&r.currentTcNsProgram.Spec.InterfaceSelector, r.ourNode)
+	r.interfaces, err = getInterfaces(&r.currentTcNsProgram.Spec.AttachPoints[0].InterfaceSelector, r.ourNode)
 	if err != nil {
 		return fmt.Errorf("failed to get interfaces for TcNsProgram: %v", err)
 	}
@@ -133,7 +133,7 @@ func (r *TcNsProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&bpfmaniov1alpha1.BpfNsProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfNsProgramTypePredicate(internal.Tc.String()),
-				internal.BpfProgramNodePredicate(r.NodeName)),
+				internal.BpfNodePredicate(r.NodeName)),
 			),
 		).
 		// Only trigger reconciliation if node labels change since that could
@@ -161,8 +161,8 @@ func (r *TcNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bp
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
 		r.getNamespace(),
-		r.currentTcNsProgram.Spec.Containers.Pods,
-		r.currentTcNsProgram.Spec.Containers.ContainerNames,
+		r.currentTcNsProgram.Spec.AttachPoints[0].Containers.Pods,
+		r.currentTcNsProgram.Spec.AttachPoints[0].Containers.ContainerNames,
 		r.Logger,
 	)
 	if err != nil {
@@ -175,7 +175,7 @@ func (r *TcNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bp
 		for _, iface := range r.interfaces {
 			attachPoint := fmt.Sprintf("%s-%s-%s",
 				iface,
-				r.currentTcNsProgram.Spec.Direction,
+				r.currentTcNsProgram.Spec.AttachPoints[0].Direction,
 				"no-containers-on-node",
 			)
 
@@ -198,7 +198,7 @@ func (r *TcNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bp
 			for _, iface := range r.interfaces {
 				attachPoint := fmt.Sprintf("%s-%s-%s-%s",
 					iface,
-					r.currentTcNsProgram.Spec.Direction,
+					r.currentTcNsProgram.Spec.AttachPoints[0].Direction,
 					container.podName,
 					container.containerName,
 				)
@@ -269,10 +269,10 @@ func (r *TcNsProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfN
 	}
 
 	attachInfo := &gobpfman.TCAttachInfo{
-		Priority:  r.currentTcNsProgram.Spec.Priority,
+		Priority:  r.currentTcNsProgram.Spec.AttachPoints[0].Priority,
 		Iface:     bpfProgram.Annotations[internal.TcNsProgramInterface],
-		Direction: r.currentTcNsProgram.Spec.Direction,
-		ProceedOn: tcProceedOnToInt(r.currentTcNsProgram.Spec.ProceedOn),
+		Direction: r.currentTcNsProgram.Spec.AttachPoints[0].Direction,
+		ProceedOn: tcProceedOnToInt(r.currentTcNsProgram.Spec.AttachPoints[0].ProceedOn),
 	}
 
 	containerPidStr, ok := bpfProgram.Annotations[internal.TcNsContainerPid]

@@ -129,4 +129,11 @@ resources:
   kind: BpfNsApplication
   path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+  controller: true
+  domain: bpfman.io
+  kind: BpfApplicationState
+  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
+  version: v1alpha1
 version: "3"

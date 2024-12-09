@@ -32,17 +32,17 @@ import (
 // +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
 // +kubebuilder:printcolumn:name="Position",type=string,JSONPath=`.spec.position`,priority=1
-// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 type TcxProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec TcxProgramSpec `json:"spec"`
 	// +optional
-	Status TcxProgramStatus `json:"status,omitempty"`
+	Status BpfAppStatus `json:"status,omitempty"`
 }
 
 // TcxProgramSpec defines the desired state of TcxProgram
@@ -51,10 +51,16 @@ type TcxProgramSpec struct {
 	BpfAppCommon   `json:",inline"`
 }
 
-// TcxProgramInfo defines the tc program details
+// TcxProgramInfo defines the tcx program details
 type TcxProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcxAttachInfo `json:"attach_points"`
+}
 
+type TcxAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -69,17 +75,12 @@ type TcxProgramInfo struct {
 	// +kubebuilder:validation:Enum=ingress;egress
 	Direction string `json:"direction"`
 
-	// Priority specifies the priority of the tc program in relation to
+	// Priority specifies the priority of the tcx program in relation to
 	// other programs of the same type with the same attach point. It is a value
 	// from 0 to 1000 where lower values have higher precedence.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
 	Priority int32 `json:"priority"`
-}
-
-// TcxProgramStatus defines the observed state of TcxProgram
-type TcxProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true
@@ -88,4 +89,37 @@ type TcxProgramList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []TcxProgram `json:"items"`
+}
+
+type TcxProgramInfoState struct {
+	// The list of points to which the program should be attached.
+	// TcxAttachInfoState is similar to TcxAttachInfo, but the interface and
+	// container selectors are expanded, and we have one instance of
+	// TcxAttachInfoState for each unique attach point. The list is optional and
+	// may be udated after the bpf program has been loaded.
+	// +optional
+	AttachPoints []TcxAttachInfoState `json:"attach_points"`
+}
+
+type TcxAttachInfoState struct {
+	AttachInfoCommon `json:",inline"`
+
+	// Interface name to attach the tcx program to.
+	IfName string `json:"ifname"`
+
+	// Optional container pid to attach the tcx program in.
+	// +optional
+	ContainerPid *uint32 `json:"containerpid"`
+
+	// Direction specifies the direction of traffic the tcx program should
+	// attach to for a given network device.
+	// +kubebuilder:validation:Enum=ingress;egress
+	Direction string `json:"direction"`
+
+	// Priority specifies the priority of the tcx program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
 }

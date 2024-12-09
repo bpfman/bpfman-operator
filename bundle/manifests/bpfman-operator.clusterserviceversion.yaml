@@ -20,79 +20,55 @@ metadata:
               }
             },
             "nodeselector": {},
-            "programs": [
-              {
-                "kprobe": {
-                  "bpffunctionname": "kprobe_counter",
-                  "func_name": "try_to_wake_up",
-                  "offset": 0,
-                  "retprobe": false
-                },
-                "type": "Kprobe"
-              },
-              {
-                "tracepoint": {
-                  "bpffunctionname": "tracepoint_kill_recorder",
-                  "names": [
-                    "syscalls/sys_enter_kill"
-                  ]
-                },
-                "type": "Tracepoint"
-              },
-              {
-                "tc": {
-                  "bpffunctionname": "stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
-                },
-                "type": "TC"
-              },
-              {
+            "programs": {
+              "tcx_stats": {
                 "tcx": {
-                  "bpffunctionname": "tcx_stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 500
+                  "attach_points": [
+                    {
+                      "direction": "ingress",
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 500
+                    }
+                  ],
+                  "bpffunctionname": "tcx_stats"
                 },
                 "type": "TCX"
               },
-              {
-                "type": "Uprobe",
-                "uprobe": {
-                  "bpffunctionname": "uprobe_counter",
-                  "containers": {
-                    "containernames": [
-                      "bpfman",
-                      "bpfman-agent"
-                    ],
-                    "namespace": "bpfman",
-                    "pods": {
-                      "matchLabels": {
-                        "name": "bpfman-daemon"
-                      }
-                    }
-                  },
-                  "func_name": "malloc",
-                  "retprobe": false,
-                  "target": "libc"
-                }
-              },
-              {
+              "xdp_stats": {
                 "type": "XDP",
                 "xdp": {
-                  "bpffunctionname": "xdp_stats",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
+                  "attach_points": [
+                    {
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 55
+                    },
+                    {
+                      "containers": {
+                        "containernames": [
+                          "bpfman",
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 100
+                    }
+                  ],
+                  "bpffunctionname": "xdp_stats"
                 }
               }
-            ]
+            }
           }
         },
         {
@@ -619,7 +595,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-01-08T17:26:28Z"
+    createdAt: "2025-01-24T22:01:22Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -668,6 +644,9 @@ spec:
       displayName: Bpf Application
       kind: BpfApplication
       name: bpfapplications.bpfman.io
+      version: v1alpha1
+    - kind: BpfApplicationState
+      name: bpfapplicationstates.bpfman.io
       version: v1alpha1
     - description: BpfNsApplication is the Schema for the BpfNsApplications API
       displayName: Bpf Namespaced Application
@@ -1105,6 +1084,14 @@ spec:
           - get
           - patch
           - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplicationstates
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - bpfman.io
           resources:

@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// BpfApplications returns a BpfApplicationInformer.
 	BpfApplications() BpfApplicationInformer
+	// BpfApplicationStates returns a BpfApplicationStateInformer.
+	BpfApplicationStates() BpfApplicationStateInformer
 	// BpfNsApplications returns a BpfNsApplicationInformer.
 	BpfNsApplications() BpfNsApplicationInformer
 	// BpfNsPrograms returns a BpfNsProgramInformer.
@@ -72,6 +74,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // BpfApplications returns a BpfApplicationInformer.
 func (v *version) BpfApplications() BpfApplicationInformer {
 	return &bpfApplicationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// BpfApplicationStates returns a BpfApplicationStateInformer.
+func (v *version) BpfApplicationStates() BpfApplicationStateInformer {
+	return &bpfApplicationStateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // BpfNsApplications returns a BpfNsApplicationInformer.

@@ -119,7 +119,7 @@ func (r *FexitProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&bpfmaniov1alpha1.BpfProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfProgramTypePredicate(internal.FexitString),
-				internal.BpfProgramNodePredicate(r.NodeName)),
+				internal.BpfNodePredicate(r.NodeName)),
 			),
 		).
 		// Only trigger reconciliation if node labels change since that could

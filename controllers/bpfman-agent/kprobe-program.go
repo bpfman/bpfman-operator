@@ -119,7 +119,7 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&bpfmaniov1alpha1.BpfProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfProgramTypePredicate(internal.Kprobe.String()),
-				internal.BpfProgramNodePredicate(r.NodeName)),
+				internal.BpfNodePredicate(r.NodeName)),
 			),
 		).
 		// Only trigger reconciliation if node labels change since that could
@@ -136,9 +136,9 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	attachPoint := sanitize(r.currentKprobeProgram.Spec.FunctionName)
+	attachPoint := sanitize(r.currentKprobeProgram.Spec.AttachPoints[0].FunctionName)
 
-	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.FunctionName}
+	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.AttachPoints[0].FunctionName}
 
 	prog, err := r.createBpfProgram(attachPoint, r, annotations)
 	if err != nil {
@@ -208,8 +208,8 @@ func (r *KprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
 				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
 					FnName:       bpfProgram.Annotations[internal.KprobeProgramFunction],
-					Offset:       r.currentKprobeProgram.Spec.Offset,
-					Retprobe:     r.currentKprobeProgram.Spec.RetProbe,
+					Offset:       r.currentKprobeProgram.Spec.AttachPoints[0].Offset,
+					Retprobe:     r.currentKprobeProgram.Spec.AttachPoints[0].RetProbe,
 					ContainerPid: &container_pid,
 				},
 			},
