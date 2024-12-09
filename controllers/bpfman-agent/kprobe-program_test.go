@@ -75,9 +75,13 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
-				Offset:       uint64(offset),
-				RetProbe:     retprobe,
+				AttachPoints: []bpfmaniov1alpha1.KprobeAttachInfo{
+					{
+						FunctionName: functionName,
+						Offset:       uint64(offset),
+						RetProbe:     retprobe,
+					},
+				},
 			},
 		},
 	}

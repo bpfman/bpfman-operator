@@ -72,7 +72,8 @@ func TestFexitProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
+				FexitLoadInfo: bpfmaniov1alpha1.FexitLoadInfo{FunctionName: functionName},
+				Attach:        true,
 			},
 		},
 	}

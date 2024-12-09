@@ -53,7 +53,8 @@ type ContainerSelector struct {
 	ContainerNames *[]string `json:"containernames,omitempty"`
 }
 
-// BpfProgramCommon defines the common attributes for all BPF programs
+// BpfProgramCommon defines the common attributes required to load all BPF
+// programs.
 type BpfProgramCommon struct {
 	// BpfFunctionName is the name of the function that is the entry point for the BPF
 	// program
@@ -86,8 +87,8 @@ type BpfAppCommon struct {
 	ByteCode BytecodeSelector `json:"bytecode"`
 }
 
-// BpfProgramStatusCommon defines the BpfProgram status
-type BpfProgramStatusCommon struct {
+// BpfAppStatus defines the BpfProgram status
+type BpfAppStatus struct {
 	// Conditions houses the global cluster state for the eBPFProgram. The explicit
 	// condition types are defined internally.
 	// +patchMergeKey=type

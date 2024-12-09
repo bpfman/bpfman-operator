@@ -66,12 +66,13 @@ func TestTcxProgramReconcile(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-			},
+				AttachPoints: []bpfmaniov1alpha1.TcxAttachInfo{{
+					InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+						Interfaces: &[]string{fakeInt},
+					},
+					Priority:  0,
+					Direction: direction,
+				}}},
 		},
 	}
 
