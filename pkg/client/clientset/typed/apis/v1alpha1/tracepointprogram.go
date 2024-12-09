@@ -40,7 +40,6 @@ type TracepointProgramsGetter interface {
 type TracepointProgramInterface interface {
 	Create(ctx context.Context, tracepointProgram *v1alpha1.TracepointProgram, opts v1.CreateOptions) (*v1alpha1.TracepointProgram, error)
 	Update(ctx context.Context, tracepointProgram *v1alpha1.TracepointProgram, opts v1.UpdateOptions) (*v1alpha1.TracepointProgram, error)
-	UpdateStatus(ctx context.Context, tracepointProgram *v1alpha1.TracepointProgram, opts v1.UpdateOptions) (*v1alpha1.TracepointProgram, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.TracepointProgram, error)
@@ -122,21 +121,6 @@ func (c *tracepointPrograms) Update(ctx context.Context, tracepointProgram *v1al
 	err = c.client.Put().
 		Resource("tracepointprograms").
 		Name(tracepointProgram.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(tracepointProgram).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *tracepointPrograms) UpdateStatus(ctx context.Context, tracepointProgram *v1alpha1.TracepointProgram, opts v1.UpdateOptions) (result *v1alpha1.TracepointProgram, err error) {
-	result = &v1alpha1.TracepointProgram{}
-	err = c.client.Put().
-		Resource("tracepointprograms").
-		Name(tracepointProgram.Name).
-		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(tracepointProgram).
 		Do(ctx).

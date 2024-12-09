@@ -40,7 +40,6 @@ type FexitProgramsGetter interface {
 type FexitProgramInterface interface {
 	Create(ctx context.Context, fexitProgram *v1alpha1.FexitProgram, opts v1.CreateOptions) (*v1alpha1.FexitProgram, error)
 	Update(ctx context.Context, fexitProgram *v1alpha1.FexitProgram, opts v1.UpdateOptions) (*v1alpha1.FexitProgram, error)
-	UpdateStatus(ctx context.Context, fexitProgram *v1alpha1.FexitProgram, opts v1.UpdateOptions) (*v1alpha1.FexitProgram, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.FexitProgram, error)
@@ -122,21 +121,6 @@ func (c *fexitPrograms) Update(ctx context.Context, fexitProgram *v1alpha1.Fexit
 	err = c.client.Put().
 		Resource("fexitprograms").
 		Name(fexitProgram.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(fexitProgram).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *fexitPrograms) UpdateStatus(ctx context.Context, fexitProgram *v1alpha1.FexitProgram, opts v1.UpdateOptions) (result *v1alpha1.FexitProgram, err error) {
-	result = &v1alpha1.FexitProgram{}
-	err = c.client.Put().
-		Resource("fexitprograms").
-		Name(fexitProgram.Name).
-		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(fexitProgram).
 		Do(ctx).

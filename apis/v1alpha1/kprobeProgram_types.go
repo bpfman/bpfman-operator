@@ -40,8 +40,6 @@ type KprobeProgram struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec KprobeProgramSpec `json:"spec"`
-	// +optional
-	Status KprobeProgramStatus `json:"status,omitempty"`
 }
 
 // KprobeProgramSpec defines the desired state of KprobeProgram
@@ -57,7 +55,13 @@ type KprobeProgramSpec struct {
 // KprobeProgramInfo defines the common fields for KprobeProgram
 type KprobeProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []KprobeAttachInfo `json:"attach_points"`
+}
 
+type KprobeAttachInfo struct {
 	// Functions to attach the kprobe to.
 	FunctionName string `json:"func_name"`
 
@@ -71,15 +75,6 @@ type KprobeProgramInfo struct {
 	// +optional
 	// +kubebuilder:default:=false
 	RetProbe bool `json:"retprobe"`
-
-	// // Host PID of container to attach the uprobe in. (Not supported yet by bpfman.)
-	// // +optional
-	// ContainerPid string `json:"containerpid"`
-}
-
-// KprobeProgramStatus defines the observed state of KprobeProgram
-type KprobeProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

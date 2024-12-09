@@ -95,17 +95,6 @@ func (c *FakeTcxPrograms) Update(ctx context.Context, tcxProgram *v1alpha1.TcxPr
 	return obj.(*v1alpha1.TcxProgram), err
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeTcxPrograms) UpdateStatus(ctx context.Context, tcxProgram *v1alpha1.TcxProgram, opts v1.UpdateOptions) (*v1alpha1.TcxProgram, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(tcxprogramsResource, "status", tcxProgram), &v1alpha1.TcxProgram{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.TcxProgram), err
-}
-
 // Delete takes name of the tcxProgram and deletes it. Returns an error if one occurs.
 func (c *FakeTcxPrograms) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
