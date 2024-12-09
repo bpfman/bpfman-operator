@@ -22,86 +22,22 @@ package v1alpha1
 // BpfApplicationLister.
 type BpfApplicationListerExpansion interface{}
 
-// BpfNsApplicationListerExpansion allows custom methods to be added to
-// BpfNsApplicationLister.
-type BpfNsApplicationListerExpansion interface{}
+// BpfApplicationNamespaceListerExpansion allows custom methods to be added to
+// BpfApplicationNamespaceLister.
+type BpfApplicationNamespaceListerExpansion interface{}
 
-// BpfNsApplicationNamespaceListerExpansion allows custom methods to be added to
-// BpfNsApplicationNamespaceLister.
-type BpfNsApplicationNamespaceListerExpansion interface{}
+// BpfApplicationStateListerExpansion allows custom methods to be added to
+// BpfApplicationStateLister.
+type BpfApplicationStateListerExpansion interface{}
 
-// BpfNsProgramListerExpansion allows custom methods to be added to
-// BpfNsProgramLister.
-type BpfNsProgramListerExpansion interface{}
+// BpfApplicationStateNamespaceListerExpansion allows custom methods to be added to
+// BpfApplicationStateNamespaceLister.
+type BpfApplicationStateNamespaceListerExpansion interface{}
 
-// BpfNsProgramNamespaceListerExpansion allows custom methods to be added to
-// BpfNsProgramNamespaceLister.
-type BpfNsProgramNamespaceListerExpansion interface{}
+// ClusterBpfApplicationListerExpansion allows custom methods to be added to
+// ClusterBpfApplicationLister.
+type ClusterBpfApplicationListerExpansion interface{}
 
-// BpfProgramListerExpansion allows custom methods to be added to
-// BpfProgramLister.
-type BpfProgramListerExpansion interface{}
-
-// FentryProgramListerExpansion allows custom methods to be added to
-// FentryProgramLister.
-type FentryProgramListerExpansion interface{}
-
-// FexitProgramListerExpansion allows custom methods to be added to
-// FexitProgramLister.
-type FexitProgramListerExpansion interface{}
-
-// KprobeProgramListerExpansion allows custom methods to be added to
-// KprobeProgramLister.
-type KprobeProgramListerExpansion interface{}
-
-// TcNsProgramListerExpansion allows custom methods to be added to
-// TcNsProgramLister.
-type TcNsProgramListerExpansion interface{}
-
-// TcNsProgramNamespaceListerExpansion allows custom methods to be added to
-// TcNsProgramNamespaceLister.
-type TcNsProgramNamespaceListerExpansion interface{}
-
-// TcProgramListerExpansion allows custom methods to be added to
-// TcProgramLister.
-type TcProgramListerExpansion interface{}
-
-// TcxNsProgramListerExpansion allows custom methods to be added to
-// TcxNsProgramLister.
-type TcxNsProgramListerExpansion interface{}
-
-// TcxNsProgramNamespaceListerExpansion allows custom methods to be added to
-// TcxNsProgramNamespaceLister.
-type TcxNsProgramNamespaceListerExpansion interface{}
-
-// TcxProgramListerExpansion allows custom methods to be added to
-// TcxProgramLister.
-type TcxProgramListerExpansion interface{}
-
-// TracepointProgramListerExpansion allows custom methods to be added to
-// TracepointProgramLister.
-type TracepointProgramListerExpansion interface{}
-
-// UprobeNsProgramListerExpansion allows custom methods to be added to
-// UprobeNsProgramLister.
-type UprobeNsProgramListerExpansion interface{}
-
-// UprobeNsProgramNamespaceListerExpansion allows custom methods to be added to
-// UprobeNsProgramNamespaceLister.
-type UprobeNsProgramNamespaceListerExpansion interface{}
-
-// UprobeProgramListerExpansion allows custom methods to be added to
-// UprobeProgramLister.
-type UprobeProgramListerExpansion interface{}
-
-// XdpNsProgramListerExpansion allows custom methods to be added to
-// XdpNsProgramLister.
-type XdpNsProgramListerExpansion interface{}
-
-// XdpNsProgramNamespaceListerExpansion allows custom methods to be added to
-// XdpNsProgramNamespaceLister.
-type XdpNsProgramNamespaceListerExpansion interface{}
-
-// XdpProgramListerExpansion allows custom methods to be added to
-// XdpProgramLister.
-type XdpProgramListerExpansion interface{}
+// ClusterBpfApplicationStateListerExpansion allows custom methods to be added to
+// ClusterBpfApplicationStateLister.
+type ClusterBpfApplicationStateListerExpansion interface{}

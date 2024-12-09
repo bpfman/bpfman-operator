@@ -29,38 +29,38 @@ import (
 	internal "github.com/bpfman/bpfman-operator/internal"
 )
 
-type ClusterProgramReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]
+type ClusterApplicationReconciler struct {
+	ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList]
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
-func (r *ClusterProgramReconciler) getBpfList(
+func (r *ClusterApplicationReconciler) getAppStateList(
 	ctx context.Context,
-	progName string,
-	_progNamespace string,
-) (*bpfmaniov1alpha1.BpfProgramList, error) {
+	appName string,
+	_appNamespace string,
+) (*bpfmaniov1alpha1.ClusterBpfApplicationStateList, error) {
 
-	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
+	appStateList := &bpfmaniov1alpha1.ClusterBpfApplicationStateList{}
 
-	// Only list bpfPrograms for this Program
+	// Only list BpfApplicationState objects for this BpfApplication
 	opts := []client.ListOption{
-		client.MatchingLabels{internal.BpfProgramOwner: progName},
+		client.MatchingLabels{internal.BpfAppStateOwner: appName},
 	}
 
-	err := r.List(ctx, bpfProgramList, opts...)
+	err := r.List(ctx, appStateList, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return bpfProgramList, nil
+	return appStateList, nil
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
-func (r *ClusterProgramReconciler) containsFinalizer(
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
+func (r *ClusterApplicationReconciler) containsFinalizer(
+	bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState,
 	finalizer string,
 ) bool {
-	return controllerutil.ContainsFinalizer(bpfProgram, finalizer)
+	return controllerutil.ContainsFinalizer(bpfAppState, finalizer)
 }
 
 func statusChangedPredicateCluster() predicate.Funcs {
@@ -72,8 +72,8 @@ func statusChangedPredicateCluster() predicate.Funcs {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfProgram)
+			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.ClusterBpfApplicationState)
+			newObject := e.ObjectNew.(*bpfmaniov1alpha1.ClusterBpfApplicationState)
 			return !reflect.DeepEqual(oldObject.GetStatus(), newObject.Status)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {

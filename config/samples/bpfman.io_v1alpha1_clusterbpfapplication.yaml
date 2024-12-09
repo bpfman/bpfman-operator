@@ -1,0 +1,123 @@
+apiVersion: bpfman.io/v1alpha1
+kind: ClusterBpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterbpfapplication
+  name: clusterbpfapplication-sample
+spec:
+  nodeSelector: {}
+  byteCode:
+    image:
+      url: quay.io/bpfman-bytecode/app-test:latest
+  globalData:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
+  programs:
+    - name: kprobe_test
+      type: kprobe
+      kprobeInfo:
+        links:
+          - function: try_to_wake_up
+            offset: 0
+    - name: kretprobe_test
+      type: kprobe
+      kprobeInfo:
+        links:
+          - function: try_to_wake_up
+            offset: 0
+    - name: tracepoint_test
+      type: tracepoint
+      tracepointInfo:
+        links:
+          - name: syscalls/sys_enter_openat
+    - name: tc_pass_test
+      type: tc
+      tcInfo:
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
+            direction: ingress
+    - name: tcx_next_test
+      type: tcx
+      tcxInfo:
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 500
+            direction: ingress
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: egress
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containerNames:
+                - bpfman-agent
+    - name: uprobe_test
+      type: uprobe
+      uprobeInfo:
+        links:
+          - function: malloc
+            target: libc
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containerNames:
+                - bpfman
+                - bpfman-agent
+    - name: uretprobe_test
+      type: uprobe
+      uprobeInfo:
+        links:
+          - function: malloc
+            target: libc
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containerNames:
+                - bpfman
+                - bpfman-agent
+    - name: xdp_pass_test
+      type: xdp
+      xdpInfo:
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 100
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containerNames:
+                - bpfman-agent
+    - name: fentry_test
+      type: fentry
+      fentryInfo:
+        function: do_unlinkat
+        links:
+          - attach: true
+    - name: fexit_test
+      type: fexit
+      fexitInfo:
+        function: do_unlinkat
+        links:
+          - attach: true

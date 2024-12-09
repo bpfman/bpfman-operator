@@ -1,0 +1,78 @@
+apiVersion: bpfman.io/v1alpha1
+kind: ClusterBpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterbpfapplication
+  name: nginx-clusterbpfapplication-sample
+spec:
+  nodeSelector: {}
+  byteCode:
+    image:
+      url: quay.io/bpfman-bytecode/app-test:latest
+  globalData:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
+  programs:
+    - name: tc_pass_test
+      type: tc
+      tcInfo:
+        links:
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 55
+            direction: ingress
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - name: tcx_next_test
+      type: tcx
+      tcxInfo:
+        links:
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: egress
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - name: uprobe_test
+      type: uprobe
+      uprobeInfo:
+        links:
+          - function: malloc
+            target: libc
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - name: uretprobe_test
+      type: uprobe
+      uprobeInfo:
+        links:
+          - function: malloc
+            target: libc
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - name: xdp_pass_test
+      type: xdp
+      xdpInfo:
+        links:
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 100
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx

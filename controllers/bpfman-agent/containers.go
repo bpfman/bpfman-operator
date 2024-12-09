@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -33,7 +33,7 @@ import (
 type ContainerInfo struct {
 	podName       string
 	containerName string
-	pid           int64
+	pid           int32
 }
 
 // Create an interface for getting the list of containers in which the program
@@ -85,7 +85,10 @@ func (c *RealContainerGetter) GetContainers(
 		return nil, fmt.Errorf("failed to get container info: %v", err)
 	}
 
-	logger.V(1).Info("from getContainerInfo", "containers", containerList)
+	for i, container := range *containerList {
+		logger.V(1).Info("Container", "index", i, "PodName", container.podName,
+			"ContainerName", container.containerName, "PID", container.pid)
+	}
 
 	return containerList, nil
 }
@@ -224,7 +227,7 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 			container := ContainerInfo{
 				podName:       pod.Name,
 				containerName: containerName,
-				pid:           containerPid,
+				pid:           int32(containerPid),
 			}
 
 			containers = append(containers, container)
@@ -233,20 +236,4 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 	}
 
 	return &containers, nil
-}
-
-// Check if the annotation is set to indicate that no containers on this node
-// matched the container selector.
-func noContainersOnNode[T BpfProg](bpfProgram *T, annotationIndex string) bool {
-	if bpfProgram == nil {
-		return false
-	}
-
-	annotations := (*bpfProgram).GetAnnotations()
-	noContainersOnNode, ok := annotations[annotationIndex]
-	if ok && noContainersOnNode == "true" {
-		return true
-	}
-
-	return false
 }

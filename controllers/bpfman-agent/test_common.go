@@ -34,7 +34,7 @@ func TestGetPods(t *testing.T) {
 	clientset := clientGoFake.NewSimpleClientset()
 
 	// Create a ContainerSelector
-	containerSelector := &bpfmaniov1alpha1.ContainerSelector{
+	containerSelector := &bpfmaniov1alpha1.ClContainerSelector{
 		Pods: metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"app": "test",
@@ -80,7 +80,7 @@ func TestGetPods(t *testing.T) {
 
 	// Try another selector
 	// Create a ContainerSelector
-	containerSelector = &bpfmaniov1alpha1.ContainerSelector{
+	containerSelector = &bpfmaniov1alpha1.ClContainerSelector{
 		Pods: metav1.LabelSelector{
 			MatchLabels: map[string]string{},
 		},
