@@ -29,21 +29,9 @@ import (
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfApplicationsGetter
+	BpfApplicationStatesGetter
 	BpfNsApplicationsGetter
-	BpfNsProgramsGetter
-	BpfProgramsGetter
-	FentryProgramsGetter
-	FexitProgramsGetter
-	KprobeProgramsGetter
-	TcNsProgramsGetter
-	TcProgramsGetter
-	TcxNsProgramsGetter
-	TcxProgramsGetter
-	TracepointProgramsGetter
-	UprobeNsProgramsGetter
-	UprobeProgramsGetter
-	XdpNsProgramsGetter
-	XdpProgramsGetter
+	BpfNsApplicationStatesGetter
 }
 
 // BpfmanV1alpha1Client is used to interact with features provided by the bpfman.io group.
@@ -55,64 +43,16 @@ func (c *BpfmanV1alpha1Client) BpfApplications() BpfApplicationInterface {
 	return newBpfApplications(c)
 }
 
+func (c *BpfmanV1alpha1Client) BpfApplicationStates() BpfApplicationStateInterface {
+	return newBpfApplicationStates(c)
+}
+
 func (c *BpfmanV1alpha1Client) BpfNsApplications(namespace string) BpfNsApplicationInterface {
 	return newBpfNsApplications(c, namespace)
 }
 
-func (c *BpfmanV1alpha1Client) BpfNsPrograms(namespace string) BpfNsProgramInterface {
-	return newBpfNsPrograms(c, namespace)
-}
-
-func (c *BpfmanV1alpha1Client) BpfPrograms() BpfProgramInterface {
-	return newBpfPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) FentryPrograms() FentryProgramInterface {
-	return newFentryPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) FexitPrograms() FexitProgramInterface {
-	return newFexitPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) KprobePrograms() KprobeProgramInterface {
-	return newKprobePrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) TcNsPrograms(namespace string) TcNsProgramInterface {
-	return newTcNsPrograms(c, namespace)
-}
-
-func (c *BpfmanV1alpha1Client) TcPrograms() TcProgramInterface {
-	return newTcPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) TcxNsPrograms(namespace string) TcxNsProgramInterface {
-	return newTcxNsPrograms(c, namespace)
-}
-
-func (c *BpfmanV1alpha1Client) TcxPrograms() TcxProgramInterface {
-	return newTcxPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) TracepointPrograms() TracepointProgramInterface {
-	return newTracepointPrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) UprobeNsPrograms(namespace string) UprobeNsProgramInterface {
-	return newUprobeNsPrograms(c, namespace)
-}
-
-func (c *BpfmanV1alpha1Client) UprobePrograms() UprobeProgramInterface {
-	return newUprobePrograms(c)
-}
-
-func (c *BpfmanV1alpha1Client) XdpNsPrograms(namespace string) XdpNsProgramInterface {
-	return newXdpNsPrograms(c, namespace)
-}
-
-func (c *BpfmanV1alpha1Client) XdpPrograms() XdpProgramInterface {
-	return newXdpPrograms(c)
+func (c *BpfmanV1alpha1Client) BpfNsApplicationStates(namespace string) BpfNsApplicationStateInterface {
+	return newBpfNsApplicationStates(c, namespace)
 }
 
 // NewForConfig creates a new BpfmanV1alpha1Client for the given config.

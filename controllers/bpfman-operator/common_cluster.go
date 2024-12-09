@@ -30,7 +30,7 @@ import (
 )
 
 type ClusterProgramReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]
+	ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
@@ -38,9 +38,9 @@ func (r *ClusterProgramReconciler) getBpfList(
 	ctx context.Context,
 	progName string,
 	_progNamespace string,
-) (*bpfmaniov1alpha1.BpfProgramList, error) {
+) (*bpfmaniov1alpha1.BpfApplicationStateList, error) {
 
-	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
+	bpfProgramList := &bpfmaniov1alpha1.BpfApplicationStateList{}
 
 	// Only list bpfPrograms for this Program
 	opts := []client.ListOption{
@@ -57,7 +57,7 @@ func (r *ClusterProgramReconciler) getBpfList(
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
 func (r *ClusterProgramReconciler) containsFinalizer(
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
+	bpfProgram *bpfmaniov1alpha1.BpfApplicationState,
 	finalizer string,
 ) bool {
 	return controllerutil.ContainsFinalizer(bpfProgram, finalizer)
@@ -72,8 +72,8 @@ func statusChangedPredicateCluster() predicate.Funcs {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfProgram)
+			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfApplicationState)
+			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfApplicationState)
 			return !reflect.DeepEqual(oldObject.GetStatus(), newObject.Status)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {

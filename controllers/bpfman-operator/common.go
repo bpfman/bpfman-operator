@@ -35,9 +35,9 @@ import (
 	"github.com/go-logr/logr"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=bpfprograms,verbs=get;list;watch
-//+kubebuilder:rbac:groups=bpfman.io,resources=bpfnsprograms,verbs=get;list;watch
-//+kubebuilder:rbac:groups=bpfman.io,namespace=bpfman,resources=bpfnsprograms,verbs=get;list;watch
+// +kubebuilder:rbac:groups=bpfman.io,resources=bpfapplicationstates,verbs=get;list;watch
+// +kubebuilder:rbac:groups=bpfman.io,resources=bpfnsapplicationstates,verbs=get;list;watch
+// +kubebuilder:rbac:groups=bpfman.io,namespace=bpfman,resources=bpfnsapplicationstates,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 const (
@@ -48,7 +48,7 @@ type BpfProgOper interface {
 	GetName() string
 
 	GetLabels() map[string]string
-	GetStatus() *bpfmaniov1alpha1.BpfProgramStatus
+	GetStatus() *bpfmaniov1alpha1.BpfAppStatus
 }
 
 type BpfProgListOper[T any] interface {
@@ -57,7 +57,6 @@ type BpfProgListOper[T any] interface {
 	GetItems() []T
 }
 
-// ReconcilerCommon reconciles a BpfProgram object
 type ReconcilerCommon[T BpfProgOper, TL BpfProgListOper[T]] struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -86,22 +85,22 @@ type ProgramReconciler[T BpfProgOper, TL BpfProgListOper[T]] interface {
 func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
 	ctx context.Context,
 	rec ProgramReconciler[T, TL],
-	prog client.Object,
+	app client.Object,
 ) (ctrl.Result, error) {
 	r := rec.getRecCommon()
-	progName := prog.GetName()
-	progNamespace := prog.GetNamespace()
+	progName := app.GetName()
+	progNamespace := app.GetNamespace()
 
 	r.Logger.V(1).Info("Reconciling Program", "Namespace", progNamespace, "Name", progName)
 
-	if !controllerutil.ContainsFinalizer(prog, internal.BpfmanOperatorFinalizer) {
+	if !controllerutil.ContainsFinalizer(app, internal.BpfmanOperatorFinalizer) {
 		r.Logger.V(1).Info("Add Finalizer", "Namespace", progNamespace, "ProgramName", progName)
-		return r.addFinalizer(ctx, prog, internal.BpfmanOperatorFinalizer)
+		return r.addFinalizer(ctx, app, internal.BpfmanOperatorFinalizer)
 	}
 
 	// reconcile Program Object on all other events
 	// list all existing bpfProgram state for the given Program
-	bpfPrograms, err := rec.getBpfList(ctx, progName, progNamespace)
+	bpfAppStateObjs, err := rec.getBpfList(ctx, progName, progNamespace)
 	if err != nil {
 		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
@@ -116,12 +115,12 @@ func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
 
 	// If the program isn't being deleted, make sure that each node has at
 	// least one bpfprogram object.  If not, Return NotYetLoaded Status.
-	if prog.GetDeletionTimestamp().IsZero() {
+	if app.GetDeletionTimestamp().IsZero() {
 		for _, node := range nodes.Items {
 			nodeFound := false
-			for _, program := range (*bpfPrograms).GetItems() {
-				bpfProgramNode := program.GetLabels()[internal.K8sHostLabel]
-				if node.Name == bpfProgramNode {
+			for _, program := range (*bpfAppStateObjs).GetItems() {
+				bpfProgramState := program.GetLabels()[internal.K8sHostLabel]
+				if node.Name == bpfProgramState {
 					nodeFound = true
 					break
 				}
@@ -135,24 +134,24 @@ func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
 	failedBpfPrograms := []string{}
 	finalApplied := []string{}
 	// Make sure no bpfPrograms had any issues in the loading or unloading process
-	for _, bpfProgram := range (*bpfPrograms).GetItems() {
+	for _, bpfAppState := range (*bpfAppStateObjs).GetItems() {
 
-		if rec.containsFinalizer(&bpfProgram, rec.getFinalizer()) {
-			finalApplied = append(finalApplied, bpfProgram.GetName())
+		if rec.containsFinalizer(&bpfAppState, rec.getFinalizer()) {
+			finalApplied = append(finalApplied, bpfAppState.GetName())
 		}
 
-		status := bpfProgram.GetStatus()
-		if bpfmanHelpers.IsBpfProgramConditionFailure(&status.Conditions) {
-			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.GetName())
+		status := bpfAppState.GetStatus()
+		if bpfmanHelpers.IsBpfAppStateConditionFailure(&status.Conditions) {
+			failedBpfPrograms = append(failedBpfPrograms, bpfAppState.GetName())
 		}
 	}
 
-	if !prog.GetDeletionTimestamp().IsZero() {
+	if !app.GetDeletionTimestamp().IsZero() {
 		// Only remove bpfman-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e there are no
 		// bpfPrograms with a finalizer)
 		if len(finalApplied) == 0 {
 			// Causes Requeue
-			return r.removeFinalizer(ctx, prog, internal.BpfmanOperatorFinalizer)
+			return r.removeFinalizer(ctx, app, internal.BpfmanOperatorFinalizer)
 		}
 
 		// Causes Requeue
@@ -170,11 +169,11 @@ func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
 	return rec.updateStatus(ctx, progNamespace, progName, bpfmaniov1alpha1.ProgramReconcileSuccess, "")
 }
 
-func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
-	r.Logger.Info("Calling KubeAPI to delete Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
+func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, app client.Object, finalizer string) (ctrl.Result, error) {
+	r.Logger.Info("Calling KubeAPI to delete Program Finalizer", "Type", app.GetObjectKind().GroupVersionKind().Kind, "Name", app.GetName())
 
-	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
-		err := r.Update(ctx, prog)
+	if changed := controllerutil.RemoveFinalizer(app, finalizer); changed {
+		err := r.Update(ctx, app)
 		if err != nil {
 			r.Logger.Error(err, "failed to remove bpfProgram Finalizer")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
@@ -184,11 +183,11 @@ func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, prog clie
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
-	controllerutil.AddFinalizer(prog, finalizer)
+func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, app client.Object, finalizer string) (ctrl.Result, error) {
+	controllerutil.AddFinalizer(app, finalizer)
 
-	r.Logger.Info("Calling KubeAPI to add Program Finalizer", "Type", prog.GetObjectKind().GroupVersionKind().Kind, "Name", prog.GetName())
-	err := r.Update(ctx, prog)
+	r.Logger.Info("Calling KubeAPI to add Program Finalizer", "Type", app.GetObjectKind().GroupVersionKind().Kind, "Name", app.GetName())
+	err := r.Update(ctx, app)
 	if err != nil {
 		r.Logger.V(1).Info("failed adding bpfman-operator finalizer to Program...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
