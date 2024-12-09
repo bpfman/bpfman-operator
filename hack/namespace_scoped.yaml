@@ -27,7 +27,7 @@ rules:
 - apiGroups:
     - bpfman.io
   resources:
-    - bpfnsprograms
+    - bpfnsapplicationstates
   verbs:
     - get
     - list
@@ -35,15 +35,14 @@ rules:
 - apiGroups:
     - bpfman.io
   resources:
-    - bpfnsprograms/status
+    - bpfnsapplicationstates/status
   verbs:
     - get
     - list
     - watch
 - apiGroups:
     - bpfman.io
-  # resources: ['xdpnsprograms']
-  resources: ['bpfnsapplications', 'tcnsprograms', 'tcxnsprograms', 'uprobensprograms', 'xdpnsprograms']
+  resources: ['bpfnsapplications']
   verbs:
     - create
     - delete
@@ -51,6 +50,7 @@ rules:
     - list
     - update
     - watch
+    - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

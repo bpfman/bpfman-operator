@@ -18,47 +18,17 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-// +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// KprobeProgram is the Schema for the KprobePrograms API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`,priority=1
-// +kubebuilder:printcolumn:name="Offset",type=integer,JSONPath=`.spec.offset`,priority=1
-// +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`,priority=1
-type KprobeProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec KprobeProgramSpec `json:"spec"`
-	// +optional
-	Status KprobeProgramStatus `json:"status,omitempty"`
-}
-
-// KprobeProgramSpec defines the desired state of KprobeProgram
-// +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`
-// +kubebuilder:printcolumn:name="Offset",type=integer,JSONPath=`.spec.offset`
-// +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`
-// +kubebuilder:validation:XValidation:message="offset cannot be set for kretprobes",rule="self.retprobe == false || self.offset == 0"
-type KprobeProgramSpec struct {
-	KprobeProgramInfo `json:",inline"`
-	BpfAppCommon      `json:",inline"`
-}
-
-// KprobeProgramInfo defines the common fields for KprobeProgram
+// KprobeProgramInfo contains the information for the kprobe program
 type KprobeProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []KprobeAttachInfo `json:"attach_points"`
+}
 
-	// Functions to attach the kprobe to.
+// +kubebuilder:validation:XValidation:message="offset cannot be set for kretprobes",rule="self.retprobe == false || self.offset == 0"
+type KprobeAttachInfo struct {
+	// Function to attach the kprobe to.
 	FunctionName string `json:"func_name"`
 
 	// Offset added to the address of the function for kprobe.
@@ -73,15 +43,26 @@ type KprobeProgramInfo struct {
 	RetProbe bool `json:"retprobe"`
 }
 
-// KprobeProgramStatus defines the observed state of KprobeProgram
-type KprobeProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+type KprobeProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
+	// in *AttachInfoState represents a specific, unique attach point that is
+	// derived from *AttachInfo by fully expanding any selectors.  Each entry
+	// also contains information about the attach point required by the
+	// reconciler
+	// +optional
+	AttachPoints []KprobeAttachInfoState `json:"attach_points"`
 }
 
-// +kubebuilder:object:root=true
-// KprobeProgramList contains a list of KprobePrograms
-type KprobeProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KprobeProgram `json:"items"`
+type KprobeAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
+
+	// Function to attach the kprobe to.
+	FunctionName string `json:"func_name"`
+
+	// Offset added to the address of the function for kprobe.
+	// Not allowed for kretprobes.
+	Offset uint64 `json:"offset"`
+
+	// Whether the program is a kretprobe.
+	RetProbe bool `json:"retprobe"`
 }

@@ -30,7 +30,7 @@ import (
 )
 
 type NamespaceProgramReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.BpfNsProgram, bpfmaniov1alpha1.BpfNsProgramList]
+	ReconcilerCommon[bpfmaniov1alpha1.BpfNsApplicationState, bpfmaniov1alpha1.BpfNsApplicationStateList]
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
@@ -38,9 +38,9 @@ func (r *NamespaceProgramReconciler) getBpfList(
 	ctx context.Context,
 	progName string,
 	progNamespace string,
-) (*bpfmaniov1alpha1.BpfNsProgramList, error) {
+) (*bpfmaniov1alpha1.BpfNsApplicationStateList, error) {
 
-	bpfProgramList := &bpfmaniov1alpha1.BpfNsProgramList{}
+	bpfProgramList := &bpfmaniov1alpha1.BpfNsApplicationStateList{}
 
 	// Only list bpfPrograms for this Program
 	opts := []client.ListOption{
@@ -58,7 +58,7 @@ func (r *NamespaceProgramReconciler) getBpfList(
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
 func (r *NamespaceProgramReconciler) containsFinalizer(
-	bpfProgram *bpfmaniov1alpha1.BpfNsProgram,
+	bpfProgram *bpfmaniov1alpha1.BpfNsApplicationState,
 	finalizer string,
 ) bool {
 	return controllerutil.ContainsFinalizer(bpfProgram, finalizer)
@@ -73,8 +73,8 @@ func statusChangedPredicateNamespace() predicate.Funcs {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfNsProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfNsProgram)
+			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfNsApplicationState)
+			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfNsApplicationState)
 			return !reflect.DeepEqual(oldObject.GetStatus(), newObject.Status)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {

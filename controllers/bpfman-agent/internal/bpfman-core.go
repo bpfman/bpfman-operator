@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -109,7 +109,7 @@ func LoadBpfmanProgram(ctx context.Context, bpfmanClient gobpfman.BpfmanClient,
 	}
 	kernelInfo := res.GetKernelInfo()
 	if kernelInfo == nil {
-		return nil, fmt.Errorf("no kernel info for load bpfProgram")
+		return nil, fmt.Errorf("no kernel info for bpfProgram")
 	}
 	id := kernelInfo.GetId()
 
@@ -128,8 +128,10 @@ func UnloadBpfmanProgram(ctx context.Context, bpfmanClient gobpfman.BpfmanClient
 func ListBpfmanPrograms(ctx context.Context, bpfmanClient gobpfman.BpfmanClient, programType internal.ProgramType) (map[string]*gobpfman.ListResponse_ListResult, error) {
 	listOnlyBpfmanPrograms := true
 	listReq := gobpfman.ListRequest{
-		ProgramType:        programType.Uint32(),
 		BpfmanProgramsOnly: &listOnlyBpfmanPrograms,
+	}
+	if programType != internal.AllPrograms {
+		listReq.ProgramType = programType.Uint32()
 	}
 
 	out := map[string]*gobpfman.ListResponse_ListResult{}
