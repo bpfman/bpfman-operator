@@ -66,19 +66,23 @@ func TestTcNsProgramReconcile(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
-				},
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": "test",
+				AttachPoints: []bpfmaniov1alpha1.TcNsAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": "test",
+								},
+							},
 						},
 					},
 				},

@@ -23,73 +23,95 @@ metadata:
             "programs": [
               {
                 "kprobe": {
-                  "bpffunctionname": "kprobe_counter",
-                  "func_name": "try_to_wake_up",
-                  "offset": 0,
-                  "retprobe": false
+                  "attach_points": [
+                    {
+                      "func_name": "try_to_wake_up",
+                      "offset": 0,
+                      "retprobe": false
+                    }
+                  ],
+                  "bpffunctionname": "kprobe_counter"
                 },
                 "type": "Kprobe"
               },
               {
                 "tracepoint": {
-                  "bpffunctionname": "tracepoint_kill_recorder",
-                  "names": [
-                    "syscalls/sys_enter_kill"
-                  ]
+                  "attach_points": [
+                    {
+                      "name": "syscalls/sys_enter_kill"
+                    }
+                  ],
+                  "bpffunctionname": "tracepoint_kill_recorder"
                 },
                 "type": "Tracepoint"
               },
               {
                 "tc": {
-                  "bpffunctionname": "stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
+                  "attach_points": [
+                    {
+                      "direction": "ingress",
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 55
+                    }
+                  ],
+                  "bpffunctionname": "stats"
                 },
                 "type": "TC"
               },
               {
                 "tcx": {
-                  "bpffunctionname": "tcx_stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 500
+                  "attach_points": [
+                    {
+                      "direction": "ingress",
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 500
+                    }
+                  ],
+                  "bpffunctionname": "tcx_stats"
                 },
                 "type": "TCX"
               },
               {
                 "type": "Uprobe",
                 "uprobe": {
-                  "bpffunctionname": "uprobe_counter",
-                  "containers": {
-                    "containernames": [
-                      "bpfman",
-                      "bpfman-agent"
-                    ],
-                    "namespace": "bpfman",
-                    "pods": {
-                      "matchLabels": {
-                        "name": "bpfman-daemon"
-                      }
+                  "attach_points": [
+                    {
+                      "containers": {
+                        "containernames": [
+                          "bpfman",
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "func_name": "malloc",
+                      "retprobe": false,
+                      "target": "libc"
                     }
-                  },
-                  "func_name": "malloc",
-                  "retprobe": false,
-                  "target": "libc"
+                  ],
+                  "bpffunctionname": "uprobe_counter"
                 }
               },
               {
                 "type": "XDP",
                 "xdp": {
-                  "bpffunctionname": "xdp_stats",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
+                  "attach_points": [
+                    {
+                      "interfaceselector": {
+                        "primarynodeinterface": true
+                      },
+                      "priority": 55
+                    }
+                  ],
+                  "bpffunctionname": "xdp_stats"
                 }
               }
             ]

@@ -75,10 +75,14 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
-				Target:       target,
-				Offset:       uint64(offset),
-				RetProbe:     retprobe,
+				AttachPoints: []bpfmaniov1alpha1.UprobeAttachInfo{
+					{
+						FunctionName: functionName,
+						Target:       target,
+						Offset:       uint64(offset),
+						RetProbe:     retprobe,
+					},
+				},
 			},
 		},
 	}
@@ -242,6 +246,16 @@ func TestUprobeProgramControllerCreateContainer(t *testing.T) {
 		Pods: metav1.LabelSelector{},
 	}
 
+	attachPoints := []bpfmaniov1alpha1.UprobeAttachInfo{
+		{
+			FunctionName: functionName,
+			Target:       target,
+			Offset:       uint64(offset),
+			RetProbe:     retprobe,
+			Containers:   &containerSelector,
+		},
+	}
+
 	// A UprobeProgram object with metadata and spec.
 	Uprobe := &bpfmaniov1alpha1.UprobeProgram{
 		ObjectMeta: metav1.ObjectMeta{
@@ -258,12 +272,7 @@ func TestUprobeProgramControllerCreateContainer(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
-				Target:       target,
-				Offset:       uint64(offset),
-				RetProbe:     retprobe,
-				Containers:   &containerSelector,
-			},
+				AttachPoints: attachPoints},
 		},
 	}
 

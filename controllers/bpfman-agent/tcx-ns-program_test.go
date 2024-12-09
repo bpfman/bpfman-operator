@@ -83,15 +83,21 @@ func TestTcxNsProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": "test",
+				AttachPoints: []bpfmaniov1alpha1.TcxNsAttachInfo{
+
+					{
+
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": "test",
+								},
+							},
 						},
 					},
 				},
@@ -201,7 +207,7 @@ func TestTcxNsProgramControllerCreate(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInt,
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 					Netns:     &netns,
 				},
@@ -288,15 +294,19 @@ func TestTcxNsProgramControllerCreateMultiIntf(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &fakeInts,
-				},
-				Priority:  10,
-				Direction: direction,
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": "test",
+				AttachPoints: []bpfmaniov1alpha1.TcxNsAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &fakeInts,
+						},
+						Priority:  10,
+						Direction: direction,
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": "test",
+								},
+							},
 						},
 					},
 				},
@@ -457,7 +467,7 @@ func TestTcxNsProgramControllerCreateMultiIntf(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[0],
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 					Netns:     &netns,
 				},
@@ -479,7 +489,7 @@ func TestTcxNsProgramControllerCreateMultiIntf(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[1],
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 					Netns:     &netns,
 				},

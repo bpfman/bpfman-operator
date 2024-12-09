@@ -39,9 +39,8 @@ type XdpProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec XdpProgramSpec `json:"spec"`
-	// +optional
-	Status XdpProgramStatus `json:"status,omitempty"`
+	Spec   XdpProgramSpec `json:"spec"`
+	Status BpfAppStatus   `json:"status,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=aborted;drop;pass;tx;redirect;dispatcher_return
@@ -56,6 +55,13 @@ type XdpProgramSpec struct {
 // XdpProgramInfo defines the common fields for all XdpProgram types
 type XdpProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []XdpAttachInfo `json:"attach_points"`
+}
+
+type XdpAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -83,7 +89,7 @@ type XdpProgramInfo struct {
 
 // XdpProgramStatus defines the observed state of XdpProgram
 type XdpProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+	BpfAppStatus `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

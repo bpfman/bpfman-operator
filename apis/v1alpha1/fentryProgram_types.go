@@ -37,9 +37,8 @@ type FentryProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec FentryProgramSpec `json:"spec"`
-	// +optional
-	Status FentryProgramStatus `json:"status,omitempty"`
+	Spec   FentryProgramSpec `json:"spec"`
+	Status BpfAppStatus      `json:"status,omitempty"`
 }
 
 // FentryProgramSpec defines the desired state of FentryProgram
@@ -52,13 +51,19 @@ type FentryProgramSpec struct {
 // FentryProgramInfo defines the Fentry program details
 type FentryProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
-	// Function to attach the fentry to.
-	FunctionName string `json:"func_name"`
+	FentryLoadInfo   `json:",inline"`
+	// Whether the program should be attached to the function.
+	// This may be updated after the program has been loaded.
+	// +optional
+	// +kubebuilder:default=false
+	Attach bool `json:"attach,omitempty"`
 }
 
-// FentryProgramStatus defines the observed state of FentryProgram
-type FentryProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+// FentryLoadInfo contains the program-specific load information for Fentry
+// programs
+type FentryLoadInfo struct {
+	// FunctionName is the name of the function to attach the Fentry program to.
+	FunctionName string `json:"function_name"`
 }
 
 // +kubebuilder:object:root=true

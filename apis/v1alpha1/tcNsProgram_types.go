@@ -41,7 +41,7 @@ type TcNsProgram struct {
 
 	Spec TcNsProgramSpec `json:"spec"`
 	// +optional
-	Status TcProgramStatus `json:"status,omitempty"`
+	Status BpfAppStatus `json:"status,omitempty"`
 }
 
 // TcNsProgramSpec defines the desired state of TcNsProgram
@@ -50,10 +50,16 @@ type TcNsProgramSpec struct {
 	BpfAppCommon    `json:",inline"`
 }
 
-// TcNsProgramInfo defines the tc program details
+// TcProgramInfo defines the tc program details
 type TcNsProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcNsAttachInfo `json:"attach_points"`
+}
 
+type TcNsAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
