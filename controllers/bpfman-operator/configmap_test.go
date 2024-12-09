@@ -93,7 +93,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]{
 		Client: cl,
 		Scheme: s,
 	}
@@ -194,7 +194,7 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 			// Require no requeue
 			require.False(t, res.Requeue)
 
-			// Check the BpfProgram Object was created successfully
+			// Check the Object was created successfully
 			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNs}, bpfmanConfig)
 			require.NoError(t, err)
 

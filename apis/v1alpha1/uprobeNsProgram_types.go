@@ -18,42 +18,54 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Namespaced
-
-// UprobeNsProgram is the Schema for the UprobeNsPrograms API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`,priority=1
-// +kubebuilder:printcolumn:name="Offset",type=integer,JSONPath=`.spec.offset`,priority=1
-// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`,priority=1
-// +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`,priority=1
-// +kubebuilder:printcolumn:name="Pid",type=integer,JSONPath=`.spec.pid`,priority=1
-type UprobeNsProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec UprobeNsProgramSpec `json:"spec"`
-	// +optional
-	Status UprobeProgramStatus `json:"status,omitempty"`
-}
-
-// UprobeNsProgramSpec defines the desired state of UprobeProgram
-type UprobeNsProgramSpec struct {
-	UprobeNsProgramInfo `json:",inline"`
-	BpfAppCommon        `json:",inline"`
-}
-
-// UprobeProgramInfo contains the information about the uprobe program
+// UprobeNsProgramInfo contains the information for the uprobe program
 type UprobeNsProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []UprobeNsAttachInfo `json:"attach_points"`
+}
+
+type UprobeNsAttachInfo struct {
+	// Function to attach the uprobe to.
+	// +optional
+	FunctionName string `json:"func_name"`
+
+	// Offset added to the address of the function for uprobe.
+	// +optional
+	// +kubebuilder:default:=0
+	Offset uint64 `json:"offset"`
+
+	// Library name or the absolute path to a binary or library.
+	Target string `json:"target"`
+
+	// Whether the program is a uretprobe.  Default is false
+	// +optional
+	// +kubebuilder:default:=false
+	RetProbe bool `json:"retprobe"`
+
+	// Only execute uprobe for given process identification number (PID). If PID
+	// is not provided, uprobe executes for all PIDs.
+	// +optional
+	Pid *int32 `json:"pid"`
+
+	// Containers identifies the set of containers in which to attach the
+	// uprobe.
+	Containers ContainerNsSelector `json:"containers"`
+}
+
+type UprobeNsProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
+	// in *AttachInfoState represents a specific, unique attach point that is
+	// derived from *AttachInfo by fully expanding any selectors.  Each entry
+	// also contains information about the attach point required by the
+	// reconciler
+	// +optional
+	AttachPoints []UprobeNsAttachInfoState `json:"attach_points"`
+}
+
+type UprobeNsAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
 
 	// Function to attach the uprobe to.
 	// +optional
@@ -75,21 +87,9 @@ type UprobeNsProgramInfo struct {
 	// Only execute uprobe for given process identification number (PID). If PID
 	// is not provided, uprobe executes for all PIDs.
 	// +optional
-	Pid int32 `json:"pid"`
+	Pid *int32 `json:"pid"`
 
-	// Containers identifies the set of containers in which to attach the uprobe.
-	// If Containers is not specified, the uprobe will be attached in the
-	// bpfman-agent container.  The ContainerNsSelector is very flexible and even
-	// allows the selection of all containers in a cluster.  If an attempt is
-	// made to attach uprobes to too many containers, it can have a negative
-	// impact on on the cluster.
-	Containers ContainerNsSelector `json:"containers"`
-}
-
-// +kubebuilder:object:root=true
-// UprobeNsProgramList contains a list of UprobeNsPrograms
-type UprobeNsProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []UprobeNsProgram `json:"items"`
+	// Container pid to attach the uprobe program in.
+	// +optional
+	ContainerPid int32 `json:"containerpid"`
 }

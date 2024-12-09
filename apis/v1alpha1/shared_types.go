@@ -67,20 +67,6 @@ type ContainerNsSelector struct {
 	ContainerNames *[]string `json:"containernames,omitempty"`
 }
 
-// BpfProgramCommon defines the common attributes for all BPF programs
-type BpfProgramCommon struct {
-	// BpfFunctionName is the name of the function that is the entry point for the BPF
-	// program
-	BpfFunctionName string `json:"bpffunctionname"`
-
-	// MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-	// will share a map with. The value is a label applied to the BpfProgram to select.
-	// The selector must resolve to exactly one instance of a BpfProgram on a given node
-	// or the eBPF program will not load.
-	// +optional
-	MapOwnerSelector metav1.LabelSelector `json:"mapownerselector"`
-}
-
 // BpfAppCommon defines the common attributes for all BpfApp programs
 type BpfAppCommon struct {
 	// NodeSelector allows the user to specify which nodes to deploy the
@@ -98,17 +84,56 @@ type BpfAppCommon struct {
 	// Bytecode configures where the bpf program's bytecode should be loaded
 	// from.
 	ByteCode BytecodeSelector `json:"bytecode"`
+
+	// MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+	// will share a map with. The value is a label applied to the BpfProgram to select.
+	// The selector must resolve to exactly one instance of a BpfProgram on a given node
+	// or the eBPF program will not load.
+	// +optional
+	MapOwnerSelector *metav1.LabelSelector `json:"mapownerselector"`
 }
 
-// BpfProgramStatusCommon defines the BpfProgram status
-type BpfProgramStatusCommon struct {
-	// Conditions houses the global cluster state for the eBPFProgram. The explicit
-	// condition types are defined internally.
+// BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState object
+type BpfAppStatus struct {
+	// For a BpfApplication object, Conditions contains the global cluster state
+	// for the object. For a BpfApplicationState object, Conditions contains the
+	// state of the BpfApplication object on the given node.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+}
+
+// AttachInfoStateCommon reflects the status for one attach point for a given bpf
+// application program
+type AttachInfoStateCommon struct {
+	// ShouldAttach reflects whether the attachment should exist.
+	ShouldAttach bool `json:"should_attach"`
+	// Unique identifier for the attach point assigned by bpfman agent.
+	UUID string `json:"uuid"`
+	// An identifier for the attach point assigned by bpfman. This field is
+	// empty until the program is successfully attached and bpfman returns the
+	// id.
+	// ANF-TODO: For the POC, this will be the program ID.
+	// +optional
+	AttachId *uint32 `json:"attachid"`
+	// AttachPointStatus reflects whether the attachment has been reconciled
+	// successfully, and if not, why.
+	AttachPointStatus AttachPointStatus `json:"attachpointstatus"`
+}
+
+type BpfProgramStateCommon struct {
+	// BpfFunctionName is the name of the function that is the entry point for the BPF
+	// program
+	BpfFunctionName string `json:"bpffunctionname"`
+	// ProgramAttachStatus records whether the program should be loaded and whether
+	// the program is loaded.
+	ProgramAttachStatus ProgramAttachStatus `json:"programattachstatus"`
+	// ProgramId is the id of the program in the kernel.  Not set until the
+	// program is loaded.
+	// +optional
+	ProgramId *uint32 `json:"program_id"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image
@@ -293,6 +318,22 @@ const (
 	// that match the container selector.
 	BpfProgCondNoContainersOnNode BpfProgramConditionType = "NoContainersOnNode"
 
+	// BpfProgCondAttached indicates that the attachment is attached.  Whether
+	// this is good depends on whether it should be attached.
+	BpfProgCondAttached BpfProgramConditionType = "Attached"
+
+	// BpfProgCondNotAttached indicates that the attachment is not attached.
+	// Whether this is good depends on whether it should be attached.
+	BpfProgCondNotAttached BpfProgramConditionType = "NotAttached"
+
+	// BpfProgCondAttachSuccess indicates that all attachments for a given bpf
+	// program were successful.
+	BpfProgCondAttachSuccess BpfProgramConditionType = "AttachSuccess"
+
+	// BpfProgCondError indicates that one or more attachments for a given bpf
+	// program was not successful.
+	BpfProgCondAttachError BpfProgramConditionType = "AttachError"
+
 	// None of the above conditions apply
 	BpfProgCondNone BpfProgramConditionType = "None"
 )
@@ -369,6 +410,38 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 			Message: "There are no containers on the node that match the container selector",
 		}
 
+	case BpfProgCondAttached:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondAttached),
+			Status:  metav1.ConditionTrue,
+			Reason:  "attached",
+			Message: "Attachment is currently active",
+		}
+
+	case BpfProgCondNotAttached:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondNotAttached),
+			Status:  metav1.ConditionTrue,
+			Reason:  "notAttached",
+			Message: "Attachment is currently not active",
+		}
+
+	case BpfProgCondAttachSuccess:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondAttachSuccess),
+			Status:  metav1.ConditionTrue,
+			Reason:  "attachFailed",
+			Message: "All attachments were successful",
+		}
+
+	case BpfProgCondAttachError:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondAttachError),
+			Status:  metav1.ConditionTrue,
+			Reason:  "attachFailed",
+			Message: "One or more attachments were not successful",
+		}
+
 	case BpfProgCondNone:
 		cond = metav1.Condition{
 			Type:    string(BpfProgCondNone),
@@ -380,3 +453,53 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 
 	return cond
 }
+
+type AppLoadStatus string
+
+const (
+	// The initial load condition
+	AppLoadNotLoaded AppLoadStatus = "NotLoaded"
+	// All programs for app have been loaded
+	AppLoadSuccess AppLoadStatus = "LoadSuccess"
+	// One or more programs for app has not been loaded
+	AppLoadError AppLoadStatus = "LoadError"
+	// All programs for app have been unloaded
+	AppUnLoadSuccess AppLoadStatus = "UnloadSuccess"
+	// One or more programs for app has not been unloaded
+	AppUnloadError AppLoadStatus = "UnloadError"
+	// The app is not selected to run on the node
+	NotSelected AppLoadStatus = "NotSelected"
+)
+
+type ProgramAttachStatus string
+
+const (
+	// The initial program attach state
+	ProgAttachInit ProgramAttachStatus = "AttachInit"
+	// All attachments for program are in the correct state
+	ProgAttachSuccess ProgramAttachStatus = "AttachSuccess"
+	// One or more attachments for program are not in the correct state
+	ProgAttachError ProgramAttachStatus = "AttachError"
+	// ANF-TODO: This will probably become a list attach point error with the
+	// load/attach split
+	BpfmanListProgramError ProgramAttachStatus = "BpfmanListProgramError"
+	// There was an error processing the Map Owner
+	MapOwnerError ProgramAttachStatus = "MapOwnerError"
+	// There was an error updating the attach info
+	UpdateAttachInfoError ProgramAttachStatus = "UpdateAttachInfoError"
+)
+
+type AttachPointStatus string
+
+const (
+	// ANF-TODO: This error will move to ApploadStatus with load/attch split
+	ApBytecodeSelectorError AttachPointStatus = "BytecodeSelectorError"
+	// Attach point is attached
+	ApAttachAttached AttachPointStatus = "Attached"
+	// Attach point is not attached
+	ApAttachNotAttached AttachPointStatus = "NotAttached"
+	// An attach was attempted, but there was an error
+	ApAttachError AttachPointStatus = "AttachError"
+	// A detach was attempted, but there was an error
+	ApDetachError AttachPointStatus = "DetachError"
+)
