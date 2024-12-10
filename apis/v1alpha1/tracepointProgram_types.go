@@ -37,9 +37,8 @@ type TracepointProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec TracepointProgramSpec `json:"spec"`
-	// +optional
-	Status TracepointProgramStatus `json:"status,omitempty"`
+	Spec   TracepointProgramSpec `json:"spec"`
+	Status BpfAppStatus          `json:"status,omitempty"`
 }
 
 // TracepointProgramSpec defines the desired state of TracepointProgram
@@ -52,15 +51,16 @@ type TracepointProgramSpec struct {
 // TracepointProgramInfo defines the Tracepoint program details
 type TracepointProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
-
-	// Names refers to the names of kernel tracepoints to attach the
-	// bpf program to.
-	Names []string `json:"names"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TracepointAttachInfo `json:"attach_points"`
 }
 
-// TracepointProgramStatus defines the observed state of TracepointProgram
-type TracepointProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+type TracepointAttachInfo struct {
+	// Name refers to the name of a kernel tracepoint to attach the
+	// bpf program to.
+	Name string `json:"name"`
 }
 
 // +kubebuilder:object:root=true

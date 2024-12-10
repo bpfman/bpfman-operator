@@ -100,7 +100,7 @@ func (r *TcxProgramReconciler) setCurrentProgram(program client.Object) error {
 		return fmt.Errorf("failed to cast program to TcxProgram")
 	}
 
-	r.interfaces, err = getInterfaces(&r.currentTcxProgram.Spec.InterfaceSelector, r.ourNode)
+	r.interfaces, err = getInterfaces(&r.currentTcxProgram.Spec.AttachPoints[0].InterfaceSelector, r.ourNode)
 	if err != nil {
 		return fmt.Errorf("failed to get interfaces for TcxProgram: %v", err)
 	}
@@ -145,11 +145,11 @@ func (r *TcxProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	if r.currentTcxProgram.Spec.Containers != nil {
+	if r.currentTcxProgram.Spec.AttachPoints[0].Containers != nil {
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := getContainers(ctx, r.currentTcxProgram.Spec.Containers, r.NodeName, r.Logger)
+		containerInfo, err := getContainers(ctx, r.currentTcxProgram.Spec.AttachPoints[0].Containers, r.NodeName, r.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -160,7 +160,7 @@ func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 			for _, iface := range r.interfaces {
 				attachPoint := fmt.Sprintf("%s-%s-%s",
 					iface,
-					r.currentTcxProgram.Spec.Direction,
+					r.currentTcxProgram.Spec.AttachPoints[0].Direction,
 					"no-containers-on-node",
 				)
 
@@ -183,7 +183,7 @@ func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 				for _, iface := range r.interfaces {
 					attachPoint := fmt.Sprintf("%s-%s-%s-%s",
 						iface,
-						r.currentTcxProgram.Spec.Direction,
+						r.currentTcxProgram.Spec.AttachPoints[0].Direction,
 						container.podName,
 						container.containerName,
 					)
@@ -204,7 +204,7 @@ func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 		}
 	} else {
 		for _, iface := range r.interfaces {
-			attachPoint := iface + "-" + r.currentTcxProgram.Spec.Direction
+			attachPoint := iface + "-" + r.currentTcxProgram.Spec.AttachPoints[0].Direction
 			annotations := map[string]string{internal.TcxProgramInterface: iface}
 
 			prog, err := r.createBpfProgram(attachPoint, r, annotations)
@@ -267,9 +267,9 @@ func (r *TcxProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPr
 	}
 
 	attachInfo := &gobpfman.TCXAttachInfo{
-		Priority:  r.currentTcxProgram.Spec.Priority,
+		Priority:  r.currentTcxProgram.Spec.AttachPoints[0].Priority,
 		Iface:     bpfProgram.Annotations[internal.TcxProgramInterface],
-		Direction: r.currentTcxProgram.Spec.Direction,
+		Direction: r.currentTcxProgram.Spec.AttachPoints[0].Direction,
 	}
 
 	containerPidStr, ok := bpfProgram.Annotations[internal.TcxContainerPid]

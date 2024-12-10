@@ -41,9 +41,8 @@ type UprobeProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec UprobeProgramSpec `json:"spec"`
-	// +optional
-	Status UprobeProgramStatus `json:"status,omitempty"`
+	Spec   UprobeProgramSpec `json:"spec"`
+	Status BpfAppStatus      `json:"status,omitempty"`
 }
 
 // UprobeProgramSpec defines the desired state of UprobeProgram
@@ -60,7 +59,13 @@ type UprobeProgramSpec struct {
 // UprobeProgramInfo contains the information about the uprobe program
 type UprobeProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []UprobeAttachInfo `json:"attach_points"`
+}
 
+type UprobeAttachInfo struct {
 	// Function to attach the uprobe to.
 	// +optional
 	FunctionName string `json:"func_name"`
@@ -91,11 +96,6 @@ type UprobeProgramInfo struct {
 	// impact on on the cluster.
 	// +optional
 	Containers *ContainerSelector `json:"containers"`
-}
-
-// UprobeProgramStatus defines the observed state of UprobeProgram
-type UprobeProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

@@ -72,7 +72,8 @@ func TestFentryProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
+				FentryLoadInfo: bpfmaniov1alpha1.FentryLoadInfo{FunctionName: functionName},
+				Attach:         true,
 			},
 		},
 	}

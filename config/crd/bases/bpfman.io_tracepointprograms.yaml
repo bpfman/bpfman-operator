@@ -53,6 +53,21 @@ spec:
           spec:
             description: TracepointProgramSpec defines the desired state of TracepointProgram
             properties:
+              attach_points:
+                description: |-
+                  The list of points to which the program should be attached.  The list is
+                  optional and may be udated after the bpf program has been loaded
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name refers to the name of a kernel tracepoint to attach the
+                        bpf program to.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
               bpffunctionname:
                 description: |-
                   BpfFunctionName is the name of the function that is the entry point for the BPF
@@ -163,13 +178,6 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              names:
-                description: |-
-                  Names refers to the names of kernel tracepoints to attach the
-                  bpf program to.
-                items:
-                  type: string
-                type: array
               nodeselector:
                 description: |-
                   NodeSelector allows the user to specify which nodes to deploy the
@@ -222,11 +230,10 @@ spec:
             required:
             - bpffunctionname
             - bytecode
-            - names
             - nodeselector
             type: object
           status:
-            description: TracepointProgramStatus defines the observed state of TracepointProgram
+            description: BpfAppStatus defines the BpfProgram status
             properties:
               conditions:
                 description: |-

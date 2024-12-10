@@ -64,7 +64,7 @@ func TestTracepointProgramReconcile(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				Names: []string{tracepointName},
+				AttachPoints: []bpfmaniov1alpha1.TracepointAttachInfo{{Name: tracepointName}},
 			},
 		},
 	}
