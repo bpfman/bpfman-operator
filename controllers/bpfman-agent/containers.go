@@ -32,21 +32,46 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// Figure out the list of container pids in which the program should be
-// attached.
-func getContainers(
-	ctx context.Context,
-	containerSelector *bpfmaniov1alpha1.ContainerSelector,
-	nodeName string,
-	logger logr.Logger) (*[]containerInfo, error) {
+type ContainerInfo struct {
+	podName       string
+	containerName string
+	pid           int64
+}
 
+// Create an interface for getting the list of containers in which the program
+// should be attached so we can mock it in unit tests.
+type ContainerGetter interface {
+	// Get the list of containers on this node that match the containerSelector.
+	GetContainers(ctx context.Context, containerSelector *bpfmaniov1alpha1.ContainerSelector,
+		logger logr.Logger) (*[]ContainerInfo, error)
+}
+
+type RealContainerGetter struct {
+	nodeName  string
+	clientSet kubernetes.Interface
+}
+
+func NewRealContainerGetter(nodeName string) (*RealContainerGetter, error) {
 	clientSet, err := getClientset()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get clientset: %v", err)
 	}
 
+	containerGetter := RealContainerGetter{
+		nodeName:  nodeName,
+		clientSet: clientSet,
+	}
+
+	return &containerGetter, nil
+}
+
+func (c *RealContainerGetter) GetContainers(
+	ctx context.Context,
+	containerSelector *bpfmaniov1alpha1.ContainerSelector,
+	logger logr.Logger) (*[]ContainerInfo, error) {
+
 	// Get the list of pods that match the selector.
-	podList, err := getPodsForNode(ctx, clientSet, containerSelector, nodeName)
+	podList, err := c.getPodsForNode(ctx, containerSelector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod list: %v", err)
 	}
@@ -64,8 +89,8 @@ func getContainers(
 
 // getPodsForNode returns a list of pods on the given node that match the given
 // container selector.
-func getPodsForNode(ctx context.Context, clientset kubernetes.Interface,
-	containerSelector *bpfmaniov1alpha1.ContainerSelector, nodeName string) (*v1.PodList, error) {
+func (c *RealContainerGetter) getPodsForNode(ctx context.Context,
+	containerSelector *bpfmaniov1alpha1.ContainerSelector) (*v1.PodList, error) {
 
 	selectorString := metav1.FormatLabelSelector(&containerSelector.Pods)
 
@@ -74,14 +99,14 @@ func getPodsForNode(ctx context.Context, clientset kubernetes.Interface,
 	}
 
 	listOptions := metav1.ListOptions{
-		FieldSelector: "spec.nodeName=" + nodeName,
+		FieldSelector: "spec.nodeName=" + c.nodeName,
 	}
 
 	if selectorString != "<none>" {
 		listOptions.LabelSelector = selectorString
 	}
 
-	podList, err := clientset.CoreV1().Pods(containerSelector.Namespace).List(ctx, listOptions)
+	podList, err := c.clientSet.CoreV1().Pods(containerSelector.Namespace).List(ctx, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting pod list: %v", err)
 	}
@@ -89,18 +114,12 @@ func getPodsForNode(ctx context.Context, clientset kubernetes.Interface,
 	return podList, nil
 }
 
-type containerInfo struct {
-	podName       string
-	containerName string
-	pid           int64
-}
-
 // getContainerInfo returns a list of containerInfo for the given pod list and container names.
-func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr.Logger) (*[]containerInfo, error) {
+func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr.Logger) (*[]ContainerInfo, error) {
 
 	crictl := "/usr/local/bin/crictl"
 
-	containers := []containerInfo{}
+	containers := []ContainerInfo{}
 
 	for i, pod := range podList.Items {
 		logger.V(1).Info("Pod", "index", i, "Name", pod.Name, "Namespace", pod.Namespace, "NodeName", pod.Spec.NodeName)
@@ -196,7 +215,7 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 				continue
 			}
 
-			container := containerInfo{
+			container := ContainerInfo{
 				podName:       pod.Name,
 				containerName: containerName,
 				pid:           containerPid,

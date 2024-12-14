@@ -80,6 +80,7 @@ type ReconcilerCommon struct {
 	finalizer    string
 	recType      string
 	appOwner     metav1.Object // Set if the owner is an application
+	Containers   ContainerGetter
 }
 
 // bpfmanReconciler defines a generic bpfProgram K8s object reconciler which can

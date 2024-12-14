@@ -149,7 +149,7 @@ func (r *TcxProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := getContainers(ctx, r.currentTcxProgram.Spec.Containers, r.NodeName, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(ctx, r.currentTcxProgram.Spec.Containers, r.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
