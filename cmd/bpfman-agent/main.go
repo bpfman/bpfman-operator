@@ -139,12 +139,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	containerGetter, err := bpfmanagent.NewRealContainerGetter(nodeName)
+	if err != nil {
+		setupLog.Error(err, "unable to create containerGetter")
+		os.Exit(1)
+	}
+
 	common := bpfmanagent.ReconcilerCommon{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		GrpcConn:     conn,
 		BpfmanClient: gobpfman.NewBpfmanClient(conn),
 		NodeName:     nodeName,
+		Containers:   containerGetter,
 	}
 
 	if err = (&bpfmanagent.XdpProgramReconciler{
