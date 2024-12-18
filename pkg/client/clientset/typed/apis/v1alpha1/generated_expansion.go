@@ -20,6 +20,8 @@ package v1alpha1
 
 type BpfApplicationExpansion interface{}
 
+type BpfApplicationNodeExpansion interface{}
+
 type BpfProgramExpansion interface{}
 
 type FentryProgramExpansion interface{}

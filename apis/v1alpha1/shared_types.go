@@ -87,15 +87,48 @@ type BpfAppCommon struct {
 	ByteCode BytecodeSelector `json:"bytecode"`
 }
 
-// BpfAppStatus defines the BpfProgram status
+// BpfAppStatus reflects the status of a BpfApplication or BpfApplicationNode object
 type BpfAppStatus struct {
-	// Conditions houses the global cluster state for the eBPFProgram. The explicit
-	// condition types are defined internally.
+	// For a BpfApplication object, Conditions contains the global cluster state
+	// for the object. For a BpfApplicationNode object, Conditions contains the
+	// state of the BpfApplication object on the given node.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+}
+
+// AppProgramStatus defines the status for a given bpf application program on a given node.
+type AppProgramStatus struct {
+	// ShouldLoad reflects whether the program should be loaded.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	ShouldLoad []metav1.Condition `json:"should_load,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// IsLoaded reflects whether the program should be loaded.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	IsLoaded []metav1.Condition `json:"is_loaded,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+}
+
+// AttachStatus defines the status for one attach point for a given bpf application program
+type AttachStatus struct {
+	// ShouldAttach reflects whether the attachment should exist.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	ShouldAttach []metav1.Condition `json:"should_attach,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// IsAttached reflects whether the attachment exists.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	IsAttached []metav1.Condition `json:"is_attached,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image

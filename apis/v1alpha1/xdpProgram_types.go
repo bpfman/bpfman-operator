@@ -99,3 +99,41 @@ type XdpProgramList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []XdpProgram `json:"items"`
 }
+
+type XdpProgramInfoNode struct {
+	AppProgramStatus `json:",inline"`
+	// The list of points to which the program should be attached.
+	// XdpAttachInfoNode is similar to XdpAttachInfo, but the interface and
+	// container selectors are expanded, and we have one instance of
+	// XdpAttachInfoNode for each unique attach point. The list is optional and
+	// may be udated after the bpf program has been loaded.
+	// +optional
+	AttachPoints []XdpAttachInfoNode `json:"attach_points"`
+}
+
+type XdpAttachInfoNode struct {
+	AttachStatus `json:",inline"`
+	// An identifier for the attach point assigned by bpfman. This field is
+	// empty until the program is successfully attached and bpfman returns the
+	// id.
+	attachId *uint32 `json:"attachid"`
+
+	// Interface name to attach the xdp program to.
+	ifName string `json:"ifname"`
+
+	// Optional container pid to attach the xdp program in.
+	// +optional
+	containerPid *uint32 `json:"containerpid"`
+
+	// Priority specifies the priority of the xdp program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
+
+	// ProceedOn allows the user to call other xdp programs in chain on this exit code.
+	// Multiple values are supported by repeating the parameter.
+	// +kubebuilder:validation:MaxItems=6
+	ProceedOn []XdpProceedOnValue `json:"proceedon"`
+}
