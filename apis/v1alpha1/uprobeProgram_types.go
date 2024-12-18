@@ -83,7 +83,7 @@ type UprobeProgramInfo struct {
 	// +optional
 	Pid int32 `json:"pid"`
 
-	// Containers identifes the set of containers in which to attach the uprobe.
+	// Containers identifies the set of containers in which to attach the uprobe.
 	// If Containers is not specified, the uprobe will be attached in the
 	// bpfman-agent container.  The ContainerSelector is very flexible and even
 	// allows the selection of all containers in a cluster.  If an attempt is

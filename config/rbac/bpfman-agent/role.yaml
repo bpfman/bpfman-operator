@@ -21,6 +21,40 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfnsapplications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - bpfprograms
   verbs:
   - create
@@ -89,6 +123,14 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - tcnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
   - tcprograms
   verbs:
   - get
@@ -100,6 +142,14 @@ rules:
   - tcprograms/finalizers
   verbs:
   - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcxnsprograms
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - bpfman.io
   resources:
@@ -131,6 +181,14 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - uprobensprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
   - uprobeprograms
   verbs:
   - get
@@ -142,6 +200,14 @@ rules:
   - uprobeprograms/finalizers
   verbs:
   - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - bpfman.io
   resources:
@@ -178,3 +244,56 @@ rules:
   - secrets
   verbs:
   - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-role
+  namespace: bpfman
+rules:
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfnsapplications
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcxnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - uprobensprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpnsprograms/finalizers
+  verbs:
+  - update

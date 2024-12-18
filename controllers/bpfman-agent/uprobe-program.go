@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -40,7 +42,7 @@ import (
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type UprobeProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentUprobeProgram *bpfmaniov1alpha1.UprobeProgram
 	ourNode              *v1.Node
 }
@@ -67,6 +69,14 @@ func (r *UprobeProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *UprobeProgramReconciler) getName() string {
 	return r.currentUprobeProgram.Name
+}
+
+func (r *UprobeProgramReconciler) getNamespace() string {
+	return r.currentUprobeProgram.Namespace
+}
+
+func (r *UprobeProgramReconciler) getNoContAnnotationIndex() string {
+	return internal.UprobeNoContainersOnNode
 }
 
 func (r *UprobeProgramReconciler) getNode() *v1.Node {
@@ -140,7 +150,13 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentUprobeProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(
+			ctx,
+			r.currentUprobeProgram.Spec.Containers.Namespace,
+			r.currentUprobeProgram.Spec.Containers.Pods,
+			r.currentUprobeProgram.Spec.Containers.ContainerNames,
+			r.Logger,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}

@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanoperator
 
 import (
@@ -35,11 +37,11 @@ import (
 //+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms/finalizers,verbs=update
 
 type XdpProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 }
 
-func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList] {
+	return &r.ClusterProgramReconciler.ReconcilerCommon
 }
 
 func (r *XdpProgramReconciler) getFinalizer() string {
@@ -54,7 +56,7 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&bpfmaniov1alpha1.BpfProgram{},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.Xdp.String()))),
+			builder.WithPredicates(predicate.And(statusChangedPredicateCluster(), internal.BpfProgramTypePredicate(internal.Xdp.String()))),
 		).
 		Complete(r)
 }
@@ -103,7 +105,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return reconcileBpfProgram(ctx, r, xdpProgram)
 }
 
-func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+func (r *XdpProgramReconciler) updateStatus(ctx context.Context, _namespace string, name string, cond bpfmaniov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale XdpProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfmaniov1alpha1.XdpProgram{}

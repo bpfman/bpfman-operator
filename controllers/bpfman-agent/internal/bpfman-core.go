@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -147,7 +146,7 @@ func ListBpfmanPrograms(ctx context.Context, bpfmanClient gobpfman.BpfmanClient,
 			if uuid, ok := metadata[internal.UuidMetadataKey]; ok {
 				out[uuid] = result
 			} else {
-				return nil, fmt.Errorf("Unable to get uuid from program metadata")
+				return nil, fmt.Errorf("unable to get uuid from program metadata")
 			}
 		}
 	}
@@ -204,19 +203,4 @@ func Build_kernel_info_annotations(p *gobpfman.ListResponse_ListResult) map[stri
 		}
 	}
 	return nil
-}
-
-// get the program ID from a bpfProgram
-func GetID(p *bpfmaniov1alpha1.BpfProgram) (*uint32, error) {
-	idString, ok := p.Annotations[internal.IdAnnotation]
-	if !ok {
-		return nil, fmt.Errorf("failed to get program ID because no annotations")
-	}
-
-	id, err := strconv.ParseUint(idString, 10, 32)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse program ID: %v", err)
-	}
-	uid := uint32(id)
-	return &uid, nil
 }

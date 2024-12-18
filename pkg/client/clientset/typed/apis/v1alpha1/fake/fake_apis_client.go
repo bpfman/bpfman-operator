@@ -32,6 +32,14 @@ func (c *FakeBpfmanV1alpha1) BpfApplications() v1alpha1.BpfApplicationInterface 
 	return &FakeBpfApplications{c}
 }
 
+func (c *FakeBpfmanV1alpha1) BpfNsApplications(namespace string) v1alpha1.BpfNsApplicationInterface {
+	return &FakeBpfNsApplications{c, namespace}
+}
+
+func (c *FakeBpfmanV1alpha1) BpfNsPrograms(namespace string) v1alpha1.BpfNsProgramInterface {
+	return &FakeBpfNsPrograms{c, namespace}
+}
+
 func (c *FakeBpfmanV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
 	return &FakeBpfPrograms{c}
 }
@@ -48,8 +56,16 @@ func (c *FakeBpfmanV1alpha1) KprobePrograms() v1alpha1.KprobeProgramInterface {
 	return &FakeKprobePrograms{c}
 }
 
+func (c *FakeBpfmanV1alpha1) TcNsPrograms(namespace string) v1alpha1.TcNsProgramInterface {
+	return &FakeTcNsPrograms{c, namespace}
+}
+
 func (c *FakeBpfmanV1alpha1) TcPrograms() v1alpha1.TcProgramInterface {
 	return &FakeTcPrograms{c}
+}
+
+func (c *FakeBpfmanV1alpha1) TcxNsPrograms(namespace string) v1alpha1.TcxNsProgramInterface {
+	return &FakeTcxNsPrograms{c, namespace}
 }
 
 func (c *FakeBpfmanV1alpha1) TcxPrograms() v1alpha1.TcxProgramInterface {
@@ -60,8 +76,16 @@ func (c *FakeBpfmanV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInte
 	return &FakeTracepointPrograms{c}
 }
 
+func (c *FakeBpfmanV1alpha1) UprobeNsPrograms(namespace string) v1alpha1.UprobeNsProgramInterface {
+	return &FakeUprobeNsPrograms{c, namespace}
+}
+
 func (c *FakeBpfmanV1alpha1) UprobePrograms() v1alpha1.UprobeProgramInterface {
 	return &FakeUprobePrograms{c}
+}
+
+func (c *FakeBpfmanV1alpha1) XdpNsPrograms(namespace string) v1alpha1.XdpNsProgramInterface {
+	return &FakeXdpNsPrograms{c, namespace}
 }
 
 func (c *FakeBpfmanV1alpha1) XdpPrograms() v1alpha1.XdpProgramInterface {
