@@ -67,7 +67,8 @@ func fexitProgramReconcile(t *testing.T, multiCondition bool) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
+				FexitLoadInfo: bpfmaniov1alpha1.FexitLoadInfo{FunctionName: functionName},
+				Attach:        true,
 			},
 		},
 	}

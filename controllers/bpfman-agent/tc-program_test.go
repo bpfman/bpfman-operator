@@ -74,14 +74,18 @@ func TestTcProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				AttachPoints: []bpfmaniov1alpha1.TcAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+					},
 				},
 			},
 		},
@@ -247,14 +251,18 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &fakeInts,
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				AttachPoints: []bpfmaniov1alpha1.TcAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &fakeInts,
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+					},
 				},
 			},
 		},

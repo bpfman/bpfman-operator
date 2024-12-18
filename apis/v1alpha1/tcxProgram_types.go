@@ -40,9 +40,8 @@ type TcxProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec TcxProgramSpec `json:"spec"`
-	// +optional
-	Status TcxProgramStatus `json:"status,omitempty"`
+	Spec   TcxProgramSpec `json:"spec"`
+	Status BpfAppStatus   `json:"status,omitempty"`
 }
 
 // TcxProgramSpec defines the desired state of TcxProgram
@@ -54,7 +53,13 @@ type TcxProgramSpec struct {
 // TcxProgramInfo defines the tc program details
 type TcxProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcxAttachInfo `json:"attach_points"`
+}
 
+type TcxAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -75,11 +80,6 @@ type TcxProgramInfo struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
 	Priority int32 `json:"priority"`
-}
-
-// TcxProgramStatus defines the observed state of TcProgram
-type TcxProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

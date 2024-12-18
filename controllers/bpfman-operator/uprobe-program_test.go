@@ -67,10 +67,12 @@ func TestUprobeProgramReconcile(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
-				Target:       target,
-				Offset:       uint64(offset),
-				RetProbe:     retprobe,
+				AttachPoints: []bpfmaniov1alpha1.UprobeAttachInfo{{
+					FunctionName: functionName,
+					Target:       target,
+					Offset:       uint64(offset),
+					RetProbe:     retprobe,
+				}},
 			},
 		},
 	}

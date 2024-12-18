@@ -22,6 +22,10 @@ package v1alpha1
 // BpfApplicationLister.
 type BpfApplicationListerExpansion interface{}
 
+// BpfApplicationNodeListerExpansion allows custom methods to be added to
+// BpfApplicationNodeLister.
+type BpfApplicationNodeListerExpansion interface{}
+
 // BpfProgramListerExpansion allows custom methods to be added to
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}

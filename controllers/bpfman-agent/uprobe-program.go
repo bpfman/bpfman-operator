@@ -134,13 +134,14 @@ func (r *UprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	sanitizedUprobe := sanitize(r.currentUprobeProgram.Spec.Target) + "-" + sanitize(r.currentUprobeProgram.Spec.FunctionName)
+	sanitizedUprobe := sanitize(r.currentUprobeProgram.Spec.AttachPoints[0].Target) + "-" +
+		sanitize(r.currentUprobeProgram.Spec.AttachPoints[0].FunctionName)
 
-	if r.currentUprobeProgram.Spec.Containers != nil {
+	if r.currentUprobeProgram.Spec.AttachPoints[0].Containers != nil {
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentUprobeProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(ctx, r.currentUprobeProgram.Spec.AttachPoints[0].Containers, r.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -149,7 +150,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 			// select any containers on this node.
 
 			annotations := map[string]string{
-				internal.UprobeProgramTarget:      r.currentUprobeProgram.Spec.Target,
+				internal.UprobeProgramTarget:      r.currentUprobeProgram.Spec.AttachPoints[0].Target,
 				internal.UprobeNoContainersOnNode: "true",
 			}
 
@@ -167,7 +168,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 			for i := range *containerInfo {
 				container := (*containerInfo)[i]
 
-				annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
+				annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.AttachPoints[0].Target}
 				annotations[internal.UprobeContainerPid] = strconv.FormatInt(container.pid, 10)
 
 				attachPoint := fmt.Sprintf("%s-%s-%s",
@@ -185,7 +186,7 @@ func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*
 			}
 		}
 	} else {
-		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
+		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.AttachPoints[0].Target}
 
 		attachPoint := sanitizedUprobe
 
@@ -265,10 +266,10 @@ func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bp
 	}
 
 	uprobeAttachInfo = &gobpfman.UprobeAttachInfo{
-		FnName:   &r.currentUprobeProgram.Spec.FunctionName,
-		Offset:   r.currentUprobeProgram.Spec.Offset,
+		FnName:   &r.currentUprobeProgram.Spec.AttachPoints[0].FunctionName,
+		Offset:   r.currentUprobeProgram.Spec.AttachPoints[0].Offset,
 		Target:   bpfProgram.Annotations[internal.UprobeProgramTarget],
-		Retprobe: r.currentUprobeProgram.Spec.RetProbe,
+		Retprobe: r.currentUprobeProgram.Spec.AttachPoints[0].RetProbe,
 	}
 
 	if hasContainerPid {

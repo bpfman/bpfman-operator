@@ -99,7 +99,7 @@ func (r *XdpProgramReconciler) setCurrentProgram(program client.Object) error {
 		return fmt.Errorf("failed to cast program to XdpProgram")
 	}
 
-	r.interfaces, err = getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
+	r.interfaces, err = getInterfaces(&r.currentXdpProgram.Spec.AttachPoints[0].InterfaceSelector, r.ourNode)
 	if err != nil {
 		return fmt.Errorf("failed to get interfaces for XdpProgram: %v", err)
 	}
@@ -164,11 +164,11 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	if r.currentXdpProgram.Spec.Containers != nil {
+	if r.currentXdpProgram.Spec.AttachPoints[0].Containers != nil {
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentXdpProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(ctx, r.currentXdpProgram.Spec.AttachPoints[0].Containers, r.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -283,9 +283,9 @@ func (r *XdpProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfPr
 	}
 
 	attachInfo := &gobpfman.XDPAttachInfo{
-		Priority:  r.currentXdpProgram.Spec.Priority,
+		Priority:  r.currentXdpProgram.Spec.AttachPoints[0].Priority,
 		Iface:     bpfProgram.Annotations[internal.XdpProgramInterface],
-		ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
+		ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.AttachPoints[0].ProceedOn),
 	}
 
 	containerPidStr, ok := bpfProgram.Annotations[internal.XdpContainerPid]

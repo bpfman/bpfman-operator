@@ -61,6 +61,34 @@ spec:
           spec:
             description: KprobeProgramSpec defines the desired state of KprobeProgram
             properties:
+              attach_points:
+                description: |-
+                  The list of points to which the program should be attached.  The list is
+                  optional and may be udated after the bpf program has been loaded
+                items:
+                  properties:
+                    func_name:
+                      description: Functions to attach the kprobe to.
+                      type: string
+                    offset:
+                      default: 0
+                      description: |-
+                        Offset added to the address of the function for kprobe.
+                        Not allowed for kretprobes.
+                      format: int64
+                      type: integer
+                    retprobe:
+                      default: false
+                      description: Whether the program is a kretprobe.  Default is
+                        false
+                      type: boolean
+                  required:
+                  - func_name
+                  type: object
+                  x-kubernetes-validations:
+                  - message: offset cannot be set for kretprobes
+                    rule: self.retprobe == false || self.offset == 0
+                type: array
               bpffunctionname:
                 description: |-
                   BpfFunctionName is the name of the function that is the entry point for the BPF
@@ -111,9 +139,6 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
-              func_name:
-                description: Functions to attach the kprobe to.
-                type: string
               globaldata:
                 additionalProperties:
                   format: byte
@@ -223,33 +248,20 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              offset:
-                default: 0
-                description: |-
-                  Offset added to the address of the function for kprobe.
-                  Not allowed for kretprobes.
-                format: int64
-                type: integer
-              retprobe:
-                default: false
-                description: Whether the program is a kretprobe.  Default is false
-                type: boolean
             required:
             - bpffunctionname
             - bytecode
-            - func_name
             - nodeselector
             type: object
-            x-kubernetes-validations:
-            - message: offset cannot be set for kretprobes
-              rule: self.retprobe == false || self.offset == 0
           status:
-            description: KprobeProgramStatus defines the observed state of KprobeProgram
+            description: BpfAppStatus reflects the status of a BpfApplication or BpfApplicationNode
+              object
             properties:
               conditions:
                 description: |-
-                  Conditions houses the global cluster state for the eBPFProgram. The explicit
-                  condition types are defined internally.
+                  For a BpfApplication object, Conditions contains the global cluster state
+                  for the object. For a BpfApplicationNode object, Conditions contains the
+                  state of the BpfApplication object on the given node.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for

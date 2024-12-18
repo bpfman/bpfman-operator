@@ -74,11 +74,15 @@ func TestTcxProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
+				AttachPoints: []bpfmaniov1alpha1.TcxAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+					},
 				},
-				Priority:  0,
-				Direction: direction,
 			},
 		},
 	}
@@ -170,7 +174,7 @@ func TestTcxProgramControllerCreate(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInt,
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 				},
 			},
@@ -242,11 +246,15 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &fakeInts,
+				AttachPoints: []bpfmaniov1alpha1.TcxAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &fakeInts,
+						},
+						Priority:  10,
+						Direction: direction,
+					},
 				},
-				Priority:  10,
-				Direction: direction,
 			},
 		},
 	}
@@ -389,7 +397,7 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[0],
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 				},
 			},
@@ -410,7 +418,7 @@ func TestTcxProgramControllerCreateMultiIntf(t *testing.T) {
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
 				TcxAttachInfo: &gobpfman.TCXAttachInfo{
 					Iface:     fakeInts[1],
-					Priority:  tcx.Spec.Priority,
+					Priority:  tcx.Spec.AttachPoints[0].Priority,
 					Direction: direction,
 				},
 			},
