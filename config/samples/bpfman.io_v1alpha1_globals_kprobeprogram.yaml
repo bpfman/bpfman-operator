@@ -1,0 +1,39 @@
+apiVersion: bpfman.io/v1alpha1
+kind: KprobeProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: kprobeprogram
+  name: kprobe-globals-test
+spec:
+  bpffunctionname: kprobe_globals
+  # Select all nodes
+  nodeselector: {}
+  func_name: try_to_wake_up
+  offset: 0
+  retprobe: false
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/kprobe_globals:latest
+  globaldata:
+    sampling:
+      - 0x01
+      - 0x02
+      - 0x03
+      - 0x04
+    trace_messages:
+      - 0x05
+    enable_rtt:
+      - 0x06
+    enable_pca:
+      - 0x07
+    enable_dns_tracking:
+      - 0x08
+    enable_flows_filtering:
+      - 0x09
+    dns_port:
+      - 0x0A
+      - 0x0B 
+    enable_network_events_monitoring:
+      - 0x0C 
+    network_events_monitoring_groupid:
+      - 0x0D
