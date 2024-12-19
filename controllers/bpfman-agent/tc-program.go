@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -41,7 +43,7 @@ import (
 // TcProgramReconciler reconciles a tcProgram object by creating multiple
 // bpfProgram objects and managing bpfman for each one.
 type TcProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentTcProgram *bpfmaniov1alpha1.TcProgram
 	interfaces       []string
 	ourNode          *v1.Node
@@ -69,6 +71,14 @@ func (r *TcProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *TcProgramReconciler) getName() string {
 	return r.currentTcProgram.Name
+}
+
+func (r *TcProgramReconciler) getNamespace() string {
+	return r.currentTcProgram.Namespace
+}
+
+func (r *TcProgramReconciler) getNoContAnnotationIndex() string {
+	return internal.TcNoContainersOnNode
 }
 
 func (r *TcProgramReconciler) getNode() *v1.Node {
@@ -183,7 +193,13 @@ func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfm
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentTcProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(
+			ctx,
+			r.currentTcProgram.Spec.Containers.Namespace,
+			r.currentTcProgram.Spec.Containers.Pods,
+			r.currentTcProgram.Spec.Containers.ContainerNames,
+			r.Logger,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -261,7 +277,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tc")
 
-	r.Logger.Info("bpfman-agent enter: TC", "Name", req.Name)
+	r.Logger.Info("bpfman-agent enter: tc", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
