@@ -20,6 +20,10 @@ package v1alpha1
 
 type BpfApplicationExpansion interface{}
 
+type BpfNsApplicationExpansion interface{}
+
+type BpfNsProgramExpansion interface{}
+
 type BpfProgramExpansion interface{}
 
 type FentryProgramExpansion interface{}
@@ -28,12 +32,20 @@ type FexitProgramExpansion interface{}
 
 type KprobeProgramExpansion interface{}
 
+type TcNsProgramExpansion interface{}
+
 type TcProgramExpansion interface{}
+
+type TcxNsProgramExpansion interface{}
 
 type TcxProgramExpansion interface{}
 
 type TracepointProgramExpansion interface{}
 
+type UprobeNsProgramExpansion interface{}
+
 type UprobeProgramExpansion interface{}
+
+type XdpNsProgramExpansion interface{}
 
 type XdpProgramExpansion interface{}

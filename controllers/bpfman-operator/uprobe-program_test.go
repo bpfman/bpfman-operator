@@ -108,16 +108,20 @@ func TestUprobeProgramReconcile(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(Uprobe).WithRuntimeObjects(objs...).Build()
 
-	rc := ReconcilerCommon{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
 		Client: cl,
 		Scheme: s,
+	}
+
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
 	}
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a UprobeProgram object with the scheme and fake client.
-	r := &UprobeProgramReconciler{ReconcilerCommon: rc}
+	r := &UprobeProgramReconciler{ClusterProgramReconciler: cpr}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .

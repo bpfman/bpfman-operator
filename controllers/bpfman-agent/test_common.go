@@ -17,8 +17,13 @@ type FakeContainerGetter struct {
 	containerList *[]ContainerInfo
 }
 
-func (f *FakeContainerGetter) GetContainers(ctx context.Context, containerSelector *bpfmaniov1alpha1.ContainerSelector,
-	logger logr.Logger) (*[]ContainerInfo, error) {
+func (f *FakeContainerGetter) GetContainers(
+	ctx context.Context,
+	selectorNamespace string,
+	selectorPods metav1.LabelSelector,
+	selectorContainerNames *[]string,
+	logger logr.Logger,
+) (*[]ContainerInfo, error) {
 	return f.containerList, nil
 }
 
@@ -64,7 +69,11 @@ func TestGetPods(t *testing.T) {
 	require.NoError(t, err)
 
 	// Call getPods and check the returned PodList
-	podList, err := containerGetter.getPodsForNode(ctx, containerSelector)
+	podList, err := containerGetter.getPodsForNode(
+		ctx,
+		containerSelector.Namespace,
+		containerSelector.Pods,
+	)
 	require.NoError(t, err)
 	require.Len(t, podList.Items, 1)
 	require.Equal(t, "test-pod", podList.Items[0].Name)
@@ -77,7 +86,11 @@ func TestGetPods(t *testing.T) {
 		},
 	}
 
-	podList, err = containerGetter.getPodsForNode(ctx, containerSelector)
+	podList, err = containerGetter.getPodsForNode(
+		ctx,
+		containerSelector.Namespace,
+		containerSelector.Pods,
+	)
 	require.NoError(t, err)
 	require.Len(t, podList.Items, 1)
 	require.Equal(t, "test-pod", podList.Items[0].Name)

@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 )
 
@@ -92,10 +93,19 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
+	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
+		Client: cl,
+		Scheme: s,
+	}
+
+	cpr := ClusterProgramReconciler{
+		ReconcilerCommon: rc,
+	}
+
 	// Create a BpfmanConfigReconciler object with the scheme and
 	// fake client.
 	r := &BpfmanConfigReconciler{
-		ReconcilerCommon:         ReconcilerCommon{Client: cl, Scheme: s},
+		ClusterProgramReconciler: cpr,
 		BpfmanStandardDeployment: resolveConfigPath(internal.BpfmanDaemonManifestPath),
 		CsiDriverDeployment:      resolveConfigPath(internal.BpfmanCsiDriverPath),
 		IsOpenshift:              isOpenShift,

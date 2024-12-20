@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//lint:file-ignore U1000 Linter claims functions unused, but are required for generic
+
 package bpfmanagent
 
 import (
@@ -40,7 +42,7 @@ import (
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type XdpProgramReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	currentXdpProgram *bpfmaniov1alpha1.XdpProgram
 	interfaces        []string
 	ourNode           *v1.Node
@@ -68,6 +70,14 @@ func (r *XdpProgramReconciler) getProgType() internal.ProgramType {
 
 func (r *XdpProgramReconciler) getName() string {
 	return r.currentXdpProgram.Name
+}
+
+func (r *XdpProgramReconciler) getNamespace() string {
+	return r.currentXdpProgram.Namespace
+}
+
+func (r *XdpProgramReconciler) getNoContAnnotationIndex() string {
+	return internal.XdpNoContainersOnNode
 }
 
 func (r *XdpProgramReconciler) getNode() *v1.Node {
@@ -168,7 +178,13 @@ func (r *XdpProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpf
 
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
-		containerInfo, err := r.Containers.GetContainers(ctx, r.currentXdpProgram.Spec.Containers, r.Logger)
+		containerInfo, err := r.Containers.GetContainers(
+			ctx,
+			r.currentXdpProgram.Spec.Containers.Namespace,
+			r.currentXdpProgram.Spec.Containers.Pods,
+			r.currentXdpProgram.Spec.Containers.ContainerNames,
+			r.Logger,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
@@ -244,7 +260,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("xdp")
 
-	r.Logger.Info("bpfman-agent enter: XDP", "Name", req.Name)
+	r.Logger.Info("bpfman-agent enter: xdp", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {

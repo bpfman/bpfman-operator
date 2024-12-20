@@ -48,7 +48,7 @@ import (
 // +kubebuilder:rbac:groups=bpfman.io,resources=configmaps/finalizers,verbs=update
 
 type BpfmanConfigReconciler struct {
-	ReconcilerCommon
+	ClusterProgramReconciler
 	BpfmanStandardDeployment string
 	CsiDriverDeployment      string
 	RestrictedSCC            string

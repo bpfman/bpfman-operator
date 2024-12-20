@@ -26,6 +26,10 @@ import (
 type Interface interface {
 	// BpfApplications returns a BpfApplicationInformer.
 	BpfApplications() BpfApplicationInformer
+	// BpfNsApplications returns a BpfNsApplicationInformer.
+	BpfNsApplications() BpfNsApplicationInformer
+	// BpfNsPrograms returns a BpfNsProgramInformer.
+	BpfNsPrograms() BpfNsProgramInformer
 	// BpfPrograms returns a BpfProgramInformer.
 	BpfPrograms() BpfProgramInformer
 	// FentryPrograms returns a FentryProgramInformer.
@@ -34,14 +38,22 @@ type Interface interface {
 	FexitPrograms() FexitProgramInformer
 	// KprobePrograms returns a KprobeProgramInformer.
 	KprobePrograms() KprobeProgramInformer
+	// TcNsPrograms returns a TcNsProgramInformer.
+	TcNsPrograms() TcNsProgramInformer
 	// TcPrograms returns a TcProgramInformer.
 	TcPrograms() TcProgramInformer
+	// TcxNsPrograms returns a TcxNsProgramInformer.
+	TcxNsPrograms() TcxNsProgramInformer
 	// TcxPrograms returns a TcxProgramInformer.
 	TcxPrograms() TcxProgramInformer
 	// TracepointPrograms returns a TracepointProgramInformer.
 	TracepointPrograms() TracepointProgramInformer
+	// UprobeNsPrograms returns a UprobeNsProgramInformer.
+	UprobeNsPrograms() UprobeNsProgramInformer
 	// UprobePrograms returns a UprobeProgramInformer.
 	UprobePrograms() UprobeProgramInformer
+	// XdpNsPrograms returns a XdpNsProgramInformer.
+	XdpNsPrograms() XdpNsProgramInformer
 	// XdpPrograms returns a XdpProgramInformer.
 	XdpPrograms() XdpProgramInformer
 }
@@ -60,6 +72,16 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // BpfApplications returns a BpfApplicationInformer.
 func (v *version) BpfApplications() BpfApplicationInformer {
 	return &bpfApplicationInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// BpfNsApplications returns a BpfNsApplicationInformer.
+func (v *version) BpfNsApplications() BpfNsApplicationInformer {
+	return &bpfNsApplicationInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// BpfNsPrograms returns a BpfNsProgramInformer.
+func (v *version) BpfNsPrograms() BpfNsProgramInformer {
+	return &bpfNsProgramInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // BpfPrograms returns a BpfProgramInformer.
@@ -82,9 +104,19 @@ func (v *version) KprobePrograms() KprobeProgramInformer {
 	return &kprobeProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
+// TcNsPrograms returns a TcNsProgramInformer.
+func (v *version) TcNsPrograms() TcNsProgramInformer {
+	return &tcNsProgramInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // TcPrograms returns a TcProgramInformer.
 func (v *version) TcPrograms() TcProgramInformer {
 	return &tcProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// TcxNsPrograms returns a TcxNsProgramInformer.
+func (v *version) TcxNsPrograms() TcxNsProgramInformer {
+	return &tcxNsProgramInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // TcxPrograms returns a TcxProgramInformer.
@@ -97,9 +129,19 @@ func (v *version) TracepointPrograms() TracepointProgramInformer {
 	return &tracepointProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
+// UprobeNsPrograms returns a UprobeNsProgramInformer.
+func (v *version) UprobeNsPrograms() UprobeNsProgramInformer {
+	return &uprobeNsProgramInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // UprobePrograms returns a UprobeProgramInformer.
 func (v *version) UprobePrograms() UprobeProgramInformer {
 	return &uprobeProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// XdpNsPrograms returns a XdpNsProgramInformer.
+func (v *version) XdpNsPrograms() XdpNsProgramInformer {
+	return &xdpNsProgramInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // XdpPrograms returns a XdpProgramInformer.
