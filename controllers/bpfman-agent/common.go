@@ -653,21 +653,30 @@ func (r *ReconcilerCommon[T, TL]) handleProgDelete(
 			return internal.Requeue, fmt.Errorf("failed to delete program from bpfman: %v", err)
 		}
 
-		if r.removeFinalizer(ctx, bpfProgram.GetClientObject(), rec.getFinalizer()) {
-			return internal.Updated, nil
-		}
-
 		if isBeingDeleted {
 			// We're deleting these programs because the *Program is being
-			// deleted, so update the status and the program will be deleted
-			// when the owner is deleted.
+			// deleted.
+
+			// So update the status.
 			if r.updateStatus(ctx, rec, &bpfProgram, cond) {
+				return internal.Updated, nil
+			}
+
+			// Then remove the finalizer, and the program will be deleted when
+			// the owner is deleted.
+			if r.removeFinalizer(ctx, bpfProgram.GetClientObject(), rec.getFinalizer()) {
 				return internal.Updated, nil
 			}
 		} else {
 			// We're deleting these programs because they were not expected due
 			// to changes that caused the containers to not be selected anymore.
-			// So, explicitly delete them.
+
+			// So, remove the finalizer.
+			if r.removeFinalizer(ctx, bpfProgram.GetClientObject(), rec.getFinalizer()) {
+				return internal.Updated, nil
+			}
+
+			// Then explicitly delete them.
 			opts := client.DeleteOptions{}
 			r.Logger.Info("Calling KubeAPI to delete BpfProgram", "Name", bpfProgram.GetName(), "Owner", bpfProgram.GetName())
 			if err := r.Delete(ctx, bpfProgram.GetClientObject(), &opts); err != nil {
