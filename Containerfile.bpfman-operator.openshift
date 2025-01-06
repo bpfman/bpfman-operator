@@ -42,7 +42,7 @@ LABEL name="bpfman/bpfman-operator" \
       description="The bpfman-operator repository exists to deploy and manage bpfman within a Kubernetes cluster." \
       io.k8s.description="The bpfman-operator repository exists to deploy and manage bpfman within a Kubernetes cluster. ." \
       io.openshift.tags="bpfman-operator" \
-      version="0.5.4" \
+      version="0.5.5" \
       vendor="Red Hat, Inc."
 
 USER 65532:65532
