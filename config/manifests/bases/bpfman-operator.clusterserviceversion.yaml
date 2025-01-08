@@ -143,7 +143,8 @@ spec:
     `info`, `debug`, and `trace` \n\nThe bpfman operator deploys eBPF programs via CRDs. 
     The following CRDs are currently available, \n\n- BpfApplication\n- FentryProgram\n- FexitProgram\n
     - KprobeProgram\n- TcProgram\n- TcxProgram\n- TracepointProgram\n- UprobeProgram\n- XdpProgram\n
-    - BpfNsApplication\n- TcProgram\n- TcxNsProgram\n- UprobeNsProgram\n- XdpNsProgram\n\n
+    - BpfNsApplication\n- TcNsProgram\n- TcxNsProgram\n- UprobeNsProgram\n- XdpNsProgram\n- BpfProgram\n
+    - BpfNsProgram\n\n
     ## More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/) 
     for more information."
   displayName: Bpfman Operator
