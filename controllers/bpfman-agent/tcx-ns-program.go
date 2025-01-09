@@ -111,7 +111,7 @@ func (r *TcxNsProgramReconciler) setCurrentProgram(program client.Object) error 
 		return fmt.Errorf("failed to cast program to TcxNsProgram")
 	}
 
-	r.interfaces, err = getInterfaces(&r.currentTcxNsProgram.Spec.InterfaceSelector, r.ourNode)
+	r.interfaces, err = getInterfaces(&r.currentTcxNsProgram.Spec.AttachPoints[0].InterfaceSelector, r.ourNode)
 	if err != nil {
 		return fmt.Errorf("failed to get interfaces for TcxNsProgram: %v", err)
 	}
@@ -161,8 +161,8 @@ func (r *TcxNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
 		r.getNamespace(),
-		r.currentTcxNsProgram.Spec.Containers.Pods,
-		r.currentTcxNsProgram.Spec.Containers.ContainerNames,
+		r.currentTcxNsProgram.Spec.AttachPoints[0].Containers.Pods,
+		r.currentTcxNsProgram.Spec.AttachPoints[0].Containers.ContainerNames,
 		r.Logger,
 	)
 	if err != nil {
@@ -175,7 +175,7 @@ func (r *TcxNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 		for _, iface := range r.interfaces {
 			attachPoint := fmt.Sprintf("%s-%s-%s",
 				iface,
-				r.currentTcxNsProgram.Spec.Direction,
+				r.currentTcxNsProgram.Spec.AttachPoints[0].Direction,
 				"no-containers-on-node",
 			)
 
@@ -198,7 +198,7 @@ func (r *TcxNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 			for _, iface := range r.interfaces {
 				attachPoint := fmt.Sprintf("%s-%s-%s-%s",
 					iface,
-					r.currentTcxNsProgram.Spec.Direction,
+					r.currentTcxNsProgram.Spec.AttachPoints[0].Direction,
 					container.podName,
 					container.containerName,
 				)
@@ -269,9 +269,9 @@ func (r *TcxNsProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bpf
 	}
 
 	attachInfo := &gobpfman.TCXAttachInfo{
-		Priority:  r.currentTcxNsProgram.Spec.Priority,
+		Priority:  r.currentTcxNsProgram.Spec.AttachPoints[0].Priority,
 		Iface:     bpfProgram.Annotations[internal.TcxNsProgramInterface],
-		Direction: r.currentTcxNsProgram.Spec.Direction,
+		Direction: r.currentTcxNsProgram.Spec.AttachPoints[0].Direction,
 	}
 
 	containerPidStr, ok := bpfProgram.Annotations[internal.TcxNsContainerPid]

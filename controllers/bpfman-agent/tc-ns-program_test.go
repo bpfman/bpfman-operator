@@ -66,6 +66,7 @@ func TestTcNsProgramControllerCreate(t *testing.T) {
 			fakeContainerName,
 		)
 	)
+
 	// A TcNsProgram object with metadata and spec.
 	tc := &bpfmaniov1alpha1.TcNsProgram{
 		ObjectMeta: metav1.ObjectMeta{
@@ -82,22 +83,26 @@ func TestTcNsProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
-				},
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": fakePodName,
+				AttachPoints: []bpfmaniov1alpha1.TcNsAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": fakePodName,
+								},
+							},
+							ContainerNames: &[]string{fakeContainerName},
 						},
 					},
-					ContainerNames: &[]string{fakeContainerName},
 				},
 			},
 		},
@@ -276,6 +281,7 @@ func TestTcNsProgramControllerCreateMultiIntf(t *testing.T) {
 			fakeContainerName,
 		)
 	)
+
 	// A TcNsProgram object with metadata and spec.
 	tc := &bpfmaniov1alpha1.TcNsProgram{
 		ObjectMeta: metav1.ObjectMeta{
@@ -292,19 +298,24 @@ func TestTcNsProgramControllerCreateMultiIntf(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &fakeInts,
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
-				},
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": fakePodName,
+				AttachPoints: []bpfmaniov1alpha1.TcNsAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &fakeInts,
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": fakePodName,
+								},
+							},
 						},
 					},
 				},

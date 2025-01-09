@@ -52,6 +52,13 @@ type XdpNsProgramSpec struct {
 // XdpNsProgramInfo defines the common fields for all XdpProgram types
 type XdpNsProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []XdpNsAttachInfo `json:"attach_points"`
+}
+
+type XdpNsAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 

@@ -110,7 +110,7 @@ func (r *XdpNsProgramReconciler) setCurrentProgram(program client.Object) error 
 		return fmt.Errorf("failed to cast program to XdpNsProgram")
 	}
 
-	r.interfaces, err = getInterfaces(&r.currentXdpNsProgram.Spec.InterfaceSelector, r.ourNode)
+	r.interfaces, err = getInterfaces(&r.currentXdpNsProgram.Spec.AttachPoints[0].InterfaceSelector, r.ourNode)
 	if err != nil {
 		return fmt.Errorf("failed to get interfaces for XdpNsProgram: %v", err)
 	}
@@ -161,8 +161,8 @@ func (r *XdpNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*b
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
 		r.getNamespace(),
-		r.currentXdpNsProgram.Spec.Containers.Pods,
-		r.currentXdpNsProgram.Spec.Containers.ContainerNames,
+		r.currentXdpNsProgram.Spec.AttachPoints[0].Containers.Pods,
+		r.currentXdpNsProgram.Spec.AttachPoints[0].Containers.ContainerNames,
 		r.Logger,
 	)
 	if err != nil {
@@ -266,9 +266,9 @@ func (r *XdpNsProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.Bpf
 	}
 
 	attachInfo := &gobpfman.XDPAttachInfo{
-		Priority:  r.currentXdpNsProgram.Spec.Priority,
+		Priority:  r.currentXdpNsProgram.Spec.AttachPoints[0].Priority,
 		Iface:     bpfProgram.Annotations[internal.XdpNsProgramInterface],
-		ProceedOn: xdpProceedOnToInt(r.currentXdpNsProgram.Spec.ProceedOn),
+		ProceedOn: xdpProceedOnToInt(r.currentXdpNsProgram.Spec.AttachPoints[0].ProceedOn),
 	}
 
 	containerPidStr, ok := bpfProgram.Annotations[internal.XdpNsContainerPid]

@@ -75,7 +75,8 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfFentryFunctionName,
 						},
-						FunctionName: functionFentryName,
+						FentryLoadInfo: bpfmaniov1alpha1.FentryLoadInfo{FunctionName: functionFentryName},
+						Attach:         true,
 					},
 				},
 				{
@@ -84,9 +85,13 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfKprobeFunctionName,
 						},
-						FunctionName: functionKprobeName,
-						Offset:       uint64(offset),
-						RetProbe:     retprobe,
+						AttachPoints: []bpfmaniov1alpha1.KprobeAttachInfo{
+							{
+								FunctionName: functionKprobeName,
+								Offset:       uint64(offset),
+								RetProbe:     retprobe,
+							},
+						},
 					},
 				},
 				{
@@ -95,7 +100,11 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfTracepointFunctionName,
 						},
-						Names: []string{tracepointName},
+						AttachPoints: []bpfmaniov1alpha1.TracepointAttachInfo{
+							{
+								Name: tracepointName,
+							},
+						},
 					},
 				},
 			},

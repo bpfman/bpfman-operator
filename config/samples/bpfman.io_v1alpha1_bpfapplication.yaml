@@ -14,45 +14,50 @@ spec:
     - type: Kprobe
       kprobe:
         bpffunctionname: kprobe_counter
-        func_name: try_to_wake_up
-        offset: 0
-        retprobe: false
+        attach_points:
+          - func_name: try_to_wake_up
+            offset: 0
+            retprobe: false
     - type: Tracepoint
       tracepoint:
         bpffunctionname: tracepoint_kill_recorder
-        names:
-          - syscalls/sys_enter_kill
+        attach_points:
+          - name: syscalls/sys_enter_kill
     - type: TC
       tc:
         bpffunctionname: stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
-        direction: ingress
+        attach_points:
+          - interfaceselector:
+              primarynodeinterface: true
+            priority: 55
+            direction: ingress
     - type: TCX
       tcx:
         bpffunctionname: tcx_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 500
-        direction: ingress
+        attach_points:
+          - interfaceselector:
+              primarynodeinterface: true
+            priority: 500
+            direction: ingress
     - type: Uprobe
       uprobe:
         bpffunctionname: uprobe_counter
-        func_name: malloc
-        target: libc
-        retprobe: false
-        containers:
-          namespace: bpfman
-          pods:
-            matchLabels:
-              name: bpfman-daemon
-          containernames:
-            - bpfman
-            - bpfman-agent
+        attach_points:
+          - func_name: malloc
+            target: libc
+            retprobe: false
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containernames:
+                - bpfman
+                - bpfman-agent
     - type: XDP
       xdp:
         bpffunctionname: xdp_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
+        attach_points:
+          - interfaceselector:
+              primarynodeinterface: true
+            priority: 55

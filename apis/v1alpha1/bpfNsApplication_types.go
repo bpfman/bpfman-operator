@@ -85,7 +85,7 @@ type BpfNsApplication struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   BpfNsApplicationSpec `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Status BpfAppStatus         `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
