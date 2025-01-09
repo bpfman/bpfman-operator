@@ -619,7 +619,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-01-03T19:50:49Z"
+    createdAt: "2025-01-08T17:26:28Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"
@@ -759,9 +759,9 @@ spec:
     \n\nThe bpfman operator deploys eBPF programs via CRDs. The following CRDs are
     currently available, \n\n- BpfApplication\n- FentryProgram\n- FexitProgram\n -
     KprobeProgram\n- TcProgram\n- TcxProgram\n- TracepointProgram\n- UprobeProgram\n-
-    XdpProgram\n - BpfNsApplication\n- TcProgram\n- TcxNsProgram\n- UprobeNsProgram\n-
-    XdpNsProgram\n\n ## More information\n\nPlease checkout the [bpfman community
-    website](https://bpfman.io/) for more information."
+    XdpProgram\n - BpfNsApplication\n- TcNsProgram\n- TcxNsProgram\n- UprobeNsProgram\n-
+    XdpNsProgram\n- BpfProgram\n - BpfNsProgram\n\n ## More information\n\nPlease
+    checkout the [bpfman community website](https://bpfman.io/) for more information."
   displayName: Bpfman Operator
   icon:
   - base64data: |
