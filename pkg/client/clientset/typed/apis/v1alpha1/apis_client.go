@@ -29,6 +29,7 @@ import (
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfApplicationsGetter
+	BpfApplicationNodesGetter
 	BpfNsApplicationsGetter
 	BpfNsProgramsGetter
 	BpfProgramsGetter
@@ -53,6 +54,10 @@ type BpfmanV1alpha1Client struct {
 
 func (c *BpfmanV1alpha1Client) BpfApplications() BpfApplicationInterface {
 	return newBpfApplications(c)
+}
+
+func (c *BpfmanV1alpha1Client) BpfApplicationNodes() BpfApplicationNodeInterface {
+	return newBpfApplicationNodes(c)
 }
 
 func (c *BpfmanV1alpha1Client) BpfNsApplications(namespace string) BpfNsApplicationInterface {

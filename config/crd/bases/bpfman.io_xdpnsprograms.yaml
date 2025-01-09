@@ -350,8 +350,9 @@ spec:
             properties:
               conditions:
                 description: |-
-                  Conditions houses the global cluster state for the eBPFProgram. The explicit
-                  condition types are defined internally.
+                  For a BpfApplication object, Conditions contains the global cluster state
+                  for the object. For a BpfApplicationNode object, Conditions contains the
+                  state of the BpfApplication object on the given node.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for

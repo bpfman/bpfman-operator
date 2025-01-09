@@ -63,6 +63,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&BpfApplication{},
 		&BpfApplicationList{},
+		&BpfApplicationNode{},
+		&BpfApplicationNodeList{},
 		&BpfNsApplication{},
 		&BpfNsApplicationList{},
 		&BpfNsProgram{},

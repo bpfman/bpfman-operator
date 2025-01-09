@@ -99,3 +99,46 @@ type TcProgramList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []TcProgram `json:"items"`
 }
+
+type TcProgramInfoNode struct {
+	AppProgramStatus `json:",inline"`
+	// The list of points to which the program should be attached.
+	// TcAttachInfoNode is similar to TcAttachInfo, but the interface and
+	// container selectors are expanded, and we have one instance of
+	// TcAttachInfoNode for each unique attach point. The list is optional and
+	// may be udated after the bpf program has been loaded.
+	// +optional
+	AttachPoints []TcAttachInfoNode `json:"attach_points"`
+}
+
+type TcAttachInfoNode struct {
+	AttachStatus `json:",inline"`
+	// An identifier for the attach point assigned by bpfman. This field is
+	// empty until the program is successfully attached and bpfman returns the
+	// id.
+	AttachId *uint32 `json:"attachid"`
+
+	// Interface name to attach the tc program to.
+	IfName string `json:"ifname"`
+
+	// Optional container pid to attach the tc program in.
+	// +optional
+	ContainerPid *uint32 `json:"containerpid"`
+
+	// Priority specifies the priority of the tc program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
+
+	// Direction specifies the direction of traffic the tc program should
+	// attach to for a given network device.
+	// +kubebuilder:validation:Enum=ingress;egress
+	Direction string `json:"direction"`
+
+	// ProceedOn allows the user to call other tc programs in chain on this exit code.
+	// Multiple values are supported by repeating the parameter.
+	// +kubebuilder:validation:MaxItems=11
+	ProceedOn []TcProceedOnValue `json:"proceedon"`
+}

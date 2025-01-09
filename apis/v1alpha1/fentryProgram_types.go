@@ -73,3 +73,22 @@ type FentryProgramList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []FentryProgram `json:"items"`
 }
+
+type FentryProgramInfoNode struct {
+	AppProgramStatus `json:",inline"`
+	// The list of points to which the program should be attached.
+	// FentryAttachInfoNode is similar to FentryAttachInfo, but the interface and
+	// container selectors are expanded, and we have one instance of
+	// FentryAttachInfoNode for each unique attach point. The list is optional and
+	// may be udated after the bpf program has been loaded.
+	// +optional
+	AttachPoint FentryAttachInfoNode `json:"attach_points"`
+}
+
+type FentryAttachInfoNode struct {
+	AttachStatus `json:",inline"`
+	// An identifier for the attach point assigned by bpfman. This field is
+	// empty until the program is successfully attached and bpfman returns the
+	// id.
+	AttachId *uint32 `json:"attachid"`
+}
