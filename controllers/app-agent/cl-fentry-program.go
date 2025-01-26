@@ -47,7 +47,7 @@ func (r *FentryProgramReconciler) getProgId() *uint32 {
 }
 
 func (r *FentryProgramReconciler) getProgType() internal.ProgramType {
-	return internal.Tc
+	return internal.Tracing
 }
 
 func (r *FentryProgramReconciler) getNode() *v1.Node {
@@ -74,8 +74,8 @@ func (r *FentryProgramReconciler) setAttachId(id *uint32) {
 	r.currentAttachPoint.AttachId = id
 }
 
-func (r *FentryProgramReconciler) setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) {
-	r.currentAttachPoint.AttachStatus = status
+func (r *FentryProgramReconciler) setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) bool {
+	return updateSimpleStatus(&r.currentAttachPoint.AttachStatus, status)
 }
 
 func (r *FentryProgramReconciler) getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType {
@@ -186,7 +186,7 @@ func (r *FentryProgramReconciler) processAttachInfo(ctx context.Context, mapOwne
 		"mapOwnerStatus", mapOwnerStatus)
 
 	// Get existing ebpf state from bpfman.
-	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Tc)
+	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, r.getProgType())
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfman programs")
 		updateSimpleStatus(&r.currentProgramState.ProgramAttachStatus, bpfmaniov1alpha1.BpfProgCondAttachError)

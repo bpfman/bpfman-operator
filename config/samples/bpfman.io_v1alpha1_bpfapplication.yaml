@@ -9,7 +9,7 @@ spec:
   nodeselector: {}
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/go-app-counter:latest
+      url: quay.io/bpfman-bytecode/app-test:latest
   programs:
     # - type: Kprobe
     #   kprobe:
@@ -34,7 +34,7 @@ spec:
     tcx_stats:
       type: TCX
       tcx:
-        bpffunctionname: tcx_stats
+        bpffunctionname: tcx_next
         attach_points:
           - interfaceselector:
               primarynodeinterface: true
@@ -58,7 +58,7 @@ spec:
     xdp_stats:
       type: XDP
       xdp:
-        bpffunctionname: xdp_stats
+        bpffunctionname: xdp_pass
         attach_points:
           - interfaceselector:
               primarynodeinterface: true
@@ -74,3 +74,9 @@ spec:
               containernames:
                 - bpfman
                 - bpfman-agent
+    test_fentry:
+      type: Fentry
+      fentry:
+        bpffunctionname: fentry_test
+        function_name: do_unlinkat
+        attach: true    

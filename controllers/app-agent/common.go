@@ -108,7 +108,7 @@ type ProgramReconciler interface {
 	getUUID() string
 	getAttachId() *uint32
 	setAttachId(id *uint32)
-	setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType)
+	setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) bool
 	getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType
 }
 
@@ -447,49 +447,64 @@ func (r *ReconcilerCommon) reconcileBpfAttachment(
 			// Confirm it's in the correct state.
 			loadRequest, err := rec.getLoadRequest(mapOwnerStatus.mapOwnerId)
 			if err != nil {
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError)
-				return false, err
-			}
-			isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
-			if !isSame {
-				r.Logger.Info("Attachment is in wrong state, detach and re-attach", "reason", reasons, "Attach ID", rec.getAttachId())
-				if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId()); err != nil {
-					rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotUnloaded)
-					r.Logger.Error(err, "Failed to detach eBPF Program")
+				r.Logger.Error(err, "Failed to get LoadRequest")
+				if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError) {
 					return false, err
 				}
-
-				r.Logger.Info("Calling bpfman to attach eBPF Program")
-				attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-				if err != nil {
-					rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotLoaded)
-					r.Logger.Error(err, "Failed to attach eBPF Program")
-					return false, err
-				}
-				rec.setAttachId(attachId)
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
 			} else {
-				// Attachment exists and bpfProgram K8s Object is up to date
-				r.Logger.V(1).Info("Attachment is in correct state.  Nothing to do in bpfman")
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
+				r.Logger.Info("LoadRequest", "loadRequest", loadRequest)
+				isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
+				if !isSame {
+					r.Logger.Info("Attachment is in wrong state, detach and re-attach", "reason", reasons, "Attach ID", rec.getAttachId())
+					err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId())
+					if err != nil {
+						r.Logger.Error(err, "Failed to detach eBPF Program")
+						if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotUnloaded) {
+							return false, err
+						}
+					} else {
+						r.Logger.Info("Calling bpfman to attach eBPF Program")
+						attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
+						if err != nil {
+							r.Logger.Error(err, "Failed to attach eBPF Program")
+							if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotLoaded) {
+								return false, err
+
+							}
+						} else {
+							rec.setAttachId(attachId)
+							rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
+						}
+					}
+				} else {
+					// Attachment exists and bpfProgram K8s Object is up to date
+					r.Logger.V(1).Info("Attachment is in correct state.  Nothing to do in bpfman")
+					rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
+				}
 			}
 		case false:
 			// The program should be attached, but it isn't.
 			r.Logger.Info("Program is not attached, calling getLoadRequest()")
 			loadRequest, err := rec.getLoadRequest(mapOwnerStatus.mapOwnerId)
 			if err != nil {
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError)
-				return false, err
+				r.Logger.Error(err, "Failed to get LoadRequest")
+				if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError) {
+					return false, err
+				}
+			} else {
+				r.Logger.Info("LoadRequest", "loadRequest", loadRequest)
+				r.Logger.Info("Calling bpfman to attach eBPF Program on node")
+				attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
+				if err != nil {
+					r.Logger.Error(err, "Failed to attach eBPF Program")
+					if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotLoaded) {
+						return false, err
+					}
+				} else {
+					rec.setAttachId(attachId)
+					rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
+				}
 			}
-			r.Logger.Info("Calling bpfman to attach eBPF Program on node")
-			attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-			if err != nil {
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotLoaded)
-				r.Logger.Error(err, "Failed to attach eBPF Program")
-				return false, err
-			}
-			rec.setAttachId(attachId)
-			rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondAttached)
 		}
 	case false:
 		switch isAttached {
@@ -497,18 +512,20 @@ func (r *ReconcilerCommon) reconcileBpfAttachment(
 			// The program is attached but it shouldn't be attached.  Unload it.
 			r.Logger.Info("Calling bpfman to detach eBPF Program", "Attach ID", rec.getAttachId())
 			if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId()); err != nil {
-				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotUnloaded)
 				r.Logger.Error(err, "Failed to detach eBPF Program")
-				return false, err
+				if rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotUnloaded) {
+					return false, err
+				}
+			} else {
+				rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotAttached)
 			}
-			rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotAttached)
 		case false:
 			// The program shouldn't be attached and it isn't.
 			rec.setAttachStatus(bpfmaniov1alpha1.BpfProgCondNotAttached)
 		}
 	}
-	// The BPF program was successfully reconciled.
 
+	// The BPF program was successfully reconciled.
 	remove := !rec.shouldAttach() && rec.getAttachStatus() == bpfmaniov1alpha1.BpfProgCondNotAttached
 	return remove, nil
 }

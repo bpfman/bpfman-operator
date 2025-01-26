@@ -32,58 +32,82 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=tcxprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms,verbs=get;list;watch
 
 // BpfProgramReconciler reconciles a BpfProgram object
-type TcxProgramReconciler struct {
+type XdpProgramReconciler struct {
 	ReconcilerCommon
 	ProgramReconcilerCommon
-	currentAttachPoint *bpfmaniov1alpha1.TcxAttachInfoState
+	currentAttachPoint *bpfmaniov1alpha1.XdpAttachInfoState
 }
 
-func (r *TcxProgramReconciler) getProgId() *uint32 {
+func (r *XdpProgramReconciler) getProgId() *uint32 {
 	return r.currentProgramState.ProgramId
 }
 
-func (r *TcxProgramReconciler) getProgType() internal.ProgramType {
-	return internal.Tc
+func (r *XdpProgramReconciler) getProgType() internal.ProgramType {
+	return internal.Xdp
 }
 
-func (r *TcxProgramReconciler) getNode() *v1.Node {
+func (r *XdpProgramReconciler) getNode() *v1.Node {
 	return r.ourNode
 }
 
-func (r *TcxProgramReconciler) getBpfGlobalData() map[string][]byte {
+func (r *XdpProgramReconciler) getBpfGlobalData() map[string][]byte {
 	return r.appCommon.GlobalData
 }
 
-func (r *TcxProgramReconciler) shouldAttach() bool {
+func (r *XdpProgramReconciler) shouldAttach() bool {
 	return r.currentAttachPoint.ShouldAttach
 }
 
-func (r *TcxProgramReconciler) getUUID() string {
+func (r *XdpProgramReconciler) getUUID() string {
 	return r.currentAttachPoint.UUID
 }
 
-func (r *TcxProgramReconciler) getAttachId() *uint32 {
+func (r *XdpProgramReconciler) getAttachId() *uint32 {
 	return r.currentAttachPoint.AttachId
 }
 
-func (r *TcxProgramReconciler) setAttachId(id *uint32) {
+func (r *XdpProgramReconciler) setAttachId(id *uint32) {
 	r.currentAttachPoint.AttachId = id
 }
 
-func (r *TcxProgramReconciler) setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) {
-	r.currentAttachPoint.AttachStatus = status
+func (r *XdpProgramReconciler) setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) bool {
+	return updateSimpleStatus(&r.currentAttachPoint.AttachStatus, status)
 }
 
-func (r *TcxProgramReconciler) getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType {
+func (r *XdpProgramReconciler) getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType {
 	return r.currentAttachPoint.AttachStatus
 }
 
-func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+// Must match with bpfman internal types
+func xdpProceedOnToInt(proceedOn []bpfmaniov1alpha1.XdpProceedOnValue) []int32 {
+	var out []int32
 
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.TCX.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
+	for _, p := range proceedOn {
+		switch p {
+		case "aborted":
+			out = append(out, 0)
+		case "drop":
+			out = append(out, 1)
+		case "pass":
+			out = append(out, 2)
+		case "tx":
+			out = append(out, 3)
+		case "redirect":
+			out = append(out, 4)
+		case "dispatcher_return":
+			out = append(out, 31)
+		}
+	}
+
+	return out
+}
+
+func (r *XdpProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+
+	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.XDP.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
 		mapOwnerId, "ByteCode", r.appCommon.ByteCode)
 
 	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
@@ -91,10 +115,10 @@ func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Loa
 		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}
 
-	attachInfo := &gobpfman.TCXAttachInfo{
+	attachInfo := &gobpfman.XDPAttachInfo{
 		Priority:  r.currentAttachPoint.Priority,
 		Iface:     r.currentAttachPoint.IfName,
-		Direction: r.currentAttachPoint.Direction,
+		ProceedOn: xdpProceedOnToInt(r.currentAttachPoint.ProceedOn),
 	}
 
 	if r.currentAttachPoint.ContainerPid != nil {
@@ -104,11 +128,11 @@ func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Loa
 
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentProgram.TCX.BpfFunctionName,
-		ProgramType: uint32(internal.Tc),
+		Name:        r.currentProgram.XDP.BpfFunctionName,
+		ProgramType: uint32(internal.Xdp),
 		Attach: &gobpfman.AttachInfo{
-			Info: &gobpfman.AttachInfo_TcxAttachInfo{
-				TcxAttachInfo: attachInfo,
+			Info: &gobpfman.AttachInfo_XdpAttachInfo{
+				XdpAttachInfo: attachInfo,
 			},
 		},
 		Metadata:   map[string]string{internal.UuidMetadataKey: string(r.currentAttachPoint.UUID), internal.ProgramNameKey: "BpfApplication"},
@@ -121,15 +145,14 @@ func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Loa
 
 // updateAttachInfo processes the *ProgramInfo and updates the list of attach
 // points contained in *AttachInfoState.
-func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDeleted bool) error {
-	r.Logger.Info("TCX updateAttachInfo()", "isBeingDeleted", isBeingDeleted)
+func (r *XdpProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDeleted bool) error {
+	r.Logger.Info("XDP updateAttachInfo()", "isBeingDeleted", isBeingDeleted)
 
 	// Set ShouldAttach for all attach points in the node CRD to false.  We'll
 	// update this in the next step for all attach points that are still
 	// present.
-	for i := range r.currentProgramState.TCX.AttachPoints {
-		r.Logger.Info("Setting ShouldAttach to false", "index", i)
-		r.currentProgramState.TCX.AttachPoints[i].ShouldAttach = false
+	for i := range r.currentProgramState.XDP.AttachPoints {
+		r.currentProgramState.XDP.AttachPoints[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -142,7 +165,7 @@ func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDele
 		return nil
 	}
 
-	for _, attachInfo := range r.currentProgram.TCX.AttachPoints {
+	for _, attachInfo := range r.currentProgram.XDP.AttachPoints {
 		expectedAttachPoints, error := r.getExpectedAttachPoints(ctx, attachInfo)
 		if error != nil {
 			return fmt.Errorf("failed to get node attach points: %v", error)
@@ -151,12 +174,10 @@ func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDele
 			index := r.findAttachPoint(attachPoint)
 			if index != nil {
 				// Attach point already exists, so set ShouldAttach to true.
-				r.Logger.Info("Setting ShouldAttach to true", "index", *index)
-				r.currentProgramState.TCX.AttachPoints[*index].AttachInfoCommon.ShouldAttach = true
+				r.currentProgramState.XDP.AttachPoints[*index].AttachInfoCommon.ShouldAttach = true
 			} else {
 				// Attach point doesn't exist, so add it.
-				r.Logger.Info("Attach point doesn't exist.  Adding it.")
-				r.currentProgramState.TCX.AttachPoints = append(r.currentProgramState.TCX.AttachPoints, attachPoint)
+				r.currentProgramState.XDP.AttachPoints = append(r.currentProgramState.XDP.AttachPoints, attachPoint)
 			}
 		}
 	}
@@ -171,12 +192,12 @@ func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDele
 // ANF-TODO: Confirm what constitutes a match between two attach points.  E.g.,
 // what if everything the same, but the priority and/or proceed_on values are
 // different?
-func (r *TcxProgramReconciler) findAttachPoint(attachInfoState bpfmaniov1alpha1.TcxAttachInfoState) *int {
-	for i, a := range r.currentProgramState.TCX.AttachPoints {
+func (r *XdpProgramReconciler) findAttachPoint(attachInfoState bpfmaniov1alpha1.XdpAttachInfoState) *int {
+	for i, a := range r.currentProgramState.XDP.AttachPoints {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and Direction.
+		// same: IfName, ContainerPid, Priority, and ProceedOn.
 		if a.IfName == attachInfoState.IfName && reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
-			a.Priority == attachInfoState.Priority && a.Direction == attachInfoState.Direction {
+			a.Priority == attachInfoState.Priority && reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
 			return &i
 		}
 	}
@@ -189,12 +210,12 @@ func (r *TcxProgramReconciler) findAttachPoint(attachInfoState bpfmaniov1alpha1.
 // made.
 //
 // ANF-TODO: Generalize this function and move it into common.
-func (r *TcxProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error {
-	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.TCX.BpfFunctionName,
+func (r *XdpProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error {
+	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.XDP.BpfFunctionName,
 		"mapOwnerStatus", mapOwnerStatus)
 
 	// Get existing ebpf state from bpfman.
-	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Tc)
+	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Xdp)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfman programs")
 		updateSimpleStatus(&r.currentProgramState.ProgramAttachStatus, bpfmaniov1alpha1.BpfProgCondAttachError)
@@ -207,8 +228,8 @@ func (r *TcxProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerSt
 	attachPointsToRemove := make(map[int]bool)
 
 	var lastReconcileAttachmentError error = nil
-	for i := range r.currentProgramState.TCX.AttachPoints {
-		r.currentAttachPoint = &r.currentProgramState.TCX.AttachPoints[i]
+	for i := range r.currentProgramState.XDP.AttachPoints {
+		r.currentAttachPoint = &r.currentProgramState.XDP.AttachPoints[i]
 		remove, err := r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -226,32 +247,32 @@ func (r *TcxProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerSt
 
 	if len(attachPointsToRemove) > 0 {
 		r.Logger.Info("Removing attach points", "attachPointsToRemove", attachPointsToRemove)
-		r.currentProgramState.TCX.AttachPoints = r.removeAttachPoints(r.currentProgramState.TCX.AttachPoints, attachPointsToRemove)
+		r.currentProgramState.XDP.AttachPoints = r.removeAttachPoints(r.currentProgramState.XDP.AttachPoints, attachPointsToRemove)
 	}
 
 	return lastReconcileAttachmentError
 }
 
 // removeAttachPoints removes attach points from a slice of attach points based on the keys in the map.
-func (r *TcxProgramReconciler) removeAttachPoints(attachPoints []bpfmaniov1alpha1.TcxAttachInfoState, attachPointsToRemove map[int]bool) []bpfmaniov1alpha1.TcxAttachInfoState {
-	var remainingAttachPoints []bpfmaniov1alpha1.TcxAttachInfoState
+func (r *XdpProgramReconciler) removeAttachPoints(attachPoints []bpfmaniov1alpha1.XdpAttachInfoState, attachPointsToRemove map[int]bool) []bpfmaniov1alpha1.XdpAttachInfoState {
+	var newAttachPoints []bpfmaniov1alpha1.XdpAttachInfoState
 	for i, a := range attachPoints {
 		if _, ok := attachPointsToRemove[i]; !ok {
-			remainingAttachPoints = append(remainingAttachPoints, a)
+			newAttachPoints = append(newAttachPoints, a)
 		}
 	}
-	return remainingAttachPoints
+	return newAttachPoints
 }
 
-// getInterfaces expands TcxAttachInfo into a list of specific attach points.  It works pretty much like the old getExpectedBpfPrograms.
-func (r *TcxProgramReconciler) getExpectedAttachPoints(ctx context.Context, attachInfo bpfmaniov1alpha1.TcxAttachInfo,
-) ([]bpfmaniov1alpha1.TcxAttachInfoState, error) {
+// getInterfaces expands XdpAttachInfo into a list of specific attach points.  It works pretty much like the old getExpectedBpfPrograms.
+func (r *XdpProgramReconciler) getExpectedAttachPoints(ctx context.Context, attachInfo bpfmaniov1alpha1.XdpAttachInfo,
+) ([]bpfmaniov1alpha1.XdpAttachInfoState, error) {
 	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get interfaces for TcxProgram: %v", err)
+		return nil, fmt.Errorf("failed to get interfaces for XdpProgram: %v", err)
 	}
 
-	nodeAttachPoints := []bpfmaniov1alpha1.TcxAttachInfoState{}
+	nodeAttachPoints := []bpfmaniov1alpha1.XdpAttachInfoState{}
 
 	if attachInfo.Containers != nil {
 		// There is a container selector, so see if there are any matching
@@ -273,7 +294,7 @@ func (r *TcxProgramReconciler) getExpectedAttachPoints(ctx context.Context, atta
 				container := (*containerInfo)[i]
 				for _, iface := range interfaces {
 					containerPid := uint32(container.pid)
-					attachPoint := bpfmaniov1alpha1.TcxAttachInfoState{
+					attachPoint := bpfmaniov1alpha1.XdpAttachInfoState{
 						AttachInfoCommon: bpfmaniov1alpha1.AttachInfoCommon{
 							ShouldAttach: true,
 							UUID:         uuid.New().String(),
@@ -283,7 +304,7 @@ func (r *TcxProgramReconciler) getExpectedAttachPoints(ctx context.Context, atta
 						IfName:       iface,
 						ContainerPid: &containerPid,
 						Priority:     attachInfo.Priority,
-						Direction:    attachInfo.Direction,
+						ProceedOn:    attachInfo.ProceedOn,
 					}
 					nodeAttachPoints = append(nodeAttachPoints, attachPoint)
 				}
@@ -291,7 +312,7 @@ func (r *TcxProgramReconciler) getExpectedAttachPoints(ctx context.Context, atta
 		}
 	} else {
 		for _, iface := range interfaces {
-			attachPoint := bpfmaniov1alpha1.TcxAttachInfoState{
+			attachPoint := bpfmaniov1alpha1.XdpAttachInfoState{
 				AttachInfoCommon: bpfmaniov1alpha1.AttachInfoCommon{
 					ShouldAttach: true,
 					UUID:         uuid.New().String(),
@@ -301,7 +322,7 @@ func (r *TcxProgramReconciler) getExpectedAttachPoints(ctx context.Context, atta
 				IfName:       iface,
 				ContainerPid: nil,
 				Priority:     attachInfo.Priority,
-				Direction:    attachInfo.Direction,
+				ProceedOn:    attachInfo.ProceedOn,
 			}
 			nodeAttachPoints = append(nodeAttachPoints, attachPoint)
 		}
