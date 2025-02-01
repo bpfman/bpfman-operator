@@ -68,6 +68,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Tracepoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is Tracepoint, and forbidden otherwise"
 type BpfApplicationProgram struct {
+	BpfProgramCommon `json:",inline"`
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
@@ -128,12 +129,10 @@ type BpfApplicationProgram struct {
 // BpfApplicationSpec defines the desired state of BpfApplication
 type BpfApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
-
 	// Programs is the list of bpf programs in the BpfApplication that should be
 	// loaded. The application can selectively choose which program(s) to run
-	// from this list based on the optional attach points provided.  The list is
-	// implemented as a map from the bpf function name to BpfApplicationProgram.
-	Programs map[string]BpfApplicationProgram `json:"programs,omitempty"`
+	// from this list based on the optional attach points provided.
+	Programs []BpfApplicationProgram `json:"programs,omitempty"`
 }
 
 // +genclient

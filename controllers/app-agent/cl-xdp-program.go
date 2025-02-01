@@ -34,7 +34,7 @@ import (
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms,verbs=get;list;watch
 
-// BpfProgramReconciler reconciles a BpfProgram object
+// XdpProgramReconciler contains the info required to reconcile an XdpProgram
 type XdpProgramReconciler struct {
 	ReconcilerCommon
 	ProgramReconcilerCommon
@@ -107,7 +107,7 @@ func xdpProceedOnToInt(proceedOn []bpfmaniov1alpha1.XdpProceedOnValue) []int32 {
 
 func (r *XdpProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
 
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.XDP.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
+	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
 		mapOwnerId, "ByteCode", r.appCommon.ByteCode)
 
 	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
@@ -126,9 +126,18 @@ func (r *XdpProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Loa
 		attachInfo.Netns = &netns
 	}
 
+	// ANF-TODO: This is a temporary workaround for backwards compatibility.
+	// Fix it after old code removed.
+	var bpfFunctionName string
+	if r.currentProgram.BpfFunctionName != "" {
+		bpfFunctionName = r.currentProgram.BpfFunctionName
+	} else {
+		bpfFunctionName = r.currentProgram.XDP.BpfFunctionName
+	}
+
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentProgram.XDP.BpfFunctionName,
+		Name:        bpfFunctionName,
 		ProgramType: uint32(internal.Xdp),
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_XdpAttachInfo{

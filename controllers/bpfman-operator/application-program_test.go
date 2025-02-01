@@ -59,9 +59,9 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 
 	// A AppProgram object with metadata and spec.
 
-	programMap := make(map[string]bpfmaniov1alpha1.BpfApplicationProgram)
+	programs := []bpfmaniov1alpha1.BpfApplicationProgram{}
 
-	programMap[bpfFentryFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	fentryProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Type: bpfmaniov1alpha1.ProgTypeFentry,
 		Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
 			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
@@ -72,7 +72,9 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 	}
 
-	programMap[bpfKprobeFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	programs = append(programs, fentryProgram)
+
+	kprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Type: bpfmaniov1alpha1.ProgTypeKprobe,
 		Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
 			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
@@ -88,7 +90,9 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 	}
 
-	programMap[bpfTracepointFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	programs = append(programs, kprobeProgram)
+
+	tracePointProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
 		Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
 			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
@@ -102,6 +106,8 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 	}
 
+	programs = append(programs, tracePointProgram)
+
 	App := &bpfmaniov1alpha1.BpfApplication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -113,7 +119,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Path: &bytecodePath,
 				},
 			},
-			Programs: programMap,
+			Programs: programs,
 		},
 	}
 

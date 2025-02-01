@@ -31,7 +31,7 @@ spec:
     #           primarynodeinterface: true
     #         priority: 55
     #         direction: ingress
-    tcx_stats:
+    - bpffunctionname: tcx_next
       type: TCX
       tcx:
         bpffunctionname: tcx_next
@@ -40,6 +40,19 @@ spec:
               primarynodeinterface: true
             priority: 500
             direction: ingress
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: egress
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containernames:
+                - bpfman
+                - bpfman-agent
     # - type: Uprobe
     #   uprobe:
     #     bpffunctionname: uprobe_counter
@@ -55,7 +68,7 @@ spec:
     #           containernames:
     #             - bpfman
     #             - bpfman-agent
-    xdp_stats:
+    - bpffunctionname: xdp_pass
       type: XDP
       xdp:
         bpffunctionname: xdp_pass
@@ -64,7 +77,8 @@ spec:
               primarynodeinterface: true
             priority: 55
           - interfaceselector:
-              primarynodeinterface: true
+              interfaces:
+                - eth0
             priority: 100
             containers:
               namespace: bpfman
@@ -74,7 +88,7 @@ spec:
               containernames:
                 - bpfman
                 - bpfman-agent
-    test_fentry:
+    - bpffunctionname: fentry_test
       type: Fentry
       fentry:
         bpffunctionname: fentry_test

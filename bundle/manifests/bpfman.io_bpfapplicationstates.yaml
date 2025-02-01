@@ -15,6 +15,9 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.node
+      name: Node
+      type: string
     - jsonPath: .status.conditions[0].reason
       name: Status
       type: string
@@ -27,7 +30,6 @@ spec:
         description: |-
           BpfApplicationState contains the per-node state of a BpfApplication.
           ANF-TODO: I can't get the Node to display in the kubectl output.
-          // +kubebuilder:printcolumn:name="Node",type=string,JSONPath=".metadata.labels['kubernetes.io/hostname']"
         properties:
           apiVersion:
             description: |-
@@ -54,8 +56,15 @@ spec:
                   AppLoadStatus reflects the status of loading the bpf application on the
                   given node.
                 type: string
+              node:
+                description: Node is the name of the node for this BpfApplicationStateSpec.
+                type: string
               programs:
-                additionalProperties:
+                description: |-
+                  Programs is a list of bpf programs contained in the parent application.
+                  It is a map from the bpf program name to BpfApplicationProgramState
+                  elements.
+                items:
                   description: |-
                     BpfApplicationProgramState defines the desired state of BpfApplication
                     // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TC' ?  has(self.tc) : !has(self.tc)",message="tc configuration is required when type is TC, and forbidden otherwise"
@@ -66,16 +75,127 @@ spec:
                     // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
                     // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Tracepoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is Tracepoint, and forbidden otherwise"
                   properties:
+                    bpffunctionname:
+                      description: |-
+                        BpfFunctionName is the name of the function that is the entry point for the BPF
+                        program
+                      type: string
                     fentry:
                       description: fentry defines the desired state of the application's
                         FentryPrograms.
                       properties:
+                        attach:
+                          type: boolean
+                        attachid:
+                          description: |-
+                            An identifier for the attach point assigned by bpfman. This field is
+                            empty until the program is successfully attached and bpfman returns the
+                            id.
+                            ANF-TODO: For the POC, this will be the program ID.
+                          format: int32
+                          type: integer
+                        attachstatus:
+                          description: |-
+                            AttachStatus reflects whether the attachment has been reconciled
+                            successfully, and if not, why.
+                          type: string
+                        function_name:
+                          description: FunctionName is the name of the function to
+                            attach the Fentry program to.
+                          type: string
+                        should_attach:
+                          description: ShouldAttach reflects whether the attachment
+                            should exist.
+                          type: boolean
+                        uuid:
+                          description: |-
+                            ANF-TODO: Putting a uuid here for now to maintain compatibility with the
+                            existing BpfProgram.
+                          type: string
+                      required:
+                      - attach
+                      - attachid
+                      - attachstatus
+                      - function_name
+                      - should_attach
+                      - uuid
+                      type: object
+                    oldmapownerselector:
+                      description: |-
+                        ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                        new load/attach split code.
+
+
+                        OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                        program will share a map with. The value is a label applied to the
+                        BpfProgram to select. The selector must resolve to exactly one instance
+                        of a BpfProgram on a given node or the eBPF program will not load.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    program_id:
+                      description: |-
+                        ProgramId is the id of the program in the kernel.  Not set until the
+                        program is loaded.
+                      format: int32
+                      type: integer
+                    programattachstatus:
+                      description: |-
+                        ProgramAttachStatus records whether the program should be loaded and whether
+                        the program is loaded.
+                      type: string
+                    tc:
+                      description: tc defines the desired state of the application's
+                        TcPrograms.
+                      properties:
                         attach_points:
                           description: |-
-                            The list of points to which the program should be attached. For Fentry
-                            programs, there will be at most one attach point, but it's being
-                            maintained as a list for consistency with most of the other program
-                            types.
+                            The list of points to which the program should be attached.
+                            TcAttachInfoState is similar to TcAttachInfo, but the interface and
+                            container selectors are expanded, and we have one instance of
+                            TcAttachInfoState for each unique attach point. The list is optional and
+                            may be udated after the bpf program has been loaded.
                           items:
                             properties:
                               attachid:
@@ -87,13 +207,56 @@ spec:
                                 format: int32
                                 type: integer
                               attachstatus:
-                                description: AttachStatus reflects whether the attachment
-                                  has been reconciled successfully, and if not, why.
+                                description: |-
+                                  AttachStatus reflects whether the attachment has been reconciled
+                                  successfully, and if not, why.
                                 type: string
-                              function_name:
-                                description: FunctionName is the name of the function
-                                  to attach the Fentry program to.
+                              containerpid:
+                                description: Optional container pid to attach the
+                                  tc program in.
+                                format: int32
+                                type: integer
+                              direction:
+                                description: |-
+                                  Direction specifies the direction of traffic the tc program should
+                                  attach to for a given network device.
+                                enum:
+                                - ingress
+                                - egress
                                 type: string
+                              ifname:
+                                description: Interface name to attach the tc program
+                                  to.
+                                type: string
+                              priority:
+                                description: |-
+                                  Priority specifies the priority of the tc program in relation to
+                                  other programs of the same type with the same attach point. It is a value
+                                  from 0 to 1000 where lower values have higher precedence.
+                                format: int32
+                                maximum: 1000
+                                minimum: 0
+                                type: integer
+                              proceedon:
+                                description: |-
+                                  ProceedOn allows the user to call other tc programs in chain on this exit code.
+                                  Multiple values are supported by repeating the parameter.
+                                items:
+                                  enum:
+                                  - unspec
+                                  - ok
+                                  - reclassify
+                                  - shot
+                                  - pipe
+                                  - stolen
+                                  - queued
+                                  - repeat
+                                  - redirect
+                                  - trap
+                                  - dispatcher_return
+                                  type: string
+                                maxItems: 11
+                                type: array
                               should_attach:
                                 description: ShouldAttach reflects whether the attachment
                                   should exist.
@@ -106,23 +269,15 @@ spec:
                             required:
                             - attachid
                             - attachstatus
-                            - function_name
+                            - direction
+                            - ifname
+                            - priority
+                            - proceedon
                             - should_attach
                             - uuid
                             type: object
                           type: array
                       type: object
-                    program_id:
-                      description: |-
-                        ProgramId is the id of the program in the kernel.  Not set until the
-                        program is loaded.
-                      format: int32
-                      type: integer
-                    programattachstatus:
-                      description: |-
-                        ProgramAttachStatus records whether the program should be loaded and whether
-                        the program is loaded.
-                      type: string
                     tcx:
                       description: tcx defines the desired state of the application's
                         TcxPrograms.
@@ -145,8 +300,9 @@ spec:
                                 format: int32
                                 type: integer
                               attachstatus:
-                                description: AttachStatus reflects whether the attachment
-                                  has been reconciled successfully, and if not, why.
+                                description: |-
+                                  AttachStatus reflects whether the attachment has been reconciled
+                                  successfully, and if not, why.
                                 type: string
                               containerpid:
                                 description: Optional container pid to attach the
@@ -230,8 +386,9 @@ spec:
                                 format: int32
                                 type: integer
                               attachstatus:
-                                description: AttachStatus reflects whether the attachment
-                                  has been reconciled successfully, and if not, why.
+                                description: |-
+                                  AttachStatus reflects whether the attachment has been reconciled
+                                  successfully, and if not, why.
                                 type: string
                               containerpid:
                                 description: Optional container pid to attach the
@@ -287,6 +444,7 @@ spec:
                           type: array
                       type: object
                   required:
+                  - bpffunctionname
                   - programattachstatus
                   type: object
                   x-kubernetes-validations:
@@ -302,11 +460,7 @@ spec:
                       and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''Fentry'' ?  has(self.fentry)
                       : !has(self.fentry)'
-                description: |-
-                  Programs is a list of bpf programs contained in the parent application.
-                  It is a map from the bpf program name to BpfApplicationProgramState
-                  elements.
-                type: object
+                type: array
               updatecount:
                 description: |-
                   The number of times the BpfApplicationState has been updated.  Set to 1
@@ -317,6 +471,7 @@ spec:
                 type: integer
             required:
             - apploadstatus
+            - node
             - updatecount
             type: object
           status:

@@ -110,6 +110,7 @@ type ProgramReconciler interface {
 	setAttachId(id *uint32)
 	setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) bool
 	getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType
+	reconcileProgram(ctx context.Context, program ProgramReconciler, isBeingDeleted bool) error
 }
 
 // ANF-TODO: When we have the load/attach split, this is the function that will
@@ -126,7 +127,7 @@ func (r *ReconcilerCommon) reconcileLoad(rec ApplicationReconciler) error {
 	// ANF-TODO: When we have the load/attach split, this is where we
 	// will load/unload the program as necessary.
 	if !isNodeSelected {
-		// The program should not be loaded
+		// The program should not be loaded, and should be unloaded if necessary
 		rec.updateLoadStatus(bpfmaniov1alpha1.BpfProgCondNotSelected)
 	} else if rec.isBeingDeleted() {
 		// The program should be unloaded if necessary
@@ -190,7 +191,7 @@ func (r *ReconcilerCommon) updateStatus(
 
 	r.Logger.Info("Calling KubeAPI to update BpfAppState condition", "Name", rec.getAppStateName, "condition", condition.Condition("").Type)
 	if err := rec.updateBpfAppStatus(ctx, condition.Condition("")); err != nil {
-		r.Logger.Error(err, "failed to set BpfProgram object status")
+		r.Logger.Error(err, "failed to set BpfApplication object status")
 	}
 
 	r.Logger.V(1).Info("condition updated", "new condition", condition, "existing conds", status.Conditions)
@@ -215,6 +216,7 @@ func (r *ReconcilerCommon) reconcileProgram(ctx context.Context, program Program
 	}
 
 	err = program.processAttachInfo(ctx, mapOwnerStatus)
+
 	if err != nil {
 		return err
 	}
@@ -313,12 +315,13 @@ type MapOwnerParamStatus struct {
 	mapOwnerId *uint32
 }
 
-// This function parses the MapOwnerSelector Labor Selector field from the
-// BpfProgramCommon struct in the *Program Objects. The labels should map to
-// a BpfProgram Object that this *Program wants to share maps with. If found, this
-// function returns the ID of the BpfProgram that owns the map on this node.
-// Found or not, this function also returns some flags (isSet, isFound, isLoaded)
-// to help with the processing and setting of the proper condition on the BpfProgram Object.
+// This function parses the MapOwnerSelector Label Selector field from the
+// BpfApplication Object. The labels should map to a BpfApplication Object that
+// this BpfApplication wants to share maps with. If found, this function returns
+// the ID of the BpfApplication that owns the map on this node. Found or not,
+// this function also returns some flags (isSet, isFound, isLoaded) to help with
+// the processing and setting of the proper condition on the BpfApplication
+// Object.
 func (r *ReconcilerCommon) processMapOwnerParam(ctx context.Context, rec ProgramReconciler) (*MapOwnerParamStatus, error) {
 	mapOwnerStatus := &MapOwnerParamStatus{
 		isSet:      false,
@@ -329,7 +332,10 @@ func (r *ReconcilerCommon) processMapOwnerParam(ctx context.Context, rec Program
 
 	r.Logger.V(1).Info("processMapOwnerParam()", "ctx", ctx, "rec.progId", rec.getProgId(), "MapOwnerStatus", mapOwnerStatus)
 
-	// ANF-TODO: Need to update this to support BpfApplicationState.
+	// ANF-TODO: Need to update this to support BpfApplicationState.  I haven't
+	// spent much time on it yet, but it doesn't seem like mapOwnerId makes
+	// sense anymore because the maps belong to a BpfApplication, which can be a
+	// collection of bpf programs.
 	return mapOwnerStatus, nil
 
 	// // Parse the MapOwnerSelector label selector.
@@ -536,10 +542,10 @@ func (r *ReconcilerCommon) reconcileBpfAttachment(
 func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object, finalizer string) bool {
 	changed := controllerutil.RemoveFinalizer(o, finalizer)
 	if changed {
-		r.Logger.Info("Calling KubeAPI to remove finalizer from BpfProgram", "object name", o.GetName())
+		r.Logger.Info("Calling KubeAPI to remove finalizer from BpfApplication", "object name", o.GetName())
 		err := r.Update(ctx, o)
 		if err != nil {
-			r.Logger.Error(err, "failed to remove BpfProgram Finalizer")
+			r.Logger.Error(err, "failed to remove BpfApplication Finalizer")
 			return true
 		}
 	}

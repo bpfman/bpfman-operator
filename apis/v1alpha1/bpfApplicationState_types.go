@@ -35,15 +35,7 @@ import (
 // // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
 // // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Tracepoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is Tracepoint, and forbidden otherwise"
 type BpfApplicationProgramState struct {
-	// ProgramAttachStatus records whether the program should be loaded and whether
-	// the program is loaded.
-	ProgramAttachStatus BpfProgramConditionType `json:"programattachstatus"`
-
-	// ProgramId is the id of the program in the kernel.  Not set until the
-	// program is loaded.
-	// +optional
-	ProgramId *uint32 `json:"program_id"`
-
+	BpfProgramStateCommon `json:",inline"`
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
@@ -55,10 +47,10 @@ type BpfApplicationProgramState struct {
 	// +optional
 	XDP *XdpProgramInfoState `json:"xdp,omitempty"`
 
-	// // tc defines the desired state of the application's TcPrograms.
-	// // +unionMember
-	// // +optional
-	// TC *TcProgramInfoState `json:"tc,omitempty"`
+	// tc defines the desired state of the application's TcPrograms.
+	// +unionMember
+	// +optional
+	TC *TcProgramInfoState `json:"tc,omitempty"`
 
 	// tcx defines the desired state of the application's TcxPrograms.
 	// +unionMember
@@ -103,6 +95,8 @@ type BpfApplicationProgramState struct {
 
 // BpfApplicationSpec defines the desired state of BpfApplication
 type BpfApplicationStateSpec struct {
+	// Node is the name of the node for this BpfApplicationStateSpec.
+	Node string `json:"node"`
 	// The number of times the BpfApplicationState has been updated.  Set to 1
 	// when the object is created, then it is incremented prior to each update.
 	// This allows us to verify that the API server has the updated object prior
@@ -114,7 +108,7 @@ type BpfApplicationStateSpec struct {
 	// Programs is a list of bpf programs contained in the parent application.
 	// It is a map from the bpf program name to BpfApplicationProgramState
 	// elements.
-	Programs map[string]BpfApplicationProgramState `json:"programs,omitempty"`
+	Programs []BpfApplicationProgramState `json:"programs,omitempty"`
 }
 
 // +genclient
@@ -125,7 +119,7 @@ type BpfApplicationStateSpec struct {
 
 // BpfApplicationState contains the per-node state of a BpfApplication.
 // ANF-TODO: I can't get the Node to display in the kubectl output.
-// // +kubebuilder:printcolumn:name="Node",type=string,JSONPath=".metadata.labels['kubernetes.io/hostname']"
+// +kubebuilder:printcolumn:name="Node",type=string,JSONPath=".spec.node"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type BpfApplicationState struct {

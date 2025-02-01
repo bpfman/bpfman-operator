@@ -34,7 +34,7 @@ import (
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=tcxprograms,verbs=get;list;watch
 
-// BpfProgramReconciler reconciles a BpfProgram object
+// TcxProgramReconciler contains the info required to reconcile a TcxProgram
 type TcxProgramReconciler struct {
 	ReconcilerCommon
 	ProgramReconcilerCommon
@@ -83,7 +83,7 @@ func (r *TcxProgramReconciler) getAttachStatus() bpfmaniov1alpha1.BpfProgramCond
 
 func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
 
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.TCX.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
+	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
 		mapOwnerId, "ByteCode", r.appCommon.ByteCode)
 
 	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
@@ -102,9 +102,18 @@ func (r *TcxProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Loa
 		attachInfo.Netns = &netns
 	}
 
+	// ANF-TODO: This is a temporary workaround for backwards compatibility.
+	// Fix it after old code removed.
+	var bpfFunctionName string
+	if r.currentProgram.BpfFunctionName != "" {
+		bpfFunctionName = r.currentProgram.BpfFunctionName
+	} else {
+		bpfFunctionName = r.currentProgram.TCX.BpfFunctionName
+	}
+
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentProgram.TCX.BpfFunctionName,
+		Name:        bpfFunctionName,
 		ProgramType: uint32(internal.Tc),
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_TcxAttachInfo{
@@ -128,7 +137,6 @@ func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDele
 	// update this in the next step for all attach points that are still
 	// present.
 	for i := range r.currentProgramState.TCX.AttachPoints {
-		r.Logger.Info("Setting ShouldAttach to false", "index", i)
 		r.currentProgramState.TCX.AttachPoints[i].ShouldAttach = false
 	}
 
@@ -151,7 +159,6 @@ func (r *TcxProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDele
 			index := r.findAttachPoint(attachPoint)
 			if index != nil {
 				// Attach point already exists, so set ShouldAttach to true.
-				r.Logger.Info("Setting ShouldAttach to true", "index", *index)
 				r.currentProgramState.TCX.AttachPoints[*index].AttachInfoCommon.ShouldAttach = true
 			} else {
 				// Attach point doesn't exist, so add it.

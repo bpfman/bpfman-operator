@@ -30,20 +30,15 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		xdpBpfFunctionName    = "XdpTest"
 		tcxBpfFunctionName    = "TcxTest"
 		fentryBpfFunctionName = "FentryTest"
+		fentryAttachFunction  = "FentryAttachTest"
 		priority              = 50
 		fakeNode              = testutils.NewNode("fake-control-plane")
 		fakeInt0              = "eth0"
 		// fakeInt1        = "eth1"
 		ctx = context.TODO()
-		// appProgramId0   = ""
-		// attachPoint0    = fakeInt0
-		// appProgramId1   = ""
-		// attachPoint1    = fakeInt1
-		// bpfProgEth0     = &bpfmaniov1alpha1.BpfProgram{}
-		// bpfProgEth1     = &bpfmaniov1alpha1.BpfProgram{}
-		// fakeUID0        = "ef71d42c-aa21-48e8-a697-82391d801a80"
-		// fakeUID1        = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
+
+	programs := []bpfmaniov1alpha1.BpfApplicationProgram{}
 
 	fakeInts := []string{fakeInt0}
 
@@ -61,19 +56,17 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		ProceedOn:         proceedOn,
 	}
 
-	// A AppProgram object with metadata and spec.
-	programMap := make(map[string]bpfmaniov1alpha1.BpfApplicationProgram)
-
-	programMap[xdpBpfFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	xdpProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+			BpfFunctionName: xdpBpfFunctionName,
+		},
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
 		XDP: &bpfmaniov1alpha1.XdpProgramInfo{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName:     xdpBpfFunctionName,
-				OldMapOwnerSelector: metav1.LabelSelector{},
-			},
 			AttachPoints: []bpfmaniov1alpha1.XdpAttachInfo{xdpAttachInfo},
 		},
 	}
+
+	programs = append(programs, xdpProgram)
 
 	tcxAttachInfo := bpfmaniov1alpha1.TcxAttachInfo{
 		InterfaceSelector: interfaceSelector,
@@ -81,28 +74,32 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		Direction:         "ingress",
 		Priority:          int32(priority),
 	}
-
-	programMap[tcxBpfFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	tcProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+			BpfFunctionName: tcxBpfFunctionName,
+		},
 		Type: bpfmaniov1alpha1.ProgTypeTCX,
 		TCX: &bpfmaniov1alpha1.TcxProgramInfo{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName:     tcxBpfFunctionName,
-				OldMapOwnerSelector: metav1.LabelSelector{},
-			},
 			AttachPoints: []bpfmaniov1alpha1.TcxAttachInfo{tcxAttachInfo},
 		},
 	}
+	programs = append(programs, tcProgram)
 
-	programMap[fentryBpfFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	fentryProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+			BpfFunctionName: fentryBpfFunctionName,
+		},
 		Type: bpfmaniov1alpha1.ProgTypeFentry,
 		Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName:     fentryBpfFunctionName,
-				OldMapOwnerSelector: metav1.LabelSelector{},
+			FentryLoadInfo: bpfmaniov1alpha1.FentryLoadInfo{
+				FunctionName: fentryAttachFunction,
 			},
-			FentryAttachInfo: bpfmaniov1alpha1.FentryAttachInfo{Attach: true},
+			FentryAttachInfo: bpfmaniov1alpha1.FentryAttachInfo{
+				Attach: true,
+			},
 		},
 	}
+	programs = append(programs, fentryProgram)
 
 	bpfApp := &bpfmaniov1alpha1.BpfApplication{
 		ObjectMeta: metav1.ObjectMeta{
@@ -115,7 +112,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			Programs: programMap,
+			Programs: programs,
 		},
 	}
 
@@ -170,7 +167,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Check the BpfProgram Object was created successfully
+	// Check the BpfApplicationState Object was created successfully
 	bpfAppState, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
 	require.NoError(t, err)
 
@@ -187,6 +184,11 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	require.Equal(t, internal.BpfApplicationControllerFinalizer, bpfAppState.Finalizers[0])
 
+	for _, program := range bpfAppState.Spec.Programs {
+		r.Logger.Info("ProgramAttachStatus check", "program", program.BpfFunctionName)
+		require.Equal(t, bpfmaniov1alpha1.BpfProgCondAttachSuccess, program.ProgramAttachStatus)
+	}
+
 	// Do a 2nd reconcile and make sure it doesn't change
 	r.Logger.Info("Second reconcile")
 	res, err = r.Reconcile(ctx, req)
@@ -197,7 +199,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	r.Logger.Info("Second reconcile", "res:", res, "err:", err)
 
-	// Check the BpfProgram Object was created successfully
+	// Check the BpfApplicationState Object was created successfully
 	bpfAppState2, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
 	require.NoError(t, err)
 
@@ -208,9 +210,9 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	// Check that the bpfAppState was not updated
 	require.True(t, reflect.DeepEqual(bpfAppState, bpfAppState2))
 
-	currentProgram := programMap[xdpBpfFunctionName]
+	currentXdpProgram := programs[0]
 
-	attachPoint := bpfAppState2.Spec.Programs[xdpBpfFunctionName].XDP.AttachPoints[0]
+	attachPoint := bpfAppState2.Spec.Programs[0].XDP.AttachPoints[0]
 
 	xdpReconciler := &XdpProgramReconciler{
 		ReconcilerCommon: rc,
@@ -221,7 +223,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			currentProgram:      &currentProgram,
+			currentProgram:      &currentXdpProgram,
 			currentProgramState: &bpfmaniov1alpha1.BpfApplicationProgramState{},
 		},
 		currentAttachPoint: &attachPoint,

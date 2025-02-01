@@ -16,12 +16,13 @@ metadata:
           "spec": {
             "bytecode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/go-app-counter:latest"
+                "url": "quay.io/bpfman-bytecode/app-test:latest"
               }
             },
             "nodeselector": {},
-            "programs": {
-              "tcx_stats": {
+            "programs": [
+              {
+                "bpffunctionname": "tcx_next",
                 "tcx": {
                   "attach_points": [
                     {
@@ -30,13 +31,35 @@ metadata:
                         "primarynodeinterface": true
                       },
                       "priority": 500
+                    },
+                    {
+                      "containers": {
+                        "containernames": [
+                          "bpfman",
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "direction": "egress",
+                      "interfaceselector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 100
                     }
                   ],
-                  "bpffunctionname": "tcx_stats"
+                  "bpffunctionname": "tcx_next"
                 },
                 "type": "TCX"
               },
-              "xdp_stats": {
+              {
+                "bpffunctionname": "xdp_pass",
                 "type": "XDP",
                 "xdp": {
                   "attach_points": [
@@ -60,15 +83,26 @@ metadata:
                         }
                       },
                       "interfaceselector": {
-                        "primarynodeinterface": true
+                        "interfaces": [
+                          "eth0"
+                        ]
                       },
                       "priority": 100
                     }
                   ],
-                  "bpffunctionname": "xdp_stats"
+                  "bpffunctionname": "xdp_pass"
                 }
+              },
+              {
+                "bpffunctionname": "fentry_test",
+                "fentry": {
+                  "attach": true,
+                  "bpffunctionname": "fentry_test",
+                  "function_name": "do_unlinkat"
+                },
+                "type": "Fentry"
               }
-            }
+            ]
           }
         },
         {
@@ -595,7 +629,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-01-24T22:01:22Z"
+    createdAt: "2025-02-02T17:40:09Z"
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "true"

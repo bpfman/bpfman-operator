@@ -76,19 +76,19 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		ProceedOn:         proceedOn,
 	}
 
-	// A AppProgram object with metadata and spec.
-	programMap := make(map[string]bpfmaniov1alpha1.BpfApplicationProgram)
+	programs := []bpfmaniov1alpha1.BpfApplicationProgram{}
 
-	programMap[xdpBpfFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
+	xdpProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+			BpfFunctionName: xdpBpfFunctionName,
+		},
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
 		XDP: &bpfmaniov1alpha1.XdpProgramInfo{
-			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-				BpfFunctionName:     xdpBpfFunctionName,
-				OldMapOwnerSelector: metav1.LabelSelector{},
-			},
 			AttachPoints: []bpfmaniov1alpha1.XdpAttachInfo{attachInfo},
 		},
 	}
+
+	programs = append(programs, xdpProgram)
 
 	// programMap[bpfFentryFunctionName] = bpfmaniov1alpha1.BpfApplicationProgram{
 	// 	Type: bpfmaniov1alpha1.ProgTypeFentry,
@@ -142,7 +142,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Path: &bytecodePath,
 				},
 			},
-			Programs: programMap,
+			Programs: programs,
 		},
 	}
 
@@ -161,7 +161,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 		Spec: bpfmaniov1alpha1.BpfApplicationStateSpec{
 			AppLoadStatus: bpfmaniov1alpha1.BpfProgCondLoaded,
-			Programs:      map[string]bpfmaniov1alpha1.BpfApplicationProgramState{},
+			Programs:      []bpfmaniov1alpha1.BpfApplicationProgramState{},
 		},
 		Status: bpfmaniov1alpha1.BpfAppStatus{
 			Conditions: []metav1.Condition{bpfmaniov1alpha1.ProgramReconcileSuccess.Condition("")},

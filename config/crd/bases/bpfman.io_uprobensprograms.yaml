@@ -173,10 +173,6 @@ spec:
                 type: array
               bpffunctionname:
                 description: |-
-                  ANF-TODO: BpfProgramCommon is deprecated and will be removed.
-                  MapOwnerSelector has been moved to BpfAppCommon and BpfFunctionName is the
-                  key for the Programs list in the BpfApplicationSpec. Do not use in new
-                  load/attach split code.
                   BpfFunctionName is the name of the function that is the entry point for the BPF
                   program
                 type: string
@@ -336,10 +332,14 @@ spec:
                 x-kubernetes-map-type: atomic
               oldmapownerselector:
                 description: |-
-                  OldMapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                  will share a map with. The value is a label applied to the BpfProgram to select.
-                  The selector must resolve to exactly one instance of a BpfProgram on a given node
-                  or the eBPF program will not load.
+                  ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                  new load/attach split code.
+
+
+                  OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                  program will share a map with. The value is a label applied to the
+                  BpfProgram to select. The selector must resolve to exactly one instance
+                  of a BpfProgram on a given node or the eBPF program will not load.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.

@@ -79,16 +79,11 @@ type FentryProgramList struct {
 }
 
 type FentryProgramInfoState struct {
-	// The list of points to which the program should be attached. For Fentry
-	// programs, there will be at most one attach point, but it's being
-	// maintained as a list for consistency with most of the other program
-	// types.
-	// +optional
-	AttachPoints []FentryAttachInfoState `json:"attach_points"`
+	FentryLoadInfo        `json:",inline"`
+	FentryAttachInfoState `json:",inline"`
 }
 
 type FentryAttachInfoState struct {
 	AttachInfoCommon `json:",inline"`
-	// FunctionName is the name of the function to attach the Fentry program to.
-	FunctionName string `json:"function_name"`
+	Attach           bool `json:"attach"`
 }

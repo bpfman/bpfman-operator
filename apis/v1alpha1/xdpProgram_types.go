@@ -85,7 +85,6 @@ type XdpAttachInfo struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=6
 	// +kubebuilder:default:={pass,dispatcher_return}
-
 	ProceedOn []XdpProceedOnValue `json:"proceedon"`
 }
 

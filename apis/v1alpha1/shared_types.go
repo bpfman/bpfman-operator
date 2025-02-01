@@ -67,20 +67,21 @@ type ContainerNsSelector struct {
 	ContainerNames *[]string `json:"containernames,omitempty"`
 }
 
+// ANF-TODO: When we get rid of the old programs, we can remove this from the
+// individual *ProgramInfo structs.
 // BpfProgramCommon defines the common attributes for all BPF programs
 type BpfProgramCommon struct {
-	// ANF-TODO: BpfProgramCommon is deprecated and will be removed.
-	// MapOwnerSelector has been moved to BpfAppCommon and BpfFunctionName is the
-	// key for the Programs list in the BpfApplicationSpec. Do not use in new
-	// load/attach split code.
 	// BpfFunctionName is the name of the function that is the entry point for the BPF
 	// program
 	BpfFunctionName string `json:"bpffunctionname"`
 
-	// OldMapOwnerSelector is used to select the loaded eBPF program this eBPF program
-	// will share a map with. The value is a label applied to the BpfProgram to select.
-	// The selector must resolve to exactly one instance of a BpfProgram on a given node
-	// or the eBPF program will not load.
+	// ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+	// new load/attach split code.
+	//
+	// OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+	// program will share a map with. The value is a label applied to the
+	// BpfProgram to select. The selector must resolve to exactly one instance
+	// of a BpfProgram on a given node or the eBPF program will not load.
 	// +optional
 	OldMapOwnerSelector metav1.LabelSelector `json:"oldmapownerselector"`
 }
@@ -126,7 +127,8 @@ type BpfAppStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
-// AttachInfoCommon reflects the status for one attach point for a given bpf application program
+// AttachInfoCommon reflects the status for one attach point for a given bpf
+// application program
 type AttachInfoCommon struct {
 	// ShouldAttach reflects whether the attachment should exist.
 	ShouldAttach bool `json:"should_attach"`
@@ -138,8 +140,20 @@ type AttachInfoCommon struct {
 	// id.
 	// ANF-TODO: For the POC, this will be the program ID.
 	AttachId *uint32 `json:"attachid"`
-	// AttachStatus reflects whether the attachment has been reconciled successfully, and if not, why.
+	// AttachStatus reflects whether the attachment has been reconciled
+	// successfully, and if not, why.
 	AttachStatus BpfProgramConditionType `json:"attachstatus"`
+}
+
+type BpfProgramStateCommon struct {
+	BpfProgramCommon `json:",inline"`
+	// ProgramAttachStatus records whether the program should be loaded and whether
+	// the program is loaded.
+	ProgramAttachStatus BpfProgramConditionType `json:"programattachstatus"`
+	// ProgramId is the id of the program in the kernel.  Not set until the
+	// program is loaded.
+	// +optional
+	ProgramId *uint32 `json:"program_id"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image

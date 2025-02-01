@@ -26,20 +26,17 @@ import (
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/app-agent/internal"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
-	"github.com/google/uuid"
 
 	v1 "k8s.io/api/core/v1"
 )
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=fentryprograms,verbs=get;list;watch
 
-// BpfProgramReconciler reconciles a BpfProgram object
+// FentryProgramReconciler contains the info required to reconcile a
+// FentryProgram
 type FentryProgramReconciler struct {
 	ReconcilerCommon
 	ProgramReconcilerCommon
-	// ANF-TODO: appCommon is needed to load the program. It won't be needed
-	// after the load/attch split is ready.
-	currentAttachPoint *bpfmaniov1alpha1.FentryAttachInfoState
 }
 
 func (r *FentryProgramReconciler) getProgId() *uint32 {
@@ -59,41 +56,50 @@ func (r *FentryProgramReconciler) getBpfGlobalData() map[string][]byte {
 }
 
 func (r *FentryProgramReconciler) shouldAttach() bool {
-	return r.currentAttachPoint.ShouldAttach
+	return r.currentProgramState.Fentry.ShouldAttach
 }
 
 func (r *FentryProgramReconciler) getUUID() string {
-	return r.currentAttachPoint.UUID
+	return r.currentProgramState.Fentry.UUID
 }
 
 func (r *FentryProgramReconciler) getAttachId() *uint32 {
-	return r.currentAttachPoint.AttachId
+	return r.currentProgramState.Fentry.AttachId
 }
 
 func (r *FentryProgramReconciler) setAttachId(id *uint32) {
-	r.currentAttachPoint.AttachId = id
+	r.currentProgramState.Fentry.AttachId = id
 }
 
 func (r *FentryProgramReconciler) setAttachStatus(status bpfmaniov1alpha1.BpfProgramConditionType) bool {
-	return updateSimpleStatus(&r.currentAttachPoint.AttachStatus, status)
+	return updateSimpleStatus(&r.currentProgramState.Fentry.AttachStatus, status)
 }
 
 func (r *FentryProgramReconciler) getAttachStatus() bpfmaniov1alpha1.BpfProgramConditionType {
-	return r.currentAttachPoint.AttachStatus
+	return r.currentProgramState.Fentry.AttachStatus
 }
 
 func (r *FentryProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.Fentry.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
-		mapOwnerId, "ByteCode", r.appCommon.ByteCode)
+	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName,
+		"mapOwnerId", mapOwnerId, "ByteCode", r.appCommon.ByteCode)
 
 	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}
 
+	// ANF-TODO: This is a temporary workaround for backwards compatibility.
+	// Fix it after old code removed.
+	var bpfFunctionName string
+	if r.currentProgram.BpfFunctionName != "" {
+		bpfFunctionName = r.currentProgram.BpfFunctionName
+	} else {
+		bpfFunctionName = r.currentProgram.Fentry.BpfFunctionName
+	}
+
 	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentProgram.Fentry.BpfFunctionName,
+		Name:        bpfFunctionName,
 		ProgramType: uint32(internal.Tracing),
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_FentryAttachInfo{
@@ -102,7 +108,8 @@ func (r *FentryProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(r.currentAttachPoint.UUID), internal.ProgramNameKey: "BpfApplication"},
+		Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentProgramState.Fentry.UUID),
+			internal.ProgramNameKey: "BpfApplication"},
 		GlobalData: r.appCommon.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
@@ -115,13 +122,7 @@ func (r *FentryProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.
 func (r *FentryProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDeleted bool) error {
 	r.Logger.Info("Fentry updateAttachInfo()", "isBeingDeleted", isBeingDeleted)
 
-	// Set ShouldAttach for all attach points in the node CRD to false.  We'll
-	// update this in the next step for all attach points that are still
-	// present.
-	for i := range r.currentProgramState.Fentry.AttachPoints {
-		r.Logger.Info("Setting ShouldAttach to false", "index", i)
-		r.currentProgramState.Fentry.AttachPoints[i].ShouldAttach = false
-	}
+	r.currentProgramState.Fentry.Attach = r.currentProgram.Fentry.Attach
 
 	if isBeingDeleted {
 		// If the program is being deleted, we don't need to do anything else.
@@ -130,48 +131,13 @@ func (r *FentryProgramReconciler) updateAttachInfo(ctx context.Context, isBeingD
 		// set ShouldAttach to false above, because unloading the program should
 		// remove all attachments and updateAttachInfo won't be called.  We
 		// probably should delete AttachPoints when unloading the program.
+
+		r.currentProgramState.Fentry.ShouldAttach = false
 		return nil
 	}
 
-	// ANF-TODO: Fentry and Fexit just have a single attach point, so we don't
-	// have to do a loop here.  This makes them different from most of the other
-	// program types, so we'd have to handle this if we try to make this
-	// function common.
-	expectedAttachPoints, error := r.getExpectedAttachPoints(ctx, r.currentProgram.Fentry.FentryAttachInfo)
-	if error != nil {
-		return fmt.Errorf("failed to get node attach points: %v", error)
-	}
-	for _, attachPoint := range expectedAttachPoints {
-		index := r.findAttachPoint(attachPoint)
-		if index != nil {
-			// Attach point already exists, so set ShouldAttach to true.
-			r.Logger.Info("Setting ShouldAttach to true", "index", *index)
-			r.currentProgramState.Fentry.AttachPoints[*index].AttachInfoCommon.ShouldAttach = true
-		} else {
-			// Attach point doesn't exist, so add it.
-			r.Logger.Info("Attach point doesn't exist.  Adding it.")
-			r.currentProgramState.Fentry.AttachPoints = append(r.currentProgramState.Fentry.AttachPoints, attachPoint)
-		}
-	}
+	r.currentProgramState.Fentry.ShouldAttach = r.currentProgram.Fentry.Attach
 
-	// If any existing attach point is no longer on a list of expected attach
-	// points, ShouldAttach will remain set to false and it will get detached in
-	// a following step.
-
-	return nil
-}
-
-// ANF-TODO: Confirm what constitutes a match between two attach points.  E.g.,
-// what if everything the same, but the priority and/or proceed_on values are
-// different?
-func (r *FentryProgramReconciler) findAttachPoint(attachInfoState bpfmaniov1alpha1.FentryAttachInfoState) *int {
-	for i, a := range r.currentProgramState.Fentry.AttachPoints {
-		// attachInfoState is the same as a if the the following fields are the
-		// same: FunctionName.
-		if a.FunctionName == attachInfoState.FunctionName {
-			return &i
-		}
-	}
 	return nil
 }
 
@@ -193,64 +159,7 @@ func (r *FentryProgramReconciler) processAttachInfo(ctx context.Context, mapOwne
 		return fmt.Errorf("failed to list loaded bpfman programs: %v", err)
 	}
 
-	// The following map is used to keep track of attach points that need to be
-	// removed.  If it's not empty at the end of the loop, we'll remove the
-	// attach points.
-	attachPointsToRemove := make(map[int]bool)
+	_, err = r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
 
-	var lastReconcileAttachmentError error = nil
-	for i := range r.currentProgramState.Fentry.AttachPoints {
-		r.currentAttachPoint = &r.currentProgramState.Fentry.AttachPoints[i]
-		remove, err := r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
-		if err != nil {
-			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
-			// All errors are logged, but the last error is saved to return and
-			// we continue to process the rest of the attach points so errors
-			// don't block valid attach points.
-			lastReconcileAttachmentError = err
-		}
-
-		if remove {
-			r.Logger.Info("Marking attach point for removal", "index", i)
-			attachPointsToRemove[i] = true
-		}
-	}
-
-	if len(attachPointsToRemove) > 0 {
-		r.Logger.Info("Removing attach points", "attachPointsToRemove", attachPointsToRemove)
-		r.currentProgramState.Fentry.AttachPoints = r.removeAttachPoints(r.currentProgramState.Fentry.AttachPoints, attachPointsToRemove)
-	}
-
-	return lastReconcileAttachmentError
-}
-
-// removeAttachPoints removes attach points from a slice of attach points based on the keys in the map.
-func (r *FentryProgramReconciler) removeAttachPoints(attachPoints []bpfmaniov1alpha1.FentryAttachInfoState, attachPointsToRemove map[int]bool) []bpfmaniov1alpha1.FentryAttachInfoState {
-	var remainingAttachPoints []bpfmaniov1alpha1.FentryAttachInfoState
-	for i, a := range attachPoints {
-		if _, ok := attachPointsToRemove[i]; !ok {
-			remainingAttachPoints = append(remainingAttachPoints, a)
-		}
-	}
-	return remainingAttachPoints
-}
-
-// getInterfaces expands FentryAttachInfo into a list of specific attach points.  It works pretty much like the old getExpectedBpfPrograms.
-func (r *FentryProgramReconciler) getExpectedAttachPoints(ctx context.Context, attachInfo bpfmaniov1alpha1.FentryAttachInfo) ([]bpfmaniov1alpha1.FentryAttachInfoState, error) {
-	attachPoints := []bpfmaniov1alpha1.FentryAttachInfoState{}
-
-	if r.currentProgram.Fentry.Attach {
-		attachPoint := bpfmaniov1alpha1.FentryAttachInfoState{
-			AttachInfoCommon: bpfmaniov1alpha1.AttachInfoCommon{
-				ShouldAttach: r.currentProgram.Fentry.Attach,
-				UUID:         uuid.New().String(),
-				AttachId:     nil,
-				AttachStatus: bpfmaniov1alpha1.BpfProgCondNotAttached,
-			},
-			FunctionName: r.currentProgram.Fentry.FunctionName,
-		}
-		attachPoints = append(attachPoints, attachPoint)
-	}
-
-	return attachPoints, nil
+	return err
 }

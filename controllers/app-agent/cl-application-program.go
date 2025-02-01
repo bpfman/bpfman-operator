@@ -24,6 +24,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
+	"github.com/google/uuid"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -87,10 +88,10 @@ func (r *BpfApplicationReconciler) updateLoadStatus(newCondition bpfmaniov1alpha
 	r.currentAppState.Spec.AppLoadStatus = newCondition
 }
 
-// SetupWithManager sets up the controller with the Manager.
-// The Bpfman-Agent should reconcile whenever a BpfApplication object is updated,
-// load the programs to the node via bpfman, and then create a bpfProgram object
-// to reflect per node state information.
+// SetupWithManager sets up the controller with the Manager. The Bpfman-Agent
+// should reconcile whenever a BpfApplication object is updated, load/unload bpf
+// programs on the node via bpfman, and create or update a BpfApplicationState
+// object to reflect per node state information.
 func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfmaniov1alpha1.BpfApplication{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
@@ -116,14 +117,14 @@ func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger.Info("Enter BpfApplication Reconcile", "Name", req.Name)
-
 	// Initialize node and current program
-	r.currentApp = &bpfmaniov1alpha1.BpfApplication{}
+	// r.currentApp = &bpfmaniov1alpha1.BpfApplication{}
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("cluster-app")
 	r.finalizer = internal.BpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
+
+	r.Logger.Info("Enter BpfApplication Reconcile", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -131,21 +132,20 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			req.NamespacedName, err)
 	}
 
+	// Get the list of existing BpfApplication objects
 	appPrograms := &bpfmaniov1alpha1.BpfApplicationList{}
-
 	opts := []client.ListOption{}
-
 	if err := r.List(ctx, appPrograms, opts...); err != nil {
 		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfApplicationPrograms for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
-
 	if len(appPrograms.Items) == 0 {
 		r.Logger.Info("BpfApplicationController found no application Programs")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	for i, a := range appPrograms.Items {
+	for appProgramIndex := range appPrograms.Items {
+		appProgram := &appPrograms.Items[appProgramIndex]
 		// ANF-TODO: After load/attach split, we will need to load the code defined
 		// in the BpfApplication here one time before we go through the list of
 		// programs.  However, for now, we need to keep the current behavior and
@@ -156,16 +156,17 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		// processed each program and its attachments.
 		// Only list bpfPrograms for this *Program and the controller's node
 
-		r.currentApp = &a
+		r.currentApp = appProgram
 
 		// if bpfAppStateNew is true, then we need to create a new
 		// BpfApplicationState at the end of the reconcile instead of just
 		// updating the existing one.
-		bpfAppState, bpfAppStateNew, err := r.getBpfAppState(ctx, true)
+		appState, bpfAppStateNew, err := r.getBpfAppState(ctx, true)
 		if err != nil {
 			r.Logger.Error(err, "failed to get BpfApplicationState")
 			return ctrl.Result{}, err
 		}
+		r.currentAppState = appState
 
 		// Save a copy of the original BpfApplicationState to check for changes
 		// at the end of the reconcile process. This approach simplifies the
@@ -175,16 +176,13 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		// created anyway.
 		var bpfAppStateOriginal *bpfmaniov1alpha1.BpfApplicationState
 		if !bpfAppStateNew {
-			bpfAppStateOriginal = bpfAppState.DeepCopy()
+			bpfAppStateOriginal = r.currentAppState.DeepCopy()
 		}
 
 		r.Logger.Info("From getBpfAppState", "new", bpfAppStateNew)
 
-		r.currentAppState = bpfAppState
-
-		r.Logger.Info("Calling reconcileLoad()")
-
 		// Make sure the BpfApplication code is loaded on the node.
+		r.Logger.Info("Calling reconcileLoad()")
 		err = r.reconcileLoad(r)
 		if err != nil {
 			// There's no point continuing to reconcile the attachments if we
@@ -205,10 +203,13 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		// to Error if any of the programs have an error.
 		bpfApplicationStatus := bpfmaniov1alpha1.ProgramReconcileSuccess
 
+		// function
+
 		// Reconcile each program in the BpfApplication
-		for progName, prog := range a.Spec.Programs {
-			progState, ok := bpfAppState.Spec.Programs[progName]
-			if !ok {
+		for progIndex := range appProgram.Spec.Programs {
+			prog := &appProgram.Spec.Programs[progIndex]
+			progState, err := r.getProgState(prog, r.currentAppState.Spec.Programs)
+			if err != nil {
 				// ANF-TODO: This entry should have been created when the
 				// BpfApplication was loaded.  If it's not here, then we need to
 				// do another load, and we'll need to work out how to do that.
@@ -219,24 +220,25 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				// may be able to add more seamless support for incremental
 				// loads. However, in this POC code, we're going to log an error
 				// and continue.
-				r.Logger.Error(fmt.Errorf("XdpProgramState not found"),
-					"XdpProgramState not found", "App Name", r.currentApp.Name, "Program Name", progName)
+				r.Logger.Error(fmt.Errorf("ProgramState not found"),
+					"ProgramState not found", "App Name", r.currentApp.Name, "BpfFunctionName", prog.BpfFunctionName)
 				continue
 			}
+
+			var rec ProgramReconciler
 
 			switch prog.Type {
 			// ANF-TODO: Implement support for other program types.
 
 			case bpfmaniov1alpha1.ProgTypeFentry:
-				rec := &FentryProgramReconciler{
+				rec = &FentryProgramReconciler{
 					ReconcilerCommon: r.ReconcilerCommon,
 					ProgramReconcilerCommon: ProgramReconcilerCommon{
 						appCommon:           r.currentApp.Spec.BpfAppCommon,
-						currentProgram:      &prog,
-						currentProgramState: &progState,
+						currentProgram:      prog,
+						currentProgramState: progState,
 					},
 				}
-				err = rec.reconcileProgram(ctx, rec, r.isBeingDeleted())
 
 			// case bpfmaniov1alpha1.ProgTypeFexit:
 			// case bpfmaniov1alpha1.ProgTypeKprobe:
@@ -245,26 +247,24 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			// case bpfmaniov1alpha1.ProgTypeTC:
 
 			case bpfmaniov1alpha1.ProgTypeTCX:
-				rec := &TcxProgramReconciler{
+				rec = &TcxProgramReconciler{
 					ReconcilerCommon: r.ReconcilerCommon,
 					ProgramReconcilerCommon: ProgramReconcilerCommon{
 						appCommon:           r.currentApp.Spec.BpfAppCommon,
-						currentProgram:      &prog,
-						currentProgramState: &progState,
+						currentProgram:      prog,
+						currentProgramState: progState,
 					},
 				}
-				err = rec.reconcileProgram(ctx, rec, r.isBeingDeleted())
 
 			case bpfmaniov1alpha1.ProgTypeXDP:
-				rec := &XdpProgramReconciler{
+				rec = &XdpProgramReconciler{
 					ReconcilerCommon: r.ReconcilerCommon,
 					ProgramReconcilerCommon: ProgramReconcilerCommon{
 						appCommon:           r.currentApp.Spec.BpfAppCommon,
-						currentProgram:      &prog,
-						currentProgramState: &progState,
+						currentProgram:      prog,
+						currentProgramState: progState,
 					},
 				}
-				err = rec.reconcileProgram(ctx, rec, r.isBeingDeleted())
 
 			default:
 				bpfApplicationStatus = bpfmaniov1alpha1.ProgramReconcileError
@@ -273,18 +273,17 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				continue
 			}
 
+			err = rec.reconcileProgram(ctx, rec, r.isBeingDeleted())
 			if err != nil {
-				progState.ProgramAttachStatus = bpfmaniov1alpha1.BpfProgCondAttachError
+				updateSimpleStatus(&progState.ProgramAttachStatus, bpfmaniov1alpha1.BpfProgCondAttachError)
 				bpfApplicationStatus = bpfmaniov1alpha1.ProgramReconcileError
-				r.Logger.Error(err, "reconcile failure", "App Name", r.currentApp.Name, "Program Name", progName, "Type", prog.Type)
+				r.Logger.Error(err, "reconcile program failure", "App Name", r.currentApp.Name, "BpfFunctionName", prog.BpfFunctionName, "Type", prog.Type)
 			} else {
-				progState.ProgramAttachStatus = bpfmaniov1alpha1.BpfProgCondAttached
-				r.Logger.Info("reconcile success", "App Name", r.currentApp.Name, "Program Name", progName, "Type", prog.Type)
+				updateSimpleStatus(&progState.ProgramAttachStatus, bpfmaniov1alpha1.BpfProgCondAttachSuccess)
+				r.Logger.Info("reconcile program success", "App Name", r.currentApp.Name, "BpfFunctionName", prog.BpfFunctionName, "Type", prog.Type)
 			}
 
-			bpfAppState.Spec.Programs[progName] = progState
-
-			r.Logger.Info("Done reconciling program", "Application", i, "Name", r.currentAppState.GetName())
+			r.Logger.Info("Done reconciling program", "Application", appProgramIndex, "Name", r.currentAppState.GetName())
 		}
 
 		// We've completed reconciling all programs and if something has
@@ -321,6 +320,30 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// We're done with all the BpfApplication objects, so we can return.
 	r.Logger.Info("All BpfApplication objects have been reconciled")
 	return ctrl.Result{}, nil
+}
+
+// getProgState returns the BpfApplicationProgramState object for the current node.
+func (r *BpfApplicationReconciler) getProgState(prog *bpfmaniov1alpha1.BpfApplicationProgram,
+	programs []bpfmaniov1alpha1.BpfApplicationProgramState) (*bpfmaniov1alpha1.BpfApplicationProgramState, error) {
+	// ANF-TODO: Finish implementing for other program types.
+	for i := range programs {
+		progState := &programs[i]
+		if progState.Type == prog.Type && progState.BpfFunctionName == prog.BpfFunctionName {
+			switch prog.Type {
+			case bpfmaniov1alpha1.ProgTypeFentry:
+				if progState.Fentry.FunctionName == prog.Fentry.FunctionName {
+					return progState, nil
+				}
+			// case bpfmaniov1alpha1.ProgTypeFexit:
+			// 	if progState.Fexit.FunctionName == prog.Fexit.FunctionName {
+			// 		return &progState, nil
+			// 	}
+			default:
+				return progState, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("BpfApplicationProgramState not found")
 }
 
 // updateBpfAppStateSpec creates or updates the BpfApplicationState object if it is
@@ -423,7 +446,7 @@ func (r *BpfApplicationReconciler) getBpfAppState(ctx context.Context, createIfN
 	}
 	if len(appProgramList.Items) > 1 {
 		// This should never happen, but if it does, return an error
-		return nil, false, fmt.Errorf("more than one BpfProgram found (%d)", len(appProgramList.Items))
+		return nil, false, fmt.Errorf("more than one BpfApplicationState found (%d)", len(appProgramList.Items))
 	}
 	// There are no BpfApplicationStates for this BpfApplication on this node.
 	if createIfNotFound {
@@ -444,9 +467,10 @@ func (r *BpfApplicationReconciler) createBpfAppState() (*bpfmaniov1alpha1.BpfApp
 			},
 		},
 		Spec: bpfmaniov1alpha1.BpfApplicationStateSpec{
+			Node:          r.NodeName,
 			AppLoadStatus: bpfmaniov1alpha1.BpfProgCondNotLoaded,
 			UpdateCount:   0,
-			Programs:      map[string]bpfmaniov1alpha1.BpfApplicationProgramState{},
+			Programs:      []bpfmaniov1alpha1.BpfApplicationProgramState{},
 		},
 		Status: bpfmaniov1alpha1.BpfAppStatus{Conditions: []metav1.Condition{}},
 	}
@@ -465,17 +489,39 @@ func (r *BpfApplicationReconciler) createBpfAppState() (*bpfmaniov1alpha1.BpfApp
 }
 
 func (r *BpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfmaniov1alpha1.BpfApplicationState) error {
+	// The list should only be initialized once when the BpfApplication is first
+	// created.  After that, the user can't add or remove programs.
 	if len(bpfAppState.Spec.Programs) != 0 {
 		return fmt.Errorf("BpfApplicationState programs list has already been initialized")
 	}
 
-	for progName, prog := range r.currentApp.Spec.Programs {
+	for _, prog := range r.currentApp.Spec.Programs {
+		// Check if it's already on the list.  If it is, this is an error
+		// because a given bpf function can only be loaded once per
+		// BpfApplication.
+		_, err := r.getProgState(&prog, bpfAppState.Spec.Programs)
+		if err == nil {
+			return fmt.Errorf("duplicate bpf function detected. bpfFunctionName: %s", prog.BpfFunctionName)
+		}
 		progState := bpfmaniov1alpha1.BpfApplicationProgramState{
+			BpfProgramStateCommon: bpfmaniov1alpha1.BpfProgramStateCommon{
+				BpfProgramCommon:    prog.BpfProgramCommon,
+				ProgramAttachStatus: bpfmaniov1alpha1.BpfProgCondNotAttached,
+			},
 			Type: prog.Type,
 		}
 		switch prog.Type {
 		case bpfmaniov1alpha1.ProgTypeFentry:
-			progState.Fentry = &bpfmaniov1alpha1.FentryProgramInfoState{}
+			progState.Fentry = &bpfmaniov1alpha1.FentryProgramInfoState{
+				FentryLoadInfo: prog.Fentry.FentryLoadInfo,
+				FentryAttachInfoState: bpfmaniov1alpha1.FentryAttachInfoState{
+					AttachInfoCommon: bpfmaniov1alpha1.AttachInfoCommon{
+						AttachStatus: bpfmaniov1alpha1.BpfProgCondNotAttached,
+						UUID:         uuid.New().String(),
+					},
+					Attach: prog.Fentry.Attach,
+				},
+			}
 		case bpfmaniov1alpha1.ProgTypeFexit:
 			panic(fmt.Sprintf("%v not implemented yet", prog.Type))
 		case bpfmaniov1alpha1.ProgTypeKprobe:
@@ -485,7 +531,9 @@ func (r *BpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfman
 		case bpfmaniov1alpha1.ProgTypeTC:
 			panic(fmt.Sprintf("%v not implemented yet", prog.Type))
 		case bpfmaniov1alpha1.ProgTypeTCX:
-			progState.TCX = &bpfmaniov1alpha1.TcxProgramInfoState{}
+			progState.TCX = &bpfmaniov1alpha1.TcxProgramInfoState{
+				AttachPoints: []bpfmaniov1alpha1.TcxAttachInfoState{},
+			}
 		case bpfmaniov1alpha1.ProgTypeTracepoint:
 			panic(fmt.Sprintf("%v not implemented yet", prog.Type))
 		case bpfmaniov1alpha1.ProgTypeUprobe:
@@ -493,12 +541,14 @@ func (r *BpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfman
 		case bpfmaniov1alpha1.ProgTypeUretprobe:
 			panic(fmt.Sprintf("%v not implemented yet", prog.Type))
 		case bpfmaniov1alpha1.ProgTypeXDP:
-			progState.XDP = &bpfmaniov1alpha1.XdpProgramInfoState{}
+			progState.XDP = &bpfmaniov1alpha1.XdpProgramInfoState{
+				AttachPoints: []bpfmaniov1alpha1.XdpAttachInfoState{},
+			}
 		default:
-			panic(fmt.Sprintf("unexpected v1alpha1.EBPFProgType: %#v", prog.Type))
+			panic(fmt.Sprintf("unexpected EBPFProgType: %#v", prog.Type))
 		}
 
-		bpfAppState.Spec.Programs[progName] = progState
+		bpfAppState.Spec.Programs = append(bpfAppState.Spec.Programs, progState)
 	}
 
 	return nil
