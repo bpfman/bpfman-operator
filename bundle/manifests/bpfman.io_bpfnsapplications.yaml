@@ -104,6 +104,56 @@ spec:
                   is responsible for formatting the byte string appropriately considering
                   such things as size, endianness, alignment and packing of data structures.
                 type: object
+              mapownerselector:
+                description: |-
+                  MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+                  will share a map with. The value is a label applied to the BpfProgram to select.
+                  The selector must resolve to exactly one instance of a BpfProgram on a given node
+                  or the eBPF program will not load.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
               nodeselector:
                 description: |-
                   NodeSelector allows the user to specify which nodes to deploy the
@@ -166,106 +216,156 @@ spec:
                       description: tc defines the desired state of the application's
                         TcNsPrograms.
                       properties:
+                        attach_points:
+                          description: |-
+                            The list of points to which the program should be attached.  The list is
+                            optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the eBPF
+                                  program.
+                                properties:
+                                  containernames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              direction:
+                                description: |-
+                                  Direction specifies the direction of traffic the tc program should
+                                  attach to for a given network device.
+                                enum:
+                                - ingress
+                                - egress
+                                type: string
+                              interfaceselector:
+                                description: Selector to determine the network interface
+                                  (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
+                                properties:
+                                  interfaces:
+                                    description: |-
+                                      Interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
+                                    items:
+                                      type: string
+                                    type: array
+                                  primarynodeinterface:
+                                    description: Attach BPF program to the primary
+                                      interface on the node. Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              priority:
+                                description: |-
+                                  Priority specifies the priority of the tc program in relation to
+                                  other programs of the same type with the same attach point. It is a value
+                                  from 0 to 1000 where lower values have higher precedence.
+                                format: int32
+                                maximum: 1000
+                                minimum: 0
+                                type: integer
+                              proceedon:
+                                default:
+                                - pipe
+                                - dispatcher_return
+                                description: |-
+                                  ProceedOn allows the user to call other tc programs in chain on this exit code.
+                                  Multiple values are supported by repeating the parameter.
+                                items:
+                                  enum:
+                                  - unspec
+                                  - ok
+                                  - reclassify
+                                  - shot
+                                  - pipe
+                                  - stolen
+                                  - queued
+                                  - repeat
+                                  - redirect
+                                  - trap
+                                  - dispatcher_return
+                                  type: string
+                                maxItems: 11
+                                type: array
+                            required:
+                            - containers
+                            - direction
+                            - interfaceselector
+                            - priority
+                            type: object
+                          type: array
                         bpffunctionname:
                           description: |-
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        containers:
+                        oldmapownerselector:
                           description: |-
-                            Containers identifies the set of containers in which to attach the eBPF
-                            program.
-                          properties:
-                            containernames:
-                              description: |-
-                                Name(s) of container(s).  If none are specified, all containers in the
-                                pod are selected.
-                              items:
-                                type: string
-                              type: array
-                            pods:
-                              description: |-
-                                Target pods. This field must be specified, to select all pods use
-                                standard metav1.LabelSelector semantics and make it empty.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - pods
-                          type: object
-                        direction:
-                          description: |-
-                            Direction specifies the direction of traffic the tc program should
-                            attach to for a given network device.
-                          enum:
-                          - ingress
-                          - egress
-                          type: string
-                        interfaceselector:
-                          description: Selector to determine the network interface
-                            (or interfaces)
-                          maxProperties: 1
-                          minProperties: 1
-                          properties:
-                            interfaces:
-                              description: |-
-                                Interfaces refers to a list of network interfaces to attach the BPF
-                                program to.
-                              items:
-                                type: string
-                              type: array
-                            primarynodeinterface:
-                              description: Attach BPF program to the primary interface
-                                on the node. Only 'true' accepted.
-                              type: boolean
-                          type: object
-                        mapownerselector:
-                          description: |-
-                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                            will share a map with. The value is a label applied to the BpfProgram to select.
-                            The selector must resolve to exactly one instance of a BpfProgram on a given node
-                            or the eBPF program will not load.
+                            ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                            new load/attach split code.
+
+
+                            OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                            program will share a map with. The value is a label applied to the
+                            BpfProgram to select. The selector must resolve to exactly one instance
+                            of a BpfProgram on a given node or the eBPF program will not load.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -310,149 +410,141 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        priority:
-                          description: |-
-                            Priority specifies the priority of the tc program in relation to
-                            other programs of the same type with the same attach point. It is a value
-                            from 0 to 1000 where lower values have higher precedence.
-                          format: int32
-                          maximum: 1000
-                          minimum: 0
-                          type: integer
-                        proceedon:
-                          default:
-                          - pipe
-                          - dispatcher_return
-                          description: |-
-                            ProceedOn allows the user to call other tc programs in chain on this exit code.
-                            Multiple values are supported by repeating the parameter.
-                          items:
-                            enum:
-                            - unspec
-                            - ok
-                            - reclassify
-                            - shot
-                            - pipe
-                            - stolen
-                            - queued
-                            - repeat
-                            - redirect
-                            - trap
-                            - dispatcher_return
-                            type: string
-                          maxItems: 11
-                          type: array
                       required:
                       - bpffunctionname
-                      - containers
-                      - direction
-                      - interfaceselector
-                      - priority
                       type: object
                     tcx:
                       description: tcx defines the desired state of the application's
                         TcxNsPrograms.
                       properties:
+                        attach_points:
+                          description: |-
+                            The list of points to which the program should be attached.  The list is
+                            optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the eBPF
+                                  program. If Containers is not specified, the BPF program will be attached
+                                  in the root network namespace.
+                                properties:
+                                  containernames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              direction:
+                                description: |-
+                                  Direction specifies the direction of traffic the tcx program should
+                                  attach to for a given network device.
+                                enum:
+                                - ingress
+                                - egress
+                                type: string
+                              interfaceselector:
+                                description: Selector to determine the network interface
+                                  (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
+                                properties:
+                                  interfaces:
+                                    description: |-
+                                      Interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
+                                    items:
+                                      type: string
+                                    type: array
+                                  primarynodeinterface:
+                                    description: Attach BPF program to the primary
+                                      interface on the node. Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              priority:
+                                description: |-
+                                  Priority specifies the priority of the tc program in relation to
+                                  other programs of the same type with the same attach point. It is a value
+                                  from 0 to 1000 where lower values have higher precedence.
+                                format: int32
+                                maximum: 1000
+                                minimum: 0
+                                type: integer
+                            required:
+                            - containers
+                            - direction
+                            - interfaceselector
+                            - priority
+                            type: object
+                          type: array
                         bpffunctionname:
                           description: |-
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        containers:
+                        oldmapownerselector:
                           description: |-
-                            Containers identifies the set of containers in which to attach the eBPF
-                            program.
-                          properties:
-                            containernames:
-                              description: |-
-                                Name(s) of container(s).  If none are specified, all containers in the
-                                pod are selected.
-                              items:
-                                type: string
-                              type: array
-                            pods:
-                              description: |-
-                                Target pods. This field must be specified, to select all pods use
-                                standard metav1.LabelSelector semantics and make it empty.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - pods
-                          type: object
-                        direction:
-                          description: |-
-                            Direction specifies the direction of traffic the tcx program should
-                            attach to for a given network device.
-                          enum:
-                          - ingress
-                          - egress
-                          type: string
-                        interfaceselector:
-                          description: Selector to determine the network interface
-                            (or interfaces)
-                          maxProperties: 1
-                          minProperties: 1
-                          properties:
-                            interfaces:
-                              description: |-
-                                Interfaces refers to a list of network interfaces to attach the BPF
-                                program to.
-                              items:
-                                type: string
-                              type: array
-                            primarynodeinterface:
-                              description: Attach BPF program to the primary interface
-                                on the node. Only 'true' accepted.
-                              type: boolean
-                          type: object
-                        mapownerselector:
-                          description: |-
-                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                            will share a map with. The value is a label applied to the BpfProgram to select.
-                            The selector must resolve to exactly one instance of a BpfProgram on a given node
-                            or the eBPF program will not load.
+                            ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                            new load/attach split code.
+
+
+                            OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                            program will share a map with. The value is a label applied to the
+                            BpfProgram to select. The selector must resolve to exactly one instance
+                            of a BpfProgram on a given node or the eBPF program will not load.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -497,21 +589,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        priority:
-                          description: |-
-                            Priority specifies the priority of the tc program in relation to
-                            other programs of the same type with the same attach point. It is a value
-                            from 0 to 1000 where lower values have higher precedence.
-                          format: int32
-                          maximum: 1000
-                          minimum: 0
-                          type: integer
                       required:
                       - bpffunctionname
-                      - containers
-                      - direction
-                      - interfaceselector
-                      - priority
                       type: object
                     type:
                       description: Type specifies the bpf program type
@@ -526,87 +605,124 @@ spec:
                       description: uprobe defines the desired state of the application's
                         UprobeNsPrograms.
                       properties:
+                        attach_points:
+                          description: |-
+                            The list of points to which the program should be attached.  The list is
+                            optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the uprobe.
+                                  If Containers is not specified, the uprobe will be attached in the
+                                  bpfman-agent container.  The ContainerNsSelector is very flexible and even
+                                  allows the selection of all containers in a cluster.  If an attempt is
+                                  made to attach uprobes to too many containers, it can have a negative
+                                  impact on on the cluster.
+                                properties:
+                                  containernames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              func_name:
+                                description: Function to attach the uprobe to.
+                                type: string
+                              offset:
+                                default: 0
+                                description: Offset added to the address of the function
+                                  for uprobe.
+                                format: int64
+                                type: integer
+                              pid:
+                                description: |-
+                                  Only execute uprobe for given process identification number (PID). If PID
+                                  is not provided, uprobe executes for all PIDs.
+                                format: int32
+                                type: integer
+                              retprobe:
+                                default: false
+                                description: Whether the program is a uretprobe.  Default
+                                  is false
+                                type: boolean
+                              target:
+                                description: Library name or the absolute path to
+                                  a binary or library.
+                                type: string
+                            required:
+                            - containers
+                            - target
+                            type: object
+                          type: array
                         bpffunctionname:
                           description: |-
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        containers:
+                        oldmapownerselector:
                           description: |-
-                            Containers identifies the set of containers in which to attach the uprobe.
-                            If Containers is not specified, the uprobe will be attached in the
-                            bpfman-agent container.  The ContainerNsSelector is very flexible and even
-                            allows the selection of all containers in a cluster.  If an attempt is
-                            made to attach uprobes to too many containers, it can have a negative
-                            impact on on the cluster.
-                          properties:
-                            containernames:
-                              description: |-
-                                Name(s) of container(s).  If none are specified, all containers in the
-                                pod are selected.
-                              items:
-                                type: string
-                              type: array
-                            pods:
-                              description: |-
-                                Target pods. This field must be specified, to select all pods use
-                                standard metav1.LabelSelector semantics and make it empty.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - pods
-                          type: object
-                        func_name:
-                          description: Function to attach the uprobe to.
-                          type: string
-                        mapownerselector:
-                          description: |-
-                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                            will share a map with. The value is a label applied to the BpfProgram to select.
-                            The selector must resolve to exactly one instance of a BpfProgram on a given node
-                            or the eBPF program will not load.
+                            ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                            new load/attach split code.
+
+
+                            OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                            program will share a map with. The value is a label applied to the
+                            BpfProgram to select. The selector must resolve to exactly one instance
+                            of a BpfProgram on a given node or the eBPF program will not load.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -651,117 +767,131 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        offset:
-                          default: 0
-                          description: Offset added to the address of the function
-                            for uprobe.
-                          format: int64
-                          type: integer
-                        pid:
-                          description: |-
-                            Only execute uprobe for given process identification number (PID). If PID
-                            is not provided, uprobe executes for all PIDs.
-                          format: int32
-                          type: integer
-                        retprobe:
-                          default: false
-                          description: Whether the program is a uretprobe.  Default
-                            is false
-                          type: boolean
-                        target:
-                          description: Library name or the absolute path to a binary
-                            or library.
-                          type: string
                       required:
                       - bpffunctionname
-                      - containers
-                      - target
                       type: object
                     uretprobe:
                       description: uretprobe defines the desired state of the application's
                         UretprobeNsPrograms.
                       properties:
+                        attach_points:
+                          description: |-
+                            The list of points to which the program should be attached.  The list is
+                            optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the uprobe.
+                                  If Containers is not specified, the uprobe will be attached in the
+                                  bpfman-agent container.  The ContainerNsSelector is very flexible and even
+                                  allows the selection of all containers in a cluster.  If an attempt is
+                                  made to attach uprobes to too many containers, it can have a negative
+                                  impact on on the cluster.
+                                properties:
+                                  containernames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              func_name:
+                                description: Function to attach the uprobe to.
+                                type: string
+                              offset:
+                                default: 0
+                                description: Offset added to the address of the function
+                                  for uprobe.
+                                format: int64
+                                type: integer
+                              pid:
+                                description: |-
+                                  Only execute uprobe for given process identification number (PID). If PID
+                                  is not provided, uprobe executes for all PIDs.
+                                format: int32
+                                type: integer
+                              retprobe:
+                                default: false
+                                description: Whether the program is a uretprobe.  Default
+                                  is false
+                                type: boolean
+                              target:
+                                description: Library name or the absolute path to
+                                  a binary or library.
+                                type: string
+                            required:
+                            - containers
+                            - target
+                            type: object
+                          type: array
                         bpffunctionname:
                           description: |-
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        containers:
+                        oldmapownerselector:
                           description: |-
-                            Containers identifies the set of containers in which to attach the uprobe.
-                            If Containers is not specified, the uprobe will be attached in the
-                            bpfman-agent container.  The ContainerNsSelector is very flexible and even
-                            allows the selection of all containers in a cluster.  If an attempt is
-                            made to attach uprobes to too many containers, it can have a negative
-                            impact on on the cluster.
-                          properties:
-                            containernames:
-                              description: |-
-                                Name(s) of container(s).  If none are specified, all containers in the
-                                pod are selected.
-                              items:
-                                type: string
-                              type: array
-                            pods:
-                              description: |-
-                                Target pods. This field must be specified, to select all pods use
-                                standard metav1.LabelSelector semantics and make it empty.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - pods
-                          type: object
-                        func_name:
-                          description: Function to attach the uprobe to.
-                          type: string
-                        mapownerselector:
-                          description: |-
-                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                            will share a map with. The value is a label applied to the BpfProgram to select.
-                            The selector must resolve to exactly one instance of a BpfProgram on a given node
-                            or the eBPF program will not load.
+                            ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                            new load/attach split code.
+
+
+                            OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                            program will share a map with. The value is a label applied to the
+                            BpfProgram to select. The selector must resolve to exactly one instance
+                            of a BpfProgram on a given node or the eBPF program will not load.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -806,128 +936,149 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        offset:
-                          default: 0
-                          description: Offset added to the address of the function
-                            for uprobe.
-                          format: int64
-                          type: integer
-                        pid:
-                          description: |-
-                            Only execute uprobe for given process identification number (PID). If PID
-                            is not provided, uprobe executes for all PIDs.
-                          format: int32
-                          type: integer
-                        retprobe:
-                          default: false
-                          description: Whether the program is a uretprobe.  Default
-                            is false
-                          type: boolean
-                        target:
-                          description: Library name or the absolute path to a binary
-                            or library.
-                          type: string
                       required:
                       - bpffunctionname
-                      - containers
-                      - target
                       type: object
                     xdp:
                       description: xdp defines the desired state of the application's
                         XdpNsPrograms.
                       properties:
+                        attach_points:
+                          description: |-
+                            The list of points to which the program should be attached.  The list is
+                            optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the eBPF
+                                  program.
+                                properties:
+                                  containernames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              interfaceselector:
+                                description: Selector to determine the network interface
+                                  (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
+                                properties:
+                                  interfaces:
+                                    description: |-
+                                      Interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
+                                    items:
+                                      type: string
+                                    type: array
+                                  primarynodeinterface:
+                                    description: Attach BPF program to the primary
+                                      interface on the node. Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              priority:
+                                description: |-
+                                  Priority specifies the priority of the bpf program in relation to
+                                  other programs of the same type with the same attach point. It is a value
+                                  from 0 to 1000 where lower values have higher precedence.
+                                format: int32
+                                maximum: 1000
+                                minimum: 0
+                                type: integer
+                              proceedon:
+                                default:
+                                - pass
+                                - dispatcher_return
+                                description: |-
+                                  ProceedOn allows the user to call other xdp programs in chain on this exit code.
+                                  Multiple values are supported by repeating the parameter.
+                                items:
+                                  enum:
+                                  - aborted
+                                  - drop
+                                  - pass
+                                  - tx
+                                  - redirect
+                                  - dispatcher_return
+                                  type: string
+                                maxItems: 6
+                                type: array
+                            required:
+                            - containers
+                            - interfaceselector
+                            - priority
+                            type: object
+                          type: array
                         bpffunctionname:
                           description: |-
                             BpfFunctionName is the name of the function that is the entry point for the BPF
                             program
                           type: string
-                        containers:
+                        oldmapownerselector:
                           description: |-
-                            Containers identifies the set of containers in which to attach the eBPF
-                            program.
-                          properties:
-                            containernames:
-                              description: |-
-                                Name(s) of container(s).  If none are specified, all containers in the
-                                pod are selected.
-                              items:
-                                type: string
-                              type: array
-                            pods:
-                              description: |-
-                                Target pods. This field must be specified, to select all pods use
-                                standard metav1.LabelSelector semantics and make it empty.
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
-                                          type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - pods
-                          type: object
-                        interfaceselector:
-                          description: Selector to determine the network interface
-                            (or interfaces)
-                          maxProperties: 1
-                          minProperties: 1
-                          properties:
-                            interfaces:
-                              description: |-
-                                Interfaces refers to a list of network interfaces to attach the BPF
-                                program to.
-                              items:
-                                type: string
-                              type: array
-                            primarynodeinterface:
-                              description: Attach BPF program to the primary interface
-                                on the node. Only 'true' accepted.
-                              type: boolean
-                          type: object
-                        mapownerselector:
-                          description: |-
-                            MapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                            will share a map with. The value is a label applied to the BpfProgram to select.
-                            The selector must resolve to exactly one instance of a BpfProgram on a given node
-                            or the eBPF program will not load.
+                            ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                            new load/attach split code.
+
+
+                            OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                            program will share a map with. The value is a label applied to the
+                            BpfProgram to select. The selector must resolve to exactly one instance
+                            of a BpfProgram on a given node or the eBPF program will not load.
                           properties:
                             matchExpressions:
                               description: matchExpressions is a list of label selector
@@ -972,38 +1123,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-map-type: atomic
-                        priority:
-                          description: |-
-                            Priority specifies the priority of the bpf program in relation to
-                            other programs of the same type with the same attach point. It is a value
-                            from 0 to 1000 where lower values have higher precedence.
-                          format: int32
-                          maximum: 1000
-                          minimum: 0
-                          type: integer
-                        proceedon:
-                          default:
-                          - pass
-                          - dispatcher_return
-                          description: |-
-                            ProceedOn allows the user to call other xdp programs in chain on this exit code.
-                            Multiple values are supported by repeating the parameter.
-                          items:
-                            enum:
-                            - aborted
-                            - drop
-                            - pass
-                            - tx
-                            - redirect
-                            - dispatcher_return
-                            type: string
-                          maxItems: 6
-                          type: array
                       required:
                       - bpffunctionname
-                      - containers
-                      - interfaceselector
-                      - priority
                       type: object
                   type: object
                   x-kubernetes-validations:
@@ -1034,12 +1155,14 @@ spec:
             - nodeselector
             type: object
           status:
-            description: BpfApplicationStatus defines the observed state of BpfApplication
+            description: BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState
+              object
             properties:
               conditions:
                 description: |-
-                  Conditions houses the global cluster state for the eBPFProgram. The explicit
-                  condition types are defined internally.
+                  For a BpfApplication object, Conditions contains the global cluster state
+                  for the object. For a BpfApplicationState object, Conditions contains the
+                  state of the BpfApplication object on the given node.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for

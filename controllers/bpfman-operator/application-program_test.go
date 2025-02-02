@@ -56,7 +56,58 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 		ctx                       = context.TODO()
 		bpfProgName               = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
+
 	// A AppProgram object with metadata and spec.
+
+	programs := []bpfmaniov1alpha1.BpfApplicationProgram{}
+
+	fentryProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Type: bpfmaniov1alpha1.ProgTypeFentry,
+		Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
+			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+				BpfFunctionName: bpfFentryFunctionName,
+			},
+			FentryLoadInfo:   bpfmaniov1alpha1.FentryLoadInfo{FunctionName: functionFentryName},
+			FentryAttachInfo: bpfmaniov1alpha1.FentryAttachInfo{Attach: true},
+		},
+	}
+
+	programs = append(programs, fentryProgram)
+
+	kprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Type: bpfmaniov1alpha1.ProgTypeKprobe,
+		Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
+			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+				BpfFunctionName: bpfKprobeFunctionName,
+			},
+			AttachPoints: []bpfmaniov1alpha1.KprobeAttachInfo{
+				{
+					FunctionName: functionKprobeName,
+					Offset:       uint64(offset),
+					RetProbe:     retprobe,
+				},
+			},
+		},
+	}
+
+	programs = append(programs, kprobeProgram)
+
+	tracePointProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
+		Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
+			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+				BpfFunctionName: bpfTracepointFunctionName,
+			},
+			AttachPoints: []bpfmaniov1alpha1.TracepointAttachInfo{
+				{
+					Name: tracepointName,
+				},
+			},
+		},
+	}
+
+	programs = append(programs, tracePointProgram)
+
 	App := &bpfmaniov1alpha1.BpfApplication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -68,37 +119,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 					Path: &bytecodePath,
 				},
 			},
-			Programs: []bpfmaniov1alpha1.BpfApplicationProgram{
-				{
-					Type: bpfmaniov1alpha1.ProgTypeFentry,
-					Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfFentryFunctionName,
-						},
-						FunctionName: functionFentryName,
-					},
-				},
-				{
-					Type: bpfmaniov1alpha1.ProgTypeKprobe,
-					Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfKprobeFunctionName,
-						},
-						FunctionName: functionKprobeName,
-						Offset:       uint64(offset),
-						RetProbe:     retprobe,
-					},
-				},
-				{
-					Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-					Tracepoint: &bpfmaniov1alpha1.TracepointProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfTracepointFunctionName,
-						},
-						Names: []string{tracepointName},
-					},
-				},
-			},
+			Programs: programs,
 		},
 	}
 

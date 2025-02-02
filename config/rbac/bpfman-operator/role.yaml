@@ -45,6 +45,14 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfapplicationstates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
   - bpfnsapplications
   verbs:
   - create

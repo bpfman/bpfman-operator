@@ -20,6 +20,8 @@ package v1alpha1
 
 type BpfApplicationExpansion interface{}
 
+type BpfApplicationStateExpansion interface{}
+
 type BpfNsApplicationExpansion interface{}
 
 type BpfNsProgramExpansion interface{}

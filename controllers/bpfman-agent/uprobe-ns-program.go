@@ -121,7 +121,7 @@ func (r *UprobeNsProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&bpfmaniov1alpha1.BpfNsProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfNsProgramTypePredicate(internal.UprobeString),
-				internal.BpfProgramNodePredicate(r.NodeName)),
+				internal.BpfNodePredicate(r.NodeName)),
 			),
 		).
 		// Trigger reconciliation if node labels change since that could make
@@ -145,15 +145,15 @@ func (r *UprobeNsProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *UprobeNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfNsProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfNsProgramList{}
 
-	sanitizedUprobe := sanitize(r.currentUprobeNsProgram.Spec.Target) + "-" + sanitize(r.currentUprobeNsProgram.Spec.FunctionName)
+	sanitizedUprobe := sanitize(r.currentUprobeNsProgram.Spec.AttachPoints[0].Target) + "-" + sanitize(r.currentUprobeNsProgram.Spec.AttachPoints[0].FunctionName)
 
 	// There is a container selector, so see if there are any matching
 	// containers on this node.
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
 		r.getNamespace(),
-		r.currentUprobeNsProgram.Spec.Containers.Pods,
-		r.currentUprobeNsProgram.Spec.Containers.ContainerNames,
+		r.currentUprobeNsProgram.Spec.AttachPoints[0].Containers.Pods,
+		r.currentUprobeNsProgram.Spec.AttachPoints[0].Containers.ContainerNames,
 		r.Logger,
 	)
 	if err != nil {
@@ -164,7 +164,7 @@ func (r *UprobeNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) 
 		// select any containers on this node.
 
 		annotations := map[string]string{
-			internal.UprobeNsProgramTarget:      r.currentUprobeNsProgram.Spec.Target,
+			internal.UprobeNsProgramTarget:      r.currentUprobeNsProgram.Spec.AttachPoints[0].Target,
 			internal.UprobeNsNoContainersOnNode: "true",
 		}
 
@@ -182,7 +182,7 @@ func (r *UprobeNsProgramReconciler) getExpectedBpfPrograms(ctx context.Context) 
 		for i := range *containerInfo {
 			container := (*containerInfo)[i]
 
-			annotations := map[string]string{internal.UprobeNsProgramTarget: r.currentUprobeNsProgram.Spec.Target}
+			annotations := map[string]string{internal.UprobeNsProgramTarget: r.currentUprobeNsProgram.Spec.AttachPoints[0].Target}
 			annotations[internal.UprobeNsContainerPid] = strconv.FormatInt(container.pid, 10)
 
 			attachPoint := fmt.Sprintf("%s-%s-%s",
@@ -268,10 +268,10 @@ func (r *UprobeNsProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.
 	}
 
 	uprobeAttachInfo = &gobpfman.UprobeAttachInfo{
-		FnName:   &r.currentUprobeNsProgram.Spec.FunctionName,
-		Offset:   r.currentUprobeNsProgram.Spec.Offset,
+		FnName:   &r.currentUprobeNsProgram.Spec.AttachPoints[0].FunctionName,
+		Offset:   r.currentUprobeNsProgram.Spec.AttachPoints[0].Offset,
 		Target:   bpfProgram.Annotations[internal.UprobeNsProgramTarget],
-		Retprobe: r.currentUprobeNsProgram.Spec.RetProbe,
+		Retprobe: r.currentUprobeNsProgram.Spec.AttachPoints[0].RetProbe,
 	}
 
 	if hasContainerPid {

@@ -51,7 +51,39 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 		kprobecontainerpid    int32 = 0
 	)
 
-	// A AppProgram object with metadata and spec.
+	programs := []bpfmaniov1alpha1.BpfApplicationProgram{}
+
+	fentryProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Type: bpfmaniov1alpha1.ProgTypeFentry,
+		Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
+			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+				BpfFunctionName: bpfFentryFunctionName,
+			},
+			FentryLoadInfo:   bpfmaniov1alpha1.FentryLoadInfo{FunctionName: fentryFunctionName},
+			FentryAttachInfo: bpfmaniov1alpha1.FentryAttachInfo{Attach: true},
+		},
+	}
+
+	programs = append(programs, fentryProgram)
+
+	kprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Type: bpfmaniov1alpha1.ProgTypeKprobe,
+		Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
+			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
+				BpfFunctionName: bpfKprobeFunctionName,
+			},
+			AttachPoints: []bpfmaniov1alpha1.KprobeAttachInfo{
+				{
+					FunctionName: kprobeFunctionName,
+					Offset:       uint64(kprobeOffset),
+					RetProbe:     kprobeRetprobe,
+				},
+			},
+		},
+	}
+
+	programs = append(programs, kprobeProgram)
+
 	App := &bpfmaniov1alpha1.BpfApplication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -63,28 +95,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			Programs: []bpfmaniov1alpha1.BpfApplicationProgram{
-				{
-					Type: bpfmaniov1alpha1.ProgTypeFentry,
-					Fentry: &bpfmaniov1alpha1.FentryProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfFentryFunctionName,
-						},
-						FunctionName: fentryFunctionName,
-					},
-				},
-				{
-					Type: bpfmaniov1alpha1.ProgTypeKprobe,
-					Kprobe: &bpfmaniov1alpha1.KprobeProgramInfo{
-						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
-							BpfFunctionName: bpfKprobeFunctionName,
-						},
-						FunctionName: kprobeFunctionName,
-						Offset:       uint64(kprobeOffset),
-						RetProbe:     kprobeRetprobe,
-					},
-				},
-			},
+			Programs: programs,
 		},
 	}
 

@@ -880,7 +880,7 @@ func (r *ReconcilerCommon[T, TL]) reconcileProgram(ctx context.Context,
 
 	// Determine if the MapOwnerSelector was set, and if so, see if the MapOwner
 	// ID can be found.
-	mapOwnerStatus, err := r.processMapOwnerParam(ctx, rec, &rec.getBpfProgramCommon().MapOwnerSelector)
+	mapOwnerStatus, err := r.processMapOwnerParam(ctx, rec, &rec.getBpfProgramCommon().OldMapOwnerSelector)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to determine map owner: %v", err)
 	}

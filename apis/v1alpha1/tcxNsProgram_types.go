@@ -41,7 +41,7 @@ type TcxNsProgram struct {
 
 	Spec TcxNsProgramSpec `json:"spec"`
 	// +optional
-	Status TcxProgramStatus `json:"status,omitempty"`
+	Status BpfAppStatus `json:"status,omitempty"`
 }
 
 // TcxNsProgramSpec defines the desired state of TcxNsProgram
@@ -53,12 +53,19 @@ type TcxNsProgramSpec struct {
 // TcxNsProgramInfo defines the TCX Ns Program details
 type TcxNsProgramInfo struct {
 	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcxNsAttachInfo `json:"attach_points"`
+}
 
+type TcxNsAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
 	// Containers identifies the set of containers in which to attach the eBPF
-	// program.
+	// program. If Containers is not specified, the BPF program will be attached
+	// in the root network namespace.
 	Containers ContainerNsSelector `json:"containers"`
 
 	// Direction specifies the direction of traffic the tcx program should

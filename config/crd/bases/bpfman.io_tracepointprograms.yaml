@@ -53,6 +53,21 @@ spec:
           spec:
             description: TracepointProgramSpec defines the desired state of TracepointProgram
             properties:
+              attach_points:
+                description: |-
+                  The list of points to which the program should be attached.  The list is
+                  optional and may be udated after the bpf program has been loaded
+                items:
+                  properties:
+                    name:
+                      description: |-
+                        Name refers to the name of a kernel tracepoint to attach the
+                        bpf program to.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
               bpffunctionname:
                 description: |-
                   BpfFunctionName is the name of the function that is the entry point for the BPF
@@ -163,13 +178,6 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              names:
-                description: |-
-                  Names refers to the names of kernel tracepoints to attach the
-                  bpf program to.
-                items:
-                  type: string
-                type: array
               nodeselector:
                 description: |-
                   NodeSelector allows the user to specify which nodes to deploy the
@@ -219,19 +227,74 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              oldmapownerselector:
+                description: |-
+                  ANF-TODO: MapOwnerSelector has been moved to BpfAppCommon. Do not use in
+                  new load/attach split code.
+
+
+                  OldMapOwnerSelector is used to select the loaded eBPF program this eBPF
+                  program will share a map with. The value is a label applied to the
+                  BpfProgram to select. The selector must resolve to exactly one instance
+                  of a BpfProgram on a given node or the eBPF program will not load.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
             required:
             - bpffunctionname
             - bytecode
-            - names
             - nodeselector
             type: object
           status:
-            description: TracepointProgramStatus defines the observed state of TracepointProgram
+            description: BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState
+              object
             properties:
               conditions:
                 description: |-
-                  Conditions houses the global cluster state for the eBPFProgram. The explicit
-                  condition types are defined internally.
+                  For a BpfApplication object, Conditions contains the global cluster state
+                  for the object. For a BpfApplicationState object, Conditions contains the
+                  state of the BpfApplication object on the given node.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for

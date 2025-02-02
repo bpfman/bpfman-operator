@@ -73,14 +73,18 @@ func TestTcProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &[]string{fakeInt},
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				AttachPoints: []bpfmaniov1alpha1.TcAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &[]string{fakeInt},
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+					},
 				},
 			},
 		},
@@ -233,6 +237,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		fakeUID0        = "ef71d42c-aa21-48e8-a697-82391d801a80"
 		fakeUID1        = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
+
 	// A TcProgram object with metadata and spec.
 	tc := &bpfmaniov1alpha1.TcProgram{
 		ObjectMeta: metav1.ObjectMeta{
@@ -249,14 +254,18 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-					Interfaces: &fakeInts,
-				},
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
-					bpfmaniov1alpha1.TcProceedOnValue("pipe"),
-					bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+				AttachPoints: []bpfmaniov1alpha1.TcAttachInfo{
+					{
+						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+							Interfaces: &fakeInts,
+						},
+						Priority:  0,
+						Direction: direction,
+						ProceedOn: []bpfmaniov1alpha1.TcProceedOnValue{
+							bpfmaniov1alpha1.TcProceedOnValue("pipe"),
+							bpfmaniov1alpha1.TcProceedOnValue("dispatcher_return"),
+						},
+					},
 				},
 			},
 		},

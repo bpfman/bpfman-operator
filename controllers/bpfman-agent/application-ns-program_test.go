@@ -84,14 +84,18 @@ func TestBpfNsApplicationControllerCreate(t *testing.T) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfUprobeFunctionName,
 						},
-						FunctionName: uprobeFunctionName,
-						Target:       uprobeTarget,
-						Offset:       uint64(uprobeOffset),
-						RetProbe:     uprobeRetprobe,
-						Containers: bpfmaniov1alpha1.ContainerNsSelector{
-							Pods: metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"app": "test",
+						AttachPoints: []bpfmaniov1alpha1.UprobeNsAttachInfo{
+							{
+								FunctionName: uprobeFunctionName,
+								Target:       uprobeTarget,
+								Offset:       uint64(uprobeOffset),
+								RetProbe:     uprobeRetprobe,
+								Containers: bpfmaniov1alpha1.ContainerNsSelector{
+									Pods: metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"app": "test",
+										},
+									},
 								},
 							},
 						},
@@ -103,17 +107,21 @@ func TestBpfNsApplicationControllerCreate(t *testing.T) {
 						BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 							BpfFunctionName: bpfXdpFunctionName,
 						},
-						InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
-							Interfaces: &fakeInts,
-						},
-						Priority: 0,
-						ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
-							bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
-						},
-						Containers: bpfmaniov1alpha1.ContainerNsSelector{
-							Pods: metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									"app": "test",
+						AttachPoints: []bpfmaniov1alpha1.XdpNsAttachInfo{
+							{
+								InterfaceSelector: bpfmaniov1alpha1.InterfaceSelector{
+									Interfaces: &fakeInts,
+								},
+								Priority: 0,
+								ProceedOn: []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
+									bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+								},
+								Containers: bpfmaniov1alpha1.ContainerNsSelector{
+									Pods: metav1.LabelSelector{
+										MatchLabels: map[string]string{
+											"app": "test",
+										},
+									},
 								},
 							},
 						},

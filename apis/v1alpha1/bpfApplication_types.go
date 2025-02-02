@@ -68,6 +68,7 @@ const (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Tracepoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is Tracepoint, and forbidden otherwise"
 type BpfApplicationProgram struct {
+	BpfProgramCommon `json:",inline"`
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
@@ -128,17 +129,10 @@ type BpfApplicationProgram struct {
 // BpfApplicationSpec defines the desired state of BpfApplication
 type BpfApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
-
-	// Programs is a list of bpf programs supported for a specific application.
-	// It's possible that the application can selectively choose which program(s)
-	// to run from this list.
-	// +kubebuilder:validation:MinItems:=1
+	// Programs is the list of bpf programs in the BpfApplication that should be
+	// loaded. The application can selectively choose which program(s) to run
+	// from this list based on the optional attach points provided.
 	Programs []BpfApplicationProgram `json:"programs,omitempty"`
-}
-
-// BpfApplicationStatus defines the observed state of BpfApplication
-type BpfApplicationStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
 }
 
 // +genclient
@@ -155,8 +149,8 @@ type BpfApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BpfApplicationSpec   `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Spec   BpfApplicationSpec `json:"spec,omitempty"`
+	Status BpfAppStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

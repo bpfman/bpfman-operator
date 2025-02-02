@@ -32,6 +32,10 @@ func (c *FakeBpfmanV1alpha1) BpfApplications() v1alpha1.BpfApplicationInterface 
 	return &FakeBpfApplications{c}
 }
 
+func (c *FakeBpfmanV1alpha1) BpfApplicationStates() v1alpha1.BpfApplicationStateInterface {
+	return &FakeBpfApplicationStates{c}
+}
+
 func (c *FakeBpfmanV1alpha1) BpfNsApplications(namespace string) v1alpha1.BpfNsApplicationInterface {
 	return &FakeBpfNsApplications{c, namespace}
 }

@@ -22,7 +22,9 @@ import (
 	"os"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanoperator "github.com/bpfman/bpfman-operator/controllers/bpfman-operator"
+	appoperator "github.com/bpfman/bpfman-operator/controllers/app-operator"
+
+	// bpfmanoperator "github.com/bpfman/bpfman-operator/controllers/bpfman-operator"
 	"github.com/bpfman/bpfman-operator/internal"
 
 	osv1 "github.com/openshift/api/security/v1"
@@ -163,22 +165,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	common := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
+	// common := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }
+
+	// commonCluster := bpfmanoperator.ClusterProgramReconciler{
+	// 	ReconcilerCommon: common,
+	// }
+
+	// commonNs := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfNsProgram, bpfmaniov1alpha1.BpfNsProgramList]{
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// }
+
+	// commonNamespace := bpfmanoperator.NamespaceProgramReconciler{
+	// 	ReconcilerCommon: commonNs,
+	// }
+
+	commonApp := appoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
 
-	commonCluster := bpfmanoperator.ClusterProgramReconciler{
-		ReconcilerCommon: common,
-	}
-
-	commonNs := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfNsProgram, bpfmaniov1alpha1.BpfNsProgramList]{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}
-
-	commonNamespace := bpfmanoperator.NamespaceProgramReconciler{
-		ReconcilerCommon: commonNs,
+	commonClusterApp := appoperator.ClusterProgramReconciler{
+		ReconcilerCommon: commonApp,
 	}
 
 	setupLog.Info("Discovering APIs")
@@ -195,8 +206,8 @@ func main() {
 
 	}
 
-	if err = (&bpfmanoperator.BpfmanConfigReconciler{
-		ClusterProgramReconciler: commonCluster,
+	if err = (&appoperator.BpfmanConfigReconciler{
+		ClusterProgramReconciler: commonClusterApp,
 		BpfmanStandardDeployment: internal.BpfmanDaemonManifestPath,
 		CsiDriverDeployment:      internal.BpfmanCsiDriverPath,
 		RestrictedSCC:            internal.BpfmanRestrictedSCCPath,
@@ -206,103 +217,104 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&bpfmanoperator.XdpProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create xdpProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.XdpProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create xdpProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.TcProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.TcProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.TcxProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create tcxProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.TcxProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create tcxProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.TracepointProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.TracepointProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.KprobeProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create kprobeProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.KprobeProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create kprobeProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.UprobeProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create uprobeProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.UprobeProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create uprobeProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.FentryProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create fentryProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.FentryProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create fentryProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.FexitProgramReconciler{
-		ClusterProgramReconciler: commonCluster,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create fexitProgram controller", "controller", "BpfProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.FexitProgramReconciler{
+	// 	ClusterProgramReconciler: commonCluster,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create fexitProgram controller", "controller", "BpfProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.BpfApplicationReconciler{
-		ClusterProgramReconciler: commonCluster,
+	if err = (&appoperator.BpfApplicationReconciler{
+		ClusterProgramReconciler: commonClusterApp,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BpfApplication")
 		os.Exit(1)
 	}
 
-	if err = (&bpfmanoperator.TcNsProgramReconciler{
-		NamespaceProgramReconciler: commonNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfNsProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.TcNsProgramReconciler{
+	// 	NamespaceProgramReconciler: commonNamespace,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfNsProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.TcxNsProgramReconciler{
-		NamespaceProgramReconciler: commonNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create tcxNsProgram controller", "controller", "BpfNsProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.TcxNsProgramReconciler{
+	// 	NamespaceProgramReconciler: commonNamespace,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create tcxNsProgram controller", "controller", "BpfNsProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.UprobeNsProgramReconciler{
-		NamespaceProgramReconciler: commonNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create uprobeNsProgram controller", "controller", "BpfNsProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.UprobeNsProgramReconciler{
+	// 	NamespaceProgramReconciler: commonNamespace,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create uprobeNsProgram controller", "controller", "BpfNsProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.XdpNsProgramReconciler{
-		NamespaceProgramReconciler: commonNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create xdpNsProgram controller", "controller", "BpfNsProgram")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.XdpNsProgramReconciler{
+	// 	NamespaceProgramReconciler: commonNamespace,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create xdpNsProgram controller", "controller", "BpfNsProgram")
+	// 	os.Exit(1)
+	// }
 
-	if err = (&bpfmanoperator.BpfNsApplicationReconciler{
-		NamespaceProgramReconciler: commonNamespace,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BpfNsApplication")
-		os.Exit(1)
-	}
+	// if err = (&bpfmanoperator.BpfNsApplicationReconciler{
+	// 	NamespaceProgramReconciler: commonNamespace,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "BpfNsApplication")
+	// 	os.Exit(1)
+	// }
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

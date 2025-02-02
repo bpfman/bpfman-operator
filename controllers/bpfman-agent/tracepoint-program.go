@@ -119,7 +119,7 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&bpfmaniov1alpha1.BpfProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfProgramTypePredicate(internal.Tracepoint.String()),
-				internal.BpfProgramNodePredicate(r.NodeName)),
+				internal.BpfNodePredicate(r.NodeName)),
 			),
 		).
 		// Only trigger reconciliation if node labels change since that could
@@ -136,17 +136,16 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
-		attachPoint := sanitize(tracepoint)
-		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
+	tracepoint := r.currentTracepointProgram.Spec.AttachPoints[0].Name
+	attachPoint := sanitize(tracepoint)
+	annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
-		prog, err := r.createBpfProgram(attachPoint, r, annotations)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
-		}
-
-		progs.Items = append(progs.Items, *prog)
+	prog, err := r.createBpfProgram(attachPoint, r, annotations)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", attachPoint, err)
 	}
+
+	progs.Items = append(progs.Items, *prog)
 
 	return progs, nil
 }

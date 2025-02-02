@@ -9,50 +9,88 @@ spec:
   nodeselector: {}
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/go-app-counter:latest
+      url: quay.io/bpfman-bytecode/app-test:latest
   programs:
-    - type: Kprobe
-      kprobe:
-        bpffunctionname: kprobe_counter
-        func_name: try_to_wake_up
-        offset: 0
-        retprobe: false
-    - type: Tracepoint
-      tracepoint:
-        bpffunctionname: tracepoint_kill_recorder
-        names:
-          - syscalls/sys_enter_kill
-    - type: TC
-      tc:
-        bpffunctionname: stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
-        direction: ingress
-    - type: TCX
+    # - type: Kprobe
+    #   kprobe:
+    #     bpffunctionname: kprobe_counter
+    #     attach_points:
+    #       - func_name: try_to_wake_up
+    #         offset: 0
+    #         retprobe: false
+    # - type: Tracepoint
+    #   tracepoint:
+    #     bpffunctionname: tracepoint_kill_recorder
+    #     attach_points:
+    #       - name: syscalls/sys_enter_kill
+    # - type: TC
+    #   tc:
+    #     bpffunctionname: stats
+    #     attach_points:
+    #       - interfaceselector:
+    #           primarynodeinterface: true
+    #         priority: 55
+    #         direction: ingress
+    - bpffunctionname: tcx_next
+      type: TCX
       tcx:
-        bpffunctionname: tcx_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 500
-        direction: ingress
-    - type: Uprobe
-      uprobe:
-        bpffunctionname: uprobe_counter
-        func_name: malloc
-        target: libc
-        retprobe: false
-        containers:
-          namespace: bpfman
-          pods:
-            matchLabels:
-              name: bpfman-daemon
-          containernames:
-            - bpfman
-            - bpfman-agent
-    - type: XDP
+        bpffunctionname: tcx_next
+        attach_points:
+          - interfaceselector:
+              primarynodeinterface: true
+            priority: 500
+            direction: ingress
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: egress
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containernames:
+                - bpfman
+                - bpfman-agent
+    # - type: Uprobe
+    #   uprobe:
+    #     bpffunctionname: uprobe_counter
+    #     attach_points:
+    #       - func_name: malloc
+    #         target: libc
+    #         retprobe: false
+    #         containers:
+    #           namespace: bpfman
+    #           pods:
+    #             matchLabels:
+    #               name: bpfman-daemon
+    #           containernames:
+    #             - bpfman
+    #             - bpfman-agent
+    - bpffunctionname: xdp_pass
+      type: XDP
       xdp:
-        bpffunctionname: xdp_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
+        bpffunctionname: xdp_pass
+        attach_points:
+          - interfaceselector:
+              primarynodeinterface: true
+            priority: 55
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 100
+            containers:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
+              containernames:
+                - bpfman
+                - bpfman-agent
+    - bpffunctionname: fentry_test
+      type: Fentry
+      fentry:
+        bpffunctionname: fentry_test
+        function_name: do_unlinkat
+        attach: true    

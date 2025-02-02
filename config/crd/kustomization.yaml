@@ -18,6 +18,7 @@ resources:
   - bases/bpfman.io_xdpnsprograms.yaml
   - bases/bpfman.io_uprobensprograms.yaml
   - bases/bpfman.io_bpfnsapplications.yaml
+  - bases/bpfman.io_bpfapplicationstates.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

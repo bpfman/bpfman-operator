@@ -120,8 +120,8 @@ func reconcileBpfProgram[T BpfProgOper, TL BpfProgListOper[T]](
 		for _, node := range nodes.Items {
 			nodeFound := false
 			for _, program := range (*bpfPrograms).GetItems() {
-				bpfProgramNode := program.GetLabels()[internal.K8sHostLabel]
-				if node.Name == bpfProgramNode {
+				bpfProgramState := program.GetLabels()[internal.K8sHostLabel]
+				if node.Name == bpfProgramState {
 					nodeFound = true
 					break
 				}

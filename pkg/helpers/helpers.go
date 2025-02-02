@@ -326,3 +326,23 @@ func IsBpfProgramConditionFailure(conditions *[]metav1.Condition) bool {
 
 	return false
 }
+
+func IsBpfAppStateConditionFailure(conditions *[]metav1.Condition) bool {
+	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
+		return true
+	}
+
+	numConditions := len(*conditions)
+
+	if numConditions > 1 {
+		// We should only ever have one condition so log a message, but
+		// still look at (*conditions)[0].
+		log.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+	}
+
+	if (*conditions)[0].Type == string(bpfmaniov1alpha1.ProgramReconcileSuccess) {
+		return false
+	} else {
+		return true
+	}
+}

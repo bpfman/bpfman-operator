@@ -84,14 +84,18 @@ func TestUprobeNsProgramControllerCreate(t *testing.T) {
 				BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 					BpfFunctionName: bpfFunctionName,
 				},
-				FunctionName: functionName,
-				Target:       target,
-				Offset:       uint64(offset),
-				RetProbe:     retprobe,
-				Containers: bpfmaniov1alpha1.ContainerNsSelector{
-					Pods: metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app": fakePodName,
+				AttachPoints: []bpfmaniov1alpha1.UprobeNsAttachInfo{
+					{
+						FunctionName: functionName,
+						Target:       target,
+						Offset:       uint64(offset),
+						RetProbe:     retprobe,
+						Containers: bpfmaniov1alpha1.ContainerNsSelector{
+							Pods: metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": fakePodName,
+								},
+							},
 						},
 					},
 				},
