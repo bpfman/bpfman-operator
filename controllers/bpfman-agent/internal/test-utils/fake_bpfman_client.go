@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2025.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,7 +56,14 @@ func NewBpfmanClientFakeWithPrograms(programs map[int]*gobpfman.ListResponse_Lis
 }
 
 func (b *BpfmanClientFake) Load(ctx context.Context, in *gobpfman.LoadRequest, opts ...grpc.CallOption) (*gobpfman.LoadResponse, error) {
-	id := rand.Intn(100)
+	var id int
+	for {
+		id = rand.Intn(30000)
+		if _, ok := b.LoadRequests[id]; !ok {
+			break
+		}
+	}
+
 	b.LoadRequests[id] = in
 
 	b.Programs[id] = loadRequestToListResult(in, uint32(id))

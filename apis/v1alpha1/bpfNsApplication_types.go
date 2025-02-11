@@ -26,12 +26,15 @@ import (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TC' ?  has(self.tc) : !has(self.tc)",message="tc configuration is required when type is TC, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TCX' ?  has(self.tcx) : !has(self.tcx)",message="tcx configuration is required when type is TCX, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uprobe' ?  has(self.uprobe) : !has(self.uprobe)",message="uprobe configuration is required when type is Uprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
 type BpfNsApplicationProgram struct {
+	// BpfFunctionName is the name of the function that is the entry point for the BPF
+	// program
+	BpfFunctionName string `json:"bpffunctionname"`
+
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"Uprobe";"Uretprobe"
+	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"Uprobe"
 	Type EBPFProgType `json:"type,omitempty"`
 
 	// xdp defines the desired state of the application's XdpNsPrograms.
@@ -53,28 +56,23 @@ type BpfNsApplicationProgram struct {
 	// +unionMember
 	// +optional
 	Uprobe *UprobeNsProgramInfo `json:"uprobe,omitempty"`
-
-	// uretprobe defines the desired state of the application's UretprobeNsPrograms.
-	// +unionMember
-	// +optional
-	Uretprobe *UprobeNsProgramInfo `json:"uretprobe,omitempty"`
 }
 
 // BpfApplicationSpec defines the desired state of BpfApplication
 type BpfNsApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
 
-	// Programs is a list of bpf programs supported for a specific application.
-	// It's possible that the application can selectively choose which program(s)
-	// to run from this list.
+	// Programs is the list of bpf programs in the BpfNsApplication that should be
+	// loaded. The application can selectively choose which program(s) to run
+	// from this list based on the optional attach points provided.
 	// +kubebuilder:validation:MinItems:=1
 	Programs []BpfNsApplicationProgram `json:"programs,omitempty"`
 }
 
 // +genclient
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Namespaced
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 
 // BpfNsApplication is the Schema for the bpfapplications API
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
@@ -85,7 +83,7 @@ type BpfNsApplication struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   BpfNsApplicationSpec `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Status BpfAppStatus         `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

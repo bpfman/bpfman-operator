@@ -8,7 +8,7 @@ data:
   bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest
   bpfman.image: quay.io/bpfman/bpfman:latest
   ## Can be set to "info", "debug", or "trace"
-  bpfman.agent.log.level: info
+  bpfman.agent.log.level: debug
   ## See https://docs.rs/env_logger/latest/env_logger/ for configuration options
   bpfman.log.level: info
   bpfman.agent.healthprobe.addr: :8175
@@ -18,3 +18,6 @@ data:
     [database]
     max_retries = 30
     millisec_delay = 10000
+    [signing]
+    allow_unsigned = true
+    verify_enabled = false

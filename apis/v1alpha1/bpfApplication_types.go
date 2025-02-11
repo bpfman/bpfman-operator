@@ -42,14 +42,8 @@ const (
 	// ProgTypeKprobe refers to the Kprobe program type.
 	ProgTypeKprobe EBPFProgType = "Kprobe"
 
-	// ProgTypeKretprobe refers to the Kprobe program type.
-	ProgTypeKretprobe EBPFProgType = "Kretprobe"
-
 	// ProgTypeUprobe refers to the Uprobe program type.
 	ProgTypeUprobe EBPFProgType = "Uprobe"
-
-	// ProgTypeUretprobe refers to the Uretprobe program type.
-	ProgTypeUretprobe EBPFProgType = "Uretprobe"
 
 	// ProgTypeTracepoint refers to the Tracepoint program type.
 	ProgTypeTracepoint EBPFProgType = "Tracepoint"
@@ -62,16 +56,16 @@ const (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TCX' ?  has(self.tcx) : !has(self.tcx)",message="tcx configuration is required when type is TCX, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Fentry' ?  has(self.fentry) : !has(self.fentry)",message="fentry configuration is required when type is Fentry, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Fexit' ?  has(self.fexit) : !has(self.fexit)",message="fexit configuration is required when type is Fexit, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Kprobe' ?  has(self.kprobe) : !has(self.kprobe)",message="kprobe configuration is required when type is Kprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Kretprobe' ?  has(self.kretprobe) : !has(self.kretprobe)",message="kretprobe configuration is required when type is Kretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uprobe' ?  has(self.uprobe) : !has(self.uprobe)",message="uprobe configuration is required when type is Uprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Uretprobe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is Uretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'Tracepoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is Tracepoint, and forbidden otherwise"
 type BpfApplicationProgram struct {
+	// BpfFunctionName is the name of the function that is the entry point for the BPF
+	// program
+	BpfFunctionName string `json:"bpffunctionname"`
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"Fentry";"Fexit";"Kprobe";"Kretprobe";"Uprobe";"Uretprobe";"Tracepoint"
+	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"Fentry";"Fexit";"Kprobe";"Uprobe";"Tracepoint"
 	Type EBPFProgType `json:"type,omitempty"`
 
 	// xdp defines the desired state of the application's XdpPrograms.
@@ -104,20 +98,10 @@ type BpfApplicationProgram struct {
 	// +optional
 	Kprobe *KprobeProgramInfo `json:"kprobe,omitempty"`
 
-	// kretprobe defines the desired state of the application's KretprobePrograms.
-	// +unionMember
-	// +optional
-	Kretprobe *KprobeProgramInfo `json:"kretprobe,omitempty"`
-
 	// uprobe defines the desired state of the application's UprobePrograms.
 	// +unionMember
 	// +optional
 	Uprobe *UprobeProgramInfo `json:"uprobe,omitempty"`
-
-	// uretprobe defines the desired state of the application's UretprobePrograms.
-	// +unionMember
-	// +optional
-	Uretprobe *UprobeProgramInfo `json:"uretprobe,omitempty"`
 
 	// tracepoint defines the desired state of the application's TracepointPrograms.
 	// +unionMember
@@ -128,24 +112,18 @@ type BpfApplicationProgram struct {
 // BpfApplicationSpec defines the desired state of BpfApplication
 type BpfApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
-
-	// Programs is a list of bpf programs supported for a specific application.
-	// It's possible that the application can selectively choose which program(s)
-	// to run from this list.
+	// Programs is the list of bpf programs in the BpfApplication that should be
+	// loaded. The application can selectively choose which program(s) to run
+	// from this list based on the optional attach points provided.
 	// +kubebuilder:validation:MinItems:=1
 	Programs []BpfApplicationProgram `json:"programs,omitempty"`
 }
 
-// BpfApplicationStatus defines the observed state of BpfApplication
-type BpfApplicationStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
-}
-
 // +genclient
 // +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // BpfApplication is the Schema for the bpfapplications API
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
@@ -155,8 +133,8 @@ type BpfApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BpfApplicationSpec   `json:"spec,omitempty"`
-	Status BpfApplicationStatus `json:"status,omitempty"`
+	Spec   BpfApplicationSpec `json:"spec,omitempty"`
+	Status BpfAppStatus       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
