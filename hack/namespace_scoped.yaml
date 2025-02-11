@@ -42,7 +42,6 @@ rules:
     - watch
 - apiGroups:
     - bpfman.io
-  # resources: ['xdpnsprograms']
   resources: ['bpfnsapplications', 'tcnsprograms', 'tcxnsprograms', 'uprobensprograms', 'xdpnsprograms']
   verbs:
     - create
@@ -51,6 +50,7 @@ rules:
     - list
     - update
     - watch
+    - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
