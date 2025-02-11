@@ -140,7 +140,7 @@ spec:
             - mountPath: /etc/crictl.yaml
               name: host-crictl-config
         - name: node-driver-registrar
-          image: quay.io/bpfman/csi-node-driver-registrar:v2.9.0
+          image: quay.io/bpfman/csi-node-driver-registrar:v2.13.0
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
