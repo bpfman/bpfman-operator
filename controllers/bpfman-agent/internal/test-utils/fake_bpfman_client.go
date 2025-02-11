@@ -19,7 +19,6 @@ package testutils
 import (
 	"context"
 	"fmt"
-	"math/rand"
 
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	grpc "google.golang.org/grpc"
@@ -55,8 +54,12 @@ func NewBpfmanClientFakeWithPrograms(programs map[int]*gobpfman.ListResponse_Lis
 	}
 }
 
+var currentID = 1000
+
 func (b *BpfmanClientFake) Load(ctx context.Context, in *gobpfman.LoadRequest, opts ...grpc.CallOption) (*gobpfman.LoadResponse, error) {
-	id := rand.Intn(100)
+	currentID++
+	id := currentID
+
 	b.LoadRequests[id] = in
 
 	b.Programs[id] = loadRequestToListResult(in, uint32(id))
