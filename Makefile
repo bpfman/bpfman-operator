@@ -309,7 +309,9 @@ bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests a
 	      -e 's@bpfman\.agent\.image=.*@bpfman.agent.image=$(BPFMAN_AGENT_IMG)@' \
 		  kustomization.yaml.env > kustomization.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
-	cp config/manifests/dependencies.yaml bundle/metadata/
+	# Temporarily remove the dependency on security-profiles-operator until issue is fixed
+	# https://github.com/kubernetes-sigs/security-profiles-operator/issues/2699
+	# cp config/manifests/dependencies.yaml bundle/metadata/
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: build-release-yamls
