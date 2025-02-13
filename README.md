@@ -5,9 +5,10 @@
 [![License][apache2-badge]][apache2-url]
 ![Build status][build-badge]
 [![Book][book-badge]][book-url]
-[![Project maturity: alpha][project-maturity]]() 
+![Project maturity: alpha][project-maturity]
 [![Go report card][go-report-card-badge]][go-report-card-report]
 [![OpenSSF Scorecard][openssf-badge]][openssf-url]
+[![FOSSA Status][fossa-badge]][fossa-url]
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [apache2-url]: https://opensource.org/licenses/Apache-2.0
@@ -19,6 +20,8 @@
 [go-report-card-report]: https://goreportcard.com/report/github.com/bpfman/bpfman-operator
 [openssf-badge]: https://api.scorecard.dev/projects/github.com/bpfman/bpfman-operator/badge
 [openssf-url]: https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman-operator
+[fossa-badge]: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman-operator.svg?type=shield
+[fossa-url]: https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman-operator?ref=badge_shield
 
 bpfman is a Cloud Native Computing Foundation Sandbox project
 
@@ -59,3 +62,7 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=bpfman/bpfman-operator&type=Date" />
  </picture>
 </a>
+
+## License
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman-operator.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman-operator?ref=badge_large)
