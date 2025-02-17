@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.5
 
 require (
-	github.com/bpfman/bpfman v0.5.5
+	github.com/bpfman/bpfman v0.5.6
 	github.com/containers/image/v5 v5.34.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/go-cmp v0.6.0
