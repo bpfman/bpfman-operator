@@ -40,7 +40,7 @@ LABEL name="bpfman-operator" \
       io.openshift.tags="bpfman-operator" \
       version="0.5.6" \
       release="0.5.6" \
-      url="https://github.com/bpfman/bpfman-operator" \
+      url="https://github.com/openshift/bpfman-operator" \
       vendor="Red Hat, Inc." \
       summary="Bpfman Operator"
 
