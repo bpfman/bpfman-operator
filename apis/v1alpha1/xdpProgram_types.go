@@ -18,44 +18,18 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-// +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// XdpProgram is the Schema for the XdpPrograms API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
-// +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
-// +kubebuilder:printcolumn:name="ProceedOn",type=string,JSONPath=`.spec.proceedon`,priority=1
-type XdpProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec XdpProgramSpec `json:"spec"`
-	// +optional
-	Status XdpProgramStatus `json:"status,omitempty"`
-}
-
 // +kubebuilder:validation:Enum=aborted;drop;pass;tx;redirect;dispatcher_return
 type XdpProceedOnValue string
 
-// XdpProgramSpec defines the desired state of XdpProgram
-type XdpProgramSpec struct {
-	XdpProgramInfo `json:",inline"`
-	BpfAppCommon   `json:",inline"`
+// XdpProgramInfo contains the xdp program details
+type XdpProgramInfo struct {
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []XdpAttachInfo `json:"attach_points"`
 }
 
-// XdpProgramInfo defines the common fields for all XdpProgram types
-type XdpProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
+type XdpAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -77,19 +51,38 @@ type XdpProgramInfo struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=6
 	// +kubebuilder:default:={pass,dispatcher_return}
-
 	ProceedOn []XdpProceedOnValue `json:"proceedon"`
 }
 
-// XdpProgramStatus defines the observed state of XdpProgram
-type XdpProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+type XdpProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
+	// in *AttachInfoState represents a specific, unique attach point that is
+	// derived from *AttachInfo by fully expanding any selectors.  Each entry
+	// also contains information about the attach point required by the
+	// reconciler
+	// +optional
+	AttachPoints []XdpAttachInfoState `json:"attach_points"`
 }
 
-// +kubebuilder:object:root=true
-// XdpProgramList contains a list of XdpPrograms
-type XdpProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []XdpProgram `json:"items"`
+type XdpAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
+
+	// Interface name to attach the xdp program to.
+	IfName string `json:"ifname"`
+
+	// Optional container pid to attach the xdp program in.
+	// +optional
+	ContainerPid *int32 `json:"containerpid"`
+
+	// Priority specifies the priority of the xdp program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
+
+	// ProceedOn allows the user to call other xdp programs in chain on this exit code.
+	// Multiple values are supported by repeating the parameter.
+	// +kubebuilder:validation:MaxItems=6
+	ProceedOn []XdpProceedOnValue `json:"proceedon"`
 }

@@ -20,4 +20,4 @@ metadata:
 data:
   ## Can be configured at runtime
   bpfman.log.level: info
-  bpfman.agent.log.level: info
+  bpfman.agent.log.level: debug

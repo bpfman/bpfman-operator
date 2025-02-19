@@ -18,46 +18,18 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-// +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// TcProgram is the Schema for the TcProgram API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
-// +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`,priority=1
-// +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
-// +kubebuilder:printcolumn:name="ProceedOn",type=string,JSONPath=`.spec.proceedon`,priority=1
-type TcProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec TcProgramSpec `json:"spec"`
-	// +optional
-	Status TcProgramStatus `json:"status,omitempty"`
-}
-
 // +kubebuilder:validation:Enum=unspec;ok;reclassify;shot;pipe;stolen;queued;repeat;redirect;trap;dispatcher_return
 type TcProceedOnValue string
 
-// TcProgramSpec defines the desired state of TcProgram
-type TcProgramSpec struct {
-	TcProgramInfo `json:",inline"`
-	BpfAppCommon  `json:",inline"`
-}
-
 // TcProgramInfo defines the tc program details
 type TcProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TcAttachInfo `json:"attach_points"`
+}
 
+type TcAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
@@ -67,17 +39,17 @@ type TcProgramInfo struct {
 	// +optional
 	Containers *ContainerSelector `json:"containers"`
 
+	// Direction specifies the direction of traffic the tc program should
+	// attach to for a given network device.
+	// +kubebuilder:validation:Enum=ingress;egress
+	Direction string `json:"direction"`
+
 	// Priority specifies the priority of the tc program in relation to
 	// other programs of the same type with the same attach point. It is a value
 	// from 0 to 1000 where lower values have higher precedence.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
 	Priority int32 `json:"priority"`
-
-	// Direction specifies the direction of traffic the tc program should
-	// attach to for a given network device.
-	// +kubebuilder:validation:Enum=ingress;egress
-	Direction string `json:"direction"`
 
 	// ProceedOn allows the user to call other tc programs in chain on this exit code.
 	// Multiple values are supported by repeating the parameter.
@@ -87,15 +59,40 @@ type TcProgramInfo struct {
 	ProceedOn []TcProceedOnValue `json:"proceedon"`
 }
 
-// TcProgramStatus defines the observed state of TcProgram
-type TcProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+type TcProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
+	// in *AttachInfoState represents a specific, unique attach point that is
+	// derived from *AttachInfo by fully expanding any selectors.  Each entry
+	// also contains information about the attach point required by the
+	// reconciler
+	// +optional
+	AttachPoints []TcAttachInfoState `json:"attach_points"`
 }
 
-// +kubebuilder:object:root=true
-// TcProgramList contains a list of TcPrograms
-type TcProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []TcProgram `json:"items"`
+type TcAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
+
+	// Interface name to attach the tc program to.
+	IfName string `json:"ifname"`
+
+	// Optional container pid to attach the tc program in.
+	// +optional
+	ContainerPid *int32 `json:"containerpid"`
+
+	// Direction specifies the direction of traffic the tc program should
+	// attach to for a given network device.
+	// +kubebuilder:validation:Enum=ingress;egress
+	Direction string `json:"direction"`
+
+	// Priority specifies the priority of the tc program in relation to
+	// other programs of the same type with the same attach point. It is a value
+	// from 0 to 1000 where lower values have higher precedence.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1000
+	Priority int32 `json:"priority"`
+
+	// ProceedOn allows the user to call other tc programs in chain on this exit code.
+	// Multiple values are supported by repeating the parameter.
+	// +kubebuilder:validation:MaxItems=11
+	ProceedOn []TcProceedOnValue `json:"proceedon"`
 }
