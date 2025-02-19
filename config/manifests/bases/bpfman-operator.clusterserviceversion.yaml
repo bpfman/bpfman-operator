@@ -6,7 +6,9 @@ metadata:
     categories: OpenShift Optional
     capabilities: Basic Install
     containerImage: quay.io/bpfman/bpfman-operator:latest
+    description: The bpfman Operator is designed to manage eBPF programs for applications.
     repository: https://github.com/bpfman/bpfman
+    support: bpfman Community
     operatorframework.io/suggested-namespace: bpfman
     operatorframework.io/suggested-namespace-template: |-
       {
@@ -468,11 +470,12 @@ spec:
     - name: bpfman website
       url: https://bpfman.io/
   maintainers:
-    - email: astoycos@redhat.com
-      name: Andrew Stoycos
     - email: afredette@redhat.com
       name: Andre Fredette
+    - email: mmahmoud@redhat.com
+      name: Mohamed Mahmoud
   maturity: alpha
+  minKubeVersion: 1.26.0
   provider:
     name: The bpfman Community
     url: https://bpfman.io/
