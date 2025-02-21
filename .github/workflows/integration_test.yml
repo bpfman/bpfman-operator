@@ -80,3 +80,10 @@ jobs:
           name: kubernetes-integration-test-diag
           path: /tmp/ktf-diag*
           if-no-files-found: ignore
+
+      - name: Notify Slack on Test Failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        with:
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          message: "Nightly Kubernetes BPFMan Operator integration tests failed! Go version: ${{ matrix.go }} and OCI runtime: ${{ matrix.oci_bin }}"
