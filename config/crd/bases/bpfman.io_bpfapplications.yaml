@@ -269,7 +269,7 @@ spec:
                                 type: integer
                               retprobe:
                                 default: false
-                                description: Whether the program is a kretprobe.  Default
+                                description: Whether the program is a retprobe.  Default
                                   is false
                                 type: boolean
                             required:
@@ -673,7 +673,7 @@ spec:
                                 type: integer
                               retprobe:
                                 default: false
-                                description: Whether the program is a uretprobe.  Default
+                                description: Whether the program is a retprobe.  Default
                                   is false
                                 type: boolean
                               target:

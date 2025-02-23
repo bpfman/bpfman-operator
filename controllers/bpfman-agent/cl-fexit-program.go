@@ -18,10 +18,8 @@ package bpfmanagent
 
 import (
 	"context"
-	"fmt"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 )
@@ -41,12 +39,23 @@ func (r *FexitProgramReconciler) getProgType() internal.ProgramType {
 	return internal.Tracing
 }
 
+func (r *FexitProgramReconciler) getBpfmanProgType() gobpfman.BpfmanProgramType {
+	return gobpfman.BpfmanProgramType_FEXIT
+}
+
 func (r *FexitProgramReconciler) getProgName() string {
 	return r.currentProgram.BpfFunctionName
 }
 
 func (r *FexitProgramReconciler) shouldAttach() bool {
 	return r.currentProgramState.Fexit.ShouldAttach
+}
+
+func (r *FexitProgramReconciler) isAttached() bool {
+	// ANF-TODO: Make this check more robust.  Some ideas include: get the link
+	// to confirm it exists.  Confirm, that it matches what we expect. If not,
+	// check if there is another link that contains the UUID for this link.
+	return r.currentProgramState.Fexit.AttachId != nil
 }
 
 func (r *FexitProgramReconciler) getUUID() string {
@@ -77,33 +86,17 @@ func (r *FexitProgramReconciler) getCurrentAttachPointStatus() bpfmaniov1alpha1.
 	return r.currentProgramState.Fexit.AttachPointStatus
 }
 
-func (r *FexitProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName,
-		"mapOwnerId", mapOwnerId, "ByteCode", r.appCommon.ByteCode)
-
-	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
-	}
-
-	loadRequest := gobpfman.LoadRequest{
-		Bytecode:    bytecode,
-		Name:        r.currentProgram.BpfFunctionName,
-		ProgramType: uint32(r.getProgType()),
+func (r *FexitProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
+	return &gobpfman.AttachRequest{
+		Id: *r.currentProgramState.ProgramId,
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_FexitAttachInfo{
 				FexitAttachInfo: &gobpfman.FexitAttachInfo{
-					FnName: r.currentProgram.Fexit.FunctionName,
+					Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentProgramState.Fexit.UUID)},
 				},
 			},
 		},
-		Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentProgramState.Fexit.UUID),
-			internal.ProgramNameKey: "BpfApplication"},
-		GlobalData: r.appCommon.GlobalData,
-		MapOwnerId: mapOwnerId,
 	}
-
-	return &loadRequest, nil
 }
 
 // updateAttachInfo processes the *ProgramInfo and updates the list of attach
@@ -133,22 +126,11 @@ func (r *FexitProgramReconciler) updateAttachInfo(ctx context.Context, isBeingDe
 // processAttachInfo calls reconcileBpfAttachment() for each attach point. It
 // then updates the ProgramAttachStatus based on the updated status of each
 // attach point.
-func (r *FexitProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error {
-	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName,
-		"mapOwnerStatus", mapOwnerStatus)
+func (r *FexitProgramReconciler) processAttachInfo(ctx context.Context) error {
+	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName)
 
-	// Get existing ebpf state from bpfman.
-	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, r.getProgType())
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		r.setProgramAttachStatus(bpfmaniov1alpha1.BpfmanListProgramError)
-		return fmt.Errorf("failed to list loaded bpfman programs: %v", err)
-	}
-
-	_, err = r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
-
+	_, err := r.reconcileBpfAttachment(ctx, r)
 	r.updateProgramAttachStatus()
-
 	return err
 }
 
@@ -157,5 +139,19 @@ func (r *FexitProgramReconciler) updateProgramAttachStatus() {
 		r.setProgramAttachStatus(bpfmaniov1alpha1.ProgAttachError)
 	} else {
 		r.setProgramAttachStatus(bpfmaniov1alpha1.ProgAttachSuccess)
+	}
+}
+
+func (r *FexitProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
+	return &gobpfman.LoadInfo{
+		Name:        r.currentProgram.BpfFunctionName,
+		ProgramType: r.getBpfmanProgType(),
+		Info: &gobpfman.ProgSpecificInfo{
+			Info: &gobpfman.ProgSpecificInfo_FexitLoadInfo{
+				FexitLoadInfo: &gobpfman.FexitLoadInfo{
+					FnName: r.currentProgram.Fexit.FunctionName,
+				},
+			},
+		},
 	}
 }

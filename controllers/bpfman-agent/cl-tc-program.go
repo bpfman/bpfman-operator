@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
@@ -43,12 +42,23 @@ func (r *TcProgramReconciler) getProgType() internal.ProgramType {
 	return internal.Tc
 }
 
+func (r *TcProgramReconciler) getBpfmanProgType() gobpfman.BpfmanProgramType {
+	return gobpfman.BpfmanProgramType_TC
+}
+
 func (r *TcProgramReconciler) getProgName() string {
 	return r.currentProgram.BpfFunctionName
 }
 
 func (r *TcProgramReconciler) shouldAttach() bool {
 	return r.currentAttachPoint.ShouldAttach
+}
+
+func (r *TcProgramReconciler) isAttached() bool {
+	// ANF-TODO: Make this check more robust.  Some ideas include: get the link to
+	// confirm it exists.  Confirm, that it matches what we expect. If not,
+	// check if there is another link that contains the UUID for this link.
+	return r.currentAttachPoint.AttachId != nil
 }
 
 func (r *TcProgramReconciler) getUUID() string {
@@ -113,21 +123,14 @@ func tcProceedOnToInt(proceedOn []bpfmaniov1alpha1.TcProceedOnValue) []int32 {
 	return out
 }
 
-func (r *TcProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
-
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName, "reqAttachInfo", r.currentAttachPoint, "mapOwnerId",
-		mapOwnerId, "ByteCode", r.appCommon.ByteCode)
-
-	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
-	}
+func (r *TcProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCAttachInfo{
 		Priority:  r.currentAttachPoint.Priority,
 		Iface:     r.currentAttachPoint.IfName,
 		Direction: r.currentAttachPoint.Direction,
 		ProceedOn: tcProceedOnToInt(r.currentAttachPoint.ProceedOn),
+		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentAttachPoint.UUID)},
 	}
 
 	if r.currentAttachPoint.ContainerPid != nil {
@@ -135,21 +138,14 @@ func (r *TcProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.Load
 		attachInfo.Netns = &netns
 	}
 
-	loadRequest := gobpfman.LoadRequest{
-		Bytecode:    bytecode,
-		Name:        r.currentProgram.BpfFunctionName,
-		ProgramType: uint32(r.getProgType()),
+	return &gobpfman.AttachRequest{
+		Id: *r.currentProgramState.ProgramId,
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_TcAttachInfo{
 				TcAttachInfo: attachInfo,
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: string(r.currentAttachPoint.UUID), internal.ProgramNameKey: "BpfApplication"},
-		GlobalData: r.appCommon.GlobalData,
-		MapOwnerId: mapOwnerId,
 	}
-
-	return &loadRequest, nil
 }
 
 // updateAttachInfo processes the *ProgramInfo and updates the list of attach
@@ -217,17 +213,8 @@ func (r *TcProgramReconciler) findAttachPoint(attachInfoState bpfmaniov1alpha1.T
 // processAttachInfo calls reconcileBpfAttachment() for each attach point. It
 // then updates the ProgramAttachStatus based on the updated status of each
 // attach point.
-func (r *TcProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error {
-	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName,
-		"mapOwnerStatus", mapOwnerStatus)
-
-	// Get existing ebpf state from bpfman.
-	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, r.getProgType())
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		r.setProgramAttachStatus(bpfmaniov1alpha1.BpfmanListProgramError)
-		return fmt.Errorf("failed to list loaded bpfman programs: %v", err)
-	}
+func (r *TcProgramReconciler) processAttachInfo(ctx context.Context) error {
+	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName)
 
 	// The following map is used to keep track of attach points that need to be
 	// removed.  If it's not empty at the end of the loop, we'll remove the
@@ -237,7 +224,7 @@ func (r *TcProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerSta
 	var lastReconcileAttachmentError error = nil
 	for i := range r.currentProgramState.TC.AttachPoints {
 		r.currentAttachPoint = &r.currentProgramState.TC.AttachPoints[i]
-		remove, err := r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
+		remove, err := r.reconcileBpfAttachment(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
 			// All errors are logged, but the last error is saved to return and
@@ -351,4 +338,12 @@ func (r *TcProgramReconciler) getExpectedAttachPoints(ctx context.Context, attac
 	}
 
 	return nodeAttachPoints, nil
+}
+
+func (r *TcProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
+	return &gobpfman.LoadInfo{
+		Name:        r.currentProgram.BpfFunctionName,
+		ProgramType: r.getBpfmanProgType(),
+		Info:        nil,
+	}
 }

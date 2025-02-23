@@ -87,8 +87,7 @@ metadata:
                     {
                       "containers": {
                         "containernames": [
-                          "bpfman",
-                          "bpfman-agent"
+                          "bpfman"
                         ],
                         "namespace": "bpfman",
                         "pods": {
@@ -117,8 +116,7 @@ metadata:
                     {
                       "containers": {
                         "containernames": [
-                          "bpfman",
-                          "bpfman-agent"
+                          "bpfman"
                         ],
                         "namespace": "bpfman",
                         "pods": {
@@ -140,18 +138,6 @@ metadata:
                 "uprobe": {
                   "attach_points": [
                     {
-                      "containers": {
-                        "containernames": [
-                          "bpfman",
-                          "bpfman-agent"
-                        ],
-                        "namespace": "bpfman",
-                        "pods": {
-                          "matchLabels": {
-                            "name": "bpfman-daemon"
-                          }
-                        }
-                      },
                       "func_name": "malloc",
                       "retprobe": true,
                       "target": "libc"
@@ -173,8 +159,7 @@ metadata:
                     {
                       "containers": {
                         "containernames": [
-                          "bpfman",
-                          "bpfman-agent"
+                          "bpfman"
                         ],
                         "namespace": "bpfman",
                         "pods": {
@@ -348,7 +333,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-02-25T13:35:37Z"
+    createdAt: "2025-02-25T13:36:48Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

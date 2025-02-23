@@ -111,7 +111,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 				{
 					FunctionName: functionKprobeName,
 					Offset:       uint64(offset),
-					RetProbe:     retprobe,
+					Retprobe:     retprobe,
 				},
 			},
 		},

@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -88,18 +87,24 @@ type ApplicationReconciler interface {
 	isBeingDeleted() bool
 	updateBpfAppStatus(ctx context.Context, condition metav1.Condition) error
 	updateLoadStatus(updateStatus bpfmaniov1alpha1.AppLoadStatus)
+	load(ctx context.Context) error
+	isLoaded(ctx context.Context) bool
+	getLoadRequest() (*gobpfman.LoadRequest, error)
+	unload(ctx context.Context)
 }
 
 // ProgramReconciler is an interface that defines the methods needed to
 // reconcile a program contained in a BpfApplication.
 type ProgramReconciler interface {
-	getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error)
+	getAttachRequest() *gobpfman.AttachRequest
 	getProgId() *uint32
 	getProgType() internal.ProgramType
+	getBpfmanProgType() gobpfman.BpfmanProgramType
 	getProgName() string
 	updateAttachInfo(ctx context.Context, isBeingDeleted bool) error
-	processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error
+	processAttachInfo(ctx context.Context) error
 	shouldAttach() bool
+	isAttached() bool
 	getUUID() string
 	setAttachId(id *uint32)
 	getAttachId() *uint32
@@ -108,6 +113,7 @@ type ProgramReconciler interface {
 	setCurrentAttachPointStatus(status bpfmaniov1alpha1.AttachPointStatus)
 	getCurrentAttachPointStatus() bpfmaniov1alpha1.AttachPointStatus
 	reconcileProgram(ctx context.Context, program ProgramReconciler, isBeingDeleted bool) error
+	getProgramLoadInfo() *gobpfman.LoadInfo
 }
 
 // ANF-TODO: When we have the load/attach split, this is the function that will
@@ -115,7 +121,7 @@ type ProgramReconciler interface {
 // return a list of program IDs which will be saved in the node program list.
 // For now, just do the following: Update flag saying program should be loaded
 // and is loaded. Also, create node program list on the first load.
-func (r *ReconcilerCommon) reconcileLoad(rec ApplicationReconciler) error {
+func (r *ReconcilerCommon) reconcileLoad(ctx context.Context, rec ApplicationReconciler) error {
 	isNodeSelected, err := isNodeSelected(rec.getNodeSelector(), rec.getNode().Labels)
 	if err != nil {
 		return fmt.Errorf("failed to check if node is selected: %v", err)
@@ -125,13 +131,25 @@ func (r *ReconcilerCommon) reconcileLoad(rec ApplicationReconciler) error {
 	// will load/unload the program as necessary.
 	if !isNodeSelected {
 		// The program should not be loaded, and should be unloaded if necessary
+		rec.unload(ctx)
 		rec.updateLoadStatus(bpfmaniov1alpha1.NotSelected)
 	} else if rec.isBeingDeleted() {
 		// The program should be unloaded if necessary
+		rec.unload(ctx)
 		rec.updateLoadStatus(bpfmaniov1alpha1.AppUnLoadSuccess)
 	} else {
-		// The program should be loaded, but for now, just set the condition
-		rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
+		// The program should be loaded
+		if rec.isLoaded(ctx) {
+			rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
+		} else {
+			err := rec.load(ctx)
+			if err != nil {
+				rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadError)
+				return fmt.Errorf("failed to load program: %v", err)
+			} else {
+				rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
+			}
+		}
 	}
 
 	return nil
@@ -185,20 +203,13 @@ func (r *ReconcilerCommon) updateStatus(
 // program.  reconcileProgram updates the program's attach status when it's
 // done.
 func (r *ReconcilerCommon) reconcileProgram(ctx context.Context, program ProgramReconciler, isBeingDeleted bool) error {
-
-	mapOwnerStatus, err := r.processMapOwnerParam(ctx, program)
-	if err != nil {
-		program.setProgramAttachStatus(bpfmaniov1alpha1.MapOwnerError)
-		return err
-	}
-
-	err = program.updateAttachInfo(ctx, isBeingDeleted)
+	err := program.updateAttachInfo(ctx, isBeingDeleted)
 	if err != nil {
 		program.setProgramAttachStatus(bpfmaniov1alpha1.UpdateAttachInfoError)
 		return err
 	}
 
-	return program.processAttachInfo(ctx, mapOwnerStatus)
+	return program.processAttachInfo(ctx)
 }
 
 // get Clientset returns a kubernetes clientset.
@@ -284,95 +295,95 @@ func generateUniqueName(baseName string) string {
 	return fmt.Sprintf("%s-%s", baseName, uuid[:8])
 }
 
-// MapOwnerParamStatus provides the output from a MapOwerSelector being parsed.
-type MapOwnerParamStatus struct {
-	isSet      bool
-	isFound    bool
-	isLoaded   bool
-	mapOwnerId *uint32
-}
+// ANF-TODO: Need to re-work map owner logic for load/attach split
+// // MapOwnerParamStatus provides the output from a MapOwerSelector being parsed.
+// type MapOwnerParamStatus struct {
+// 	isSet      bool
+// 	isFound    bool
+// 	isLoaded   bool
+// 	mapOwnerId *uint32
+// }
 
-// This function parses the MapOwnerSelector Label Selector field from the
-// BpfApplication Object. The labels should map to a BpfApplication Object that
-// this BpfApplication wants to share maps with. If found, this function returns
-// the ID of the BpfApplication that owns the map on this node. Found or not,
-// this function also returns some flags (isSet, isFound, isLoaded) to help with
-// the processing and setting of the proper condition on the BpfApplication
-// Object.
-func (r *ReconcilerCommon) processMapOwnerParam(ctx context.Context, rec ProgramReconciler) (*MapOwnerParamStatus, error) {
-	mapOwnerStatus := &MapOwnerParamStatus{
-		isSet:      false,
-		isFound:    false,
-		isLoaded:   false,
-		mapOwnerId: nil,
-	}
+// // This function parses the MapOwnerSelector Label Selector field from the
+// // BpfApplication Object. The labels should map to a BpfApplication Object that
+// // this BpfApplication wants to share maps with. If found, this function returns
+// // the ID of the BpfApplication that owns the map on this node. Found or not,
+// // this function also returns some flags (isSet, isFound, isLoaded) to help with
+// // the processing and setting of the proper condition on the BpfApplication
+// // Object.
+// func (r *ReconcilerCommon) processMapOwnerParam(ctx context.Context, rec ProgramReconciler) (*MapOwnerParamStatus, error) {
+// 	mapOwnerStatus := &MapOwnerParamStatus{
+// 		isSet:      false,
+// 		isFound:    false,
+// 		isLoaded:   false,
+// 		mapOwnerId: nil,
+// 	}
 
-	r.Logger.V(1).Info("processMapOwnerParam()", "ctx", ctx, "rec.progId", rec.getProgId(), "MapOwnerStatus", mapOwnerStatus)
+// 	r.Logger.V(1).Info("processMapOwnerParam()", "ctx", ctx, "rec.progId", rec.getProgId(), "MapOwnerStatus", mapOwnerStatus)
 
-	// ANF-TODO: Need to update this to support BpfApplicationState.
-	return mapOwnerStatus, nil
+// 	return mapOwnerStatus, nil
 
-	// // Parse the MapOwnerSelector label selector.
-	// mapOwnerSelectorMap, err := metav1.LabelSelectorAsMap(rec.appCommon.MapOwnerSelector)
-	// if err != nil {
-	// 	mapOwnerStatus.isSet = true
-	// 	return mapOwnerStatus, fmt.Errorf("failed to parse MapOwnerSelector: %v", err)
-	// }
+// 	// Parse the MapOwnerSelector label selector.
+// 	mapOwnerSelectorMap, err := metav1.LabelSelectorAsMap(rec.appCommon.MapOwnerSelector)
+// 	if err != nil {
+// 		mapOwnerStatus.isSet = true
+// 		return mapOwnerStatus, fmt.Errorf("failed to parse MapOwnerSelector: %v", err)
+// 	}
 
-	// // If no data was entered, just return with default values, all flags set to false.
-	// if len(mapOwnerSelectorMap) == 0 {
-	// 	return mapOwnerStatus, nil
-	// } else {
-	// 	mapOwnerStatus.isSet = true
+// 	// If no data was entered, just return with default values, all flags set to false.
+// 	if len(mapOwnerSelectorMap) == 0 {
+// 		return mapOwnerStatus, nil
+// 	} else {
+// 		mapOwnerStatus.isSet = true
 
-	// 	// Add the labels from the MapOwnerSelector to a map and add an additional
-	// 	// label to filter on just this node. Call K8s to find all the eBPF programs
-	// 	// that match this filter.
-	// 	labelMap := client.MatchingLabels{internal.K8sHostLabel: r.NodeName}
-	// 	for key, value := range mapOwnerSelectorMap {
-	// 		labelMap[key] = value
-	// 	}
-	// 	opts := []client.ListOption{labelMap}
-	// 	r.Logger.V(1).Info("MapOwner Labels:", "opts", opts)
-	// 	bpfProgramList, err := rec.getBpfList(ctx, opts)
-	// 	if err != nil {
-	// 		return mapOwnerStatus, err
-	// 	}
+// 		// Add the labels from the MapOwnerSelector to a map and add an additional
+// 		// label to filter on just this node. Call K8s to find all the eBPF programs
+// 		// that match this filter.
+// 		labelMap := client.MatchingLabels{internal.K8sHostLabel: r.NodeName}
+// 		for key, value := range mapOwnerSelectorMap {
+// 			labelMap[key] = value
+// 		}
+// 		opts := []client.ListOption{labelMap}
+// 		r.Logger.V(1).Info("MapOwner Labels:", "opts", opts)
+// 		bpfProgramList, err := rec.getBpfList(ctx, opts)
+// 		if err != nil {
+// 			return mapOwnerStatus, err
+// 		}
 
-	// 	// If no BpfProgram Objects were found, or more than one, then return.
-	// 	items := (*bpfProgramList).GetItems()
-	// 	if len(items) == 0 {
-	// 		return mapOwnerStatus, nil
-	// 	} else if len(items) > 1 {
-	// 		return mapOwnerStatus, fmt.Errorf("MapOwnerSelector resolved to multiple BpfProgram Objects")
-	// 	} else {
-	// 		mapOwnerStatus.isFound = true
+// 		// If no BpfProgram Objects were found, or more than one, then return.
+// 		items := (*bpfProgramList).GetItems()
+// 		if len(items) == 0 {
+// 			return mapOwnerStatus, nil
+// 		} else if len(items) > 1 {
+// 			return mapOwnerStatus, fmt.Errorf("MapOwnerSelector resolved to multiple BpfProgram Objects")
+// 		} else {
+// 			mapOwnerStatus.isFound = true
 
-	// 		// Get bpfProgram based on UID meta
-	// 		prog, err := bpfmanagentinternal.GetBpfmanProgram(ctx, r.BpfmanClient, items[0].GetUID())
-	// 		if err != nil {
-	// 			return nil, fmt.Errorf("failed to get bpfman program for BpfProgram with UID %s: %v", items[0].GetUID(), err)
-	// 		}
+// 			// Get bpfProgram based on UID meta
+// 			prog, err := bpfmanagentinternal.GetBpfmanProgram(ctx, r.BpfmanClient, items[0].GetUID())
+// 			if err != nil {
+// 				return nil, fmt.Errorf("failed to get bpfman program for BpfProgram with UID %s: %v", items[0].GetUID(), err)
+// 			}
 
-	// 		kernelInfo := prog.GetKernelInfo()
-	// 		if kernelInfo == nil {
-	// 			return nil, fmt.Errorf("failed to process bpfman program for BpfProgram with UID %s: %v", items[0].GetUID(), err)
-	// 		}
-	// 		mapOwnerStatus.mapOwnerId = &kernelInfo.Id
+// 			kernelInfo := prog.GetKernelInfo()
+// 			if kernelInfo == nil {
+// 				return nil, fmt.Errorf("failed to process bpfman program for BpfProgram with UID %s: %v", items[0].GetUID(), err)
+// 			}
+// 			mapOwnerStatus.mapOwnerId = &kernelInfo.Id
 
-	// 		// Get most recent condition from the one eBPF Program and determine
-	// 		// if the BpfProgram is loaded or not.
-	// 		conLen := len(items[0].GetStatus().Conditions)
-	// 		if conLen > 0 &&
-	// 			items[0].GetStatus().Conditions[conLen-1].Type ==
-	// 				string(bpfmaniov1alpha1.BpfProgCondLoaded) {
-	// 			mapOwnerStatus.isLoaded = true
-	// 		}
+// 			// Get most recent condition from the one eBPF Program and determine
+// 			// if the BpfProgram is loaded or not.
+// 			conLen := len(items[0].GetStatus().Conditions)
+// 			if conLen > 0 &&
+// 				items[0].GetStatus().Conditions[conLen-1].Type ==
+// 					string(bpfmaniov1alpha1.BpfProgCondLoaded) {
+// 				mapOwnerStatus.isLoaded = true
+// 			}
 
-	// 		return mapOwnerStatus, nil
-	// 	}
-	// }
-}
+// 			return mapOwnerStatus, nil
+// 		}
+// 	}
+// }
 
 func isNodeSelected(selector *metav1.LabelSelector, nodeLabels map[string]string) (bool, error) {
 	// Logic to check if this node is selected by the BpfApplication object
@@ -392,93 +403,42 @@ func isNodeSelected(selector *metav1.LabelSelector, nodeLabels map[string]string
 }
 
 // reconcileBpfmanAttachment reconciles the bpfman state for a single
-// attachment.  It may update attachInfo.AttachInfoCommon.Status and/or
-// attachInfo.AttachId.  It returns a boolean value indicating whether the
-// attachment is no longer needed and should be removed from the list.
-//
-// ANF-TODO: When we have load/attach split, this function will just do the
-// attach. However, for now, it does the load and attach.
-func (r *ReconcilerCommon) reconcileBpfAttachment(
-	ctx context.Context,
-	rec ProgramReconciler,
-	// attachInfo *bpfmaniov1alpha1.XdpAttachInfoState,
-	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
-	// bpfFunctionName string,
-	mapOwnerStatus *MapOwnerParamStatus) (bool, error) {
+// attachment.  It may update attachInfo.AttachInfoCommon.Status.  It returns a
+// boolean value indicating whether the attachment is no longer needed and
+// should be removed from the list.
+func (r *ReconcilerCommon) reconcileBpfAttachment(ctx context.Context, rec ProgramReconciler) (bool, error) {
 
-	loadedBpfProgram, isAttached := loadedBpfPrograms[string(rec.getUUID())]
-
-	r.Logger.V(1).Info("reconcileBpfAttachment()", "shouldAttached", rec.shouldAttach(), "isAttached", isAttached, "Attach Status", rec.getCurrentAttachPointStatus())
+	r.Logger.V(1).Info("reconcileBpfAttachment()", "shouldAttached", rec.shouldAttach(), "isAttached", rec.isAttached(), "Attach Status", rec.getCurrentAttachPointStatus())
 
 	switch rec.shouldAttach() {
 	case true:
-		switch isAttached {
+		switch rec.isAttached() {
 		case true:
 			// The program is attached and it should be attached.
-			// prog ID should already have been set if program is attached
-			if !reflect.DeepEqual(rec.getAttachId(), &loadedBpfProgram.KernelInfo.Id) {
-				// This shouldn't happen, but if it does, log a message and update AttachId.
-				r.Logger.Error(fmt.Errorf("ID mismatch. Updating"), "Saved ID", rec.getAttachId(),
-					"Kernel ID", loadedBpfProgram.KernelInfo.Id)
-				rec.setAttachId(&loadedBpfProgram.KernelInfo.Id)
-			}
-			// Confirm it's in the correct state.
-			loadRequest, err := rec.getLoadRequest(mapOwnerStatus.mapOwnerId)
-			if err != nil {
-				r.Logger.Error(err, "Failed to get LoadRequest")
-				rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApBytecodeSelectorError)
-			} else {
-				r.Logger.Info("LoadRequest", "loadRequest", loadRequest)
-				isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
-				if !isSame {
-					r.Logger.Info("Attachment is in wrong state, detach and re-attach", "reason", reasons, "Attach ID", rec.getAttachId())
-					err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId())
-					if err != nil {
-						r.Logger.Error(err, "Failed to detach eBPF Program")
-						rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApDetachError)
-					} else {
-						r.Logger.Info("Calling bpfman to attach eBPF Program")
-						attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-						if err != nil {
-							r.Logger.Error(err, "Failed to attach eBPF Program")
-							rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachError)
-						} else {
-							rec.setAttachId(attachId)
-							rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachAttached)
-						}
-					}
-				} else {
-					// Attachment exists and bpfProgram K8s Object is up to date
-					r.Logger.V(1).Info("Attachment is in correct state.  Nothing to do in bpfman")
-					rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachAttached)
-				}
-			}
+			// Attachment exists and bpfProgram K8s Object is up to date
+			r.Logger.V(1).Info("Attachment is in correct state.  Nothing to do in bpfman")
+			rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachAttached)
 		case false:
 			// The program should be attached, but it isn't.
-			r.Logger.Info("Program is not attached, calling getLoadRequest()")
-			loadRequest, err := rec.getLoadRequest(mapOwnerStatus.mapOwnerId)
+			r.Logger.Info("Program is not attached, calling getAttachRequest()")
+			attachRequest := rec.getAttachRequest()
+			r.Logger.Info("AttachRequest", "attachRequest", attachRequest)
+			r.Logger.Info("Calling bpfman to attach eBPF Program on node")
+			attachId, err := bpfmanagentinternal.AttachBpfmanProgram(ctx, r.BpfmanClient, attachRequest)
 			if err != nil {
-				r.Logger.Error(err, "Failed to get LoadRequest")
-				rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApBytecodeSelectorError)
+				r.Logger.Error(err, "Failed to attach eBPF Program")
+				rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachError)
 			} else {
-				r.Logger.Info("LoadRequest", "loadRequest", loadRequest)
-				r.Logger.Info("Calling bpfman to attach eBPF Program on node")
-				attachId, err := bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-				if err != nil {
-					r.Logger.Error(err, "Failed to attach eBPF Program")
-					rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachError)
-				} else {
-					rec.setAttachId(attachId)
-					rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachAttached)
-				}
+				rec.setAttachId(attachId)
+				rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApAttachAttached)
 			}
 		}
 	case false:
-		switch isAttached {
+		switch rec.isAttached() {
 		case true:
-			// The program is attached but it shouldn't be attached.  Unload it.
+			// The program is attached but it shouldn't be attached.  Detach it.
 			r.Logger.Info("Calling bpfman to detach eBPF Program", "Attach ID", rec.getAttachId())
-			if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId()); err != nil {
+			if err := bpfmanagentinternal.DetachBpfmanProgram(ctx, r.BpfmanClient, *rec.getAttachId()); err != nil {
 				r.Logger.Error(err, "Failed to detach eBPF Program")
 				rec.setCurrentAttachPointStatus(bpfmaniov1alpha1.ApDetachError)
 			} else {

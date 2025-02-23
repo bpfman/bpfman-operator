@@ -125,7 +125,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 				{
 					FunctionName: AttachName,
 					Offset:       200,
-					RetProbe:     false,
+					Retprobe:     false,
 				},
 			},
 		},
@@ -141,7 +141,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 					FunctionName: AttachName,
 					Offset:       200,
 					Target:       "/bin/bash",
-					RetProbe:     false,
+					Retprobe:     false,
 					Pid:          &fakePid,
 				},
 			},
@@ -267,7 +267,7 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	require.Equal(t, false, bpfAppStateNew)
 
 	require.Equal(t, 1, len(bpfAppState.Status.Conditions))
-	require.Equal(t, string(bpfmaniov1alpha1.ProgramReconcileSuccess), bpfAppState.Status.Conditions[0].Type)
+	require.Equal(t, string(bpfmaniov1alpha1.ProgramNotYetLoaded), bpfAppState.Status.Conditions[0].Type)
 
 	require.Equal(t, fakeNode.Name, bpfAppState.Labels[internal.K8sHostLabel])
 
@@ -275,20 +275,15 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 
 	require.Equal(t, internal.BpfApplicationControllerFinalizer, bpfAppState.Finalizers[0])
 
-	for _, program := range bpfAppState.Spec.Programs {
-		r.Logger.Info("ProgramAttachStatus check", "program", program.BpfFunctionName, "status", program.ProgramAttachStatus)
-		require.Equal(t, bpfmaniov1alpha1.ProgAttachSuccess, program.ProgramAttachStatus)
-	}
-
-	// Do a 2nd reconcile and make sure it doesn't change
+	// Do a second reconcile to make sure that the programs are loaded and attached.
 	r.Logger.Info("Second reconcile")
 	res, err = r.Reconcile(ctx, req)
 	require.NoError(t, err)
 
+	r.Logger.Info("Second reconcile", "res:", res, "err:", err)
+
 	// Require no requeue
 	require.False(t, res.Requeue)
-
-	r.Logger.Info("Second reconcile", "res:", res, "err:", err)
 
 	// Check the BpfApplicationState Object was created successfully
 	bpfAppState2, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
@@ -298,31 +293,63 @@ func TestBpfApplicationControllerCreate(t *testing.T) {
 	// one.
 	require.Equal(t, false, bpfAppStateNew)
 
-	// Check that the bpfAppState was not updated
-	require.True(t, reflect.DeepEqual(bpfAppState, bpfAppState2))
+	require.Equal(t, 1, len(bpfAppState2.Status.Conditions))
+	require.Equal(t, string(bpfmaniov1alpha1.ProgramReconcileSuccess), bpfAppState2.Status.Conditions[0].Type)
 
-	currentXdpProgram := programs[0]
+	require.Equal(t, fakeNode.Name, bpfAppState2.Labels[internal.K8sHostLabel])
 
-	attachPoint := bpfAppState2.Spec.Programs[0].XDP.AttachPoints[0]
+	require.Equal(t, appProgramName, bpfAppState2.Labels[internal.BpfAppStateOwner])
 
-	xdpReconciler := &XdpProgramReconciler{
-		ReconcilerCommon: rc,
-		ProgramReconcilerCommon: ProgramReconcilerCommon{
-			appCommon: bpfmaniov1alpha1.BpfAppCommon{
-				NodeSelector: metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
-				},
-			},
-			currentProgram:      &currentXdpProgram,
-			currentProgramState: &bpfmaniov1alpha1.BpfApplicationProgramState{},
-		},
-		currentAttachPoint: &attachPoint,
+	require.Equal(t, internal.BpfApplicationControllerFinalizer, bpfAppState2.Finalizers[0])
+
+	for _, program := range bpfAppState2.Spec.Programs {
+		r.Logger.Info("ProgramAttachStatus check", "program", program.BpfFunctionName, "status", program.ProgramAttachStatus)
+		require.Equal(t, bpfmaniov1alpha1.ProgAttachSuccess, program.ProgramAttachStatus)
 	}
 
-	loadRequest, err := xdpReconciler.getLoadRequest(nil)
+	// Do a 3rd reconcile and make sure it doesn't change
+	r.Logger.Info("Third reconcile")
+	res, err = r.Reconcile(ctx, req)
 	require.NoError(t, err)
 
-	require.Equal(t, xdpBpfFunctionName, loadRequest.Name)
-	require.Equal(t, uint32(6), loadRequest.ProgramType)
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	r.Logger.Info("Third reconcile", "res:", res, "err:", err)
+
+	// Check the BpfApplicationState Object was created successfully
+	bpfAppState3, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
+	require.NoError(t, err)
+
+	// Make sure we got bpfAppState from the api server and didn't create a new
+	// one.
+	require.Equal(t, false, bpfAppStateNew)
+
+	// Check that the bpfAppState was not updated
+	require.True(t, reflect.DeepEqual(bpfAppState2, bpfAppState3))
+
+	// currentXdpProgram := programs[0]
+
+	// attachPoint := bpfAppState2.Spec.Programs[0].XDP.AttachPoints[0]
+
+	// 	xdpReconciler := &XdpProgramReconciler{
+	// 		ReconcilerCommon: rc,
+	// 		ProgramReconcilerCommon: ProgramReconcilerCommon{
+	// 			appCommon: bpfmaniov1alpha1.BpfAppCommon{
+	// 				NodeSelector: metav1.LabelSelector{},
+	// 				ByteCode: bpfmaniov1alpha1.BytecodeSelector{
+	// 					Path: &bytecodePath,
+	// 				},
+	// 			},
+	// 			currentProgram:      &currentXdpProgram,
+	// 			currentProgramState: &bpfmaniov1alpha1.BpfApplicationProgramState{},
+	// 		},
+	// 		currentAttachPoint: &attachPoint,
+	// 	}
+
+	// 	loadRequest, err := xdpReconciler.getLoadRequest(nil)
+	// 	require.NoError(t, err)
+
+	// require.Equal(t, xdpBpfFunctionName, loadRequest.Name)
+	// require.Equal(t, uint32(6), loadRequest.ProgramType)
 }

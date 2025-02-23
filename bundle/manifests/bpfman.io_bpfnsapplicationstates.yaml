@@ -301,7 +301,7 @@ spec:
                                 type: integer
                               retprobe:
                                 default: false
-                                description: Whether the program is a uretprobe.  Default
+                                description: Whether the program is a retprobe.  Default
                                   is false
                                 type: boolean
                               should_attach:

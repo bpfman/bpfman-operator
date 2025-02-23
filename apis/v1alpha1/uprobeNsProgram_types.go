@@ -39,10 +39,10 @@ type UprobeNsAttachInfo struct {
 	// Library name or the absolute path to a binary or library.
 	Target string `json:"target"`
 
-	// Whether the program is a uretprobe.  Default is false
+	// Whether the program is a retprobe.  Default is false
 	// +optional
 	// +kubebuilder:default:=false
-	RetProbe bool `json:"retprobe"`
+	Retprobe bool `json:"retprobe"`
 
 	// Only execute uprobe for given process identification number (PID). If PID
 	// is not provided, uprobe executes for all PIDs.
@@ -79,10 +79,10 @@ type UprobeNsAttachInfoState struct {
 	// Library name or the absolute path to a binary or library.
 	Target string `json:"target"`
 
-	// Whether the program is a uretprobe.  Default is false
+	// Whether the program is a retprobe.  Default is false
 	// +optional
 	// +kubebuilder:default:=false
-	RetProbe bool `json:"retprobe"`
+	Retprobe bool `json:"retprobe"`
 
 	// Only execute uprobe for given process identification number (PID). If PID
 	// is not provided, uprobe executes for all PIDs.

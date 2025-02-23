@@ -18,10 +18,8 @@ package bpfmanagent
 
 import (
 	"context"
-	"fmt"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	internal "github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 )
@@ -41,12 +39,23 @@ func (r *FentryProgramReconciler) getProgType() internal.ProgramType {
 	return internal.Tracing
 }
 
+func (r *FentryProgramReconciler) getBpfmanProgType() gobpfman.BpfmanProgramType {
+	return gobpfman.BpfmanProgramType_FENTRY
+}
+
 func (r *FentryProgramReconciler) getProgName() string {
 	return r.currentProgram.BpfFunctionName
 }
 
 func (r *FentryProgramReconciler) shouldAttach() bool {
 	return r.currentProgramState.Fentry.ShouldAttach
+}
+
+func (r *FentryProgramReconciler) isAttached() bool {
+	// ANF-TODO: Make this check more robust.  Some ideas include: get the link
+	// to confirm it exists.  Confirm, that it matches what we expect. If not,
+	// check if there is another link that contains the UUID for this link.
+	return r.currentProgramState.Fentry.AttachId != nil
 }
 
 func (r *FentryProgramReconciler) getUUID() string {
@@ -77,33 +86,17 @@ func (r *FentryProgramReconciler) getCurrentAttachPointStatus() bpfmaniov1alpha1
 	return r.currentProgramState.Fentry.AttachPointStatus
 }
 
-func (r *FentryProgramReconciler) getLoadRequest(mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
-	r.Logger.Info("Getting load request", "bpfFunctionName", r.currentProgram.BpfFunctionName,
-		"mapOwnerId", mapOwnerId, "ByteCode", r.appCommon.ByteCode)
-
-	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.appCommon.ByteCode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
-	}
-
-	loadRequest := gobpfman.LoadRequest{
-		Bytecode:    bytecode,
-		Name:        r.currentProgram.BpfFunctionName,
-		ProgramType: uint32(r.getProgType()),
+func (r *FentryProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
+	return &gobpfman.AttachRequest{
+		Id: *r.currentProgramState.ProgramId,
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_FentryAttachInfo{
 				FentryAttachInfo: &gobpfman.FentryAttachInfo{
-					FnName: r.currentProgram.Fentry.FunctionName,
+					Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentProgramState.Fentry.UUID)},
 				},
 			},
 		},
-		Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentProgramState.Fentry.UUID),
-			internal.ProgramNameKey: "BpfApplication"},
-		GlobalData: r.appCommon.GlobalData,
-		MapOwnerId: mapOwnerId,
 	}
-
-	return &loadRequest, nil
 }
 
 // updateAttachInfo processes the *ProgramInfo and updates the list of attach
@@ -130,22 +123,11 @@ func (r *FentryProgramReconciler) updateAttachInfo(ctx context.Context, isBeingD
 // processAttachInfo calls reconcileBpfAttachment() for each attach point. It
 // then updates the ProgramAttachStatus based on the updated status of each
 // attach point.
-func (r *FentryProgramReconciler) processAttachInfo(ctx context.Context, mapOwnerStatus *MapOwnerParamStatus) error {
-	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName,
-		"mapOwnerStatus", mapOwnerStatus)
+func (r *FentryProgramReconciler) processAttachInfo(ctx context.Context) error {
+	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.BpfFunctionName)
 
-	// Get existing ebpf state from bpfman.
-	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, r.getProgType())
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		r.setProgramAttachStatus(bpfmaniov1alpha1.BpfmanListProgramError)
-		return fmt.Errorf("failed to list loaded bpfman programs: %v", err)
-	}
-
-	_, err = r.reconcileBpfAttachment(ctx, r, loadedBpfPrograms, mapOwnerStatus)
-
+	_, err := r.reconcileBpfAttachment(ctx, r)
 	r.updateProgramAttachStatus()
-
 	return err
 }
 
@@ -154,5 +136,19 @@ func (r *FentryProgramReconciler) updateProgramAttachStatus() {
 		r.setProgramAttachStatus(bpfmaniov1alpha1.ProgAttachError)
 	} else {
 		r.setProgramAttachStatus(bpfmaniov1alpha1.ProgAttachSuccess)
+	}
+}
+
+func (r *FentryProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
+	return &gobpfman.LoadInfo{
+		Name:        r.currentProgram.BpfFunctionName,
+		ProgramType: r.getBpfmanProgType(),
+		Info: &gobpfman.ProgSpecificInfo{
+			Info: &gobpfman.ProgSpecificInfo_FentryLoadInfo{
+				FentryLoadInfo: &gobpfman.FentryLoadInfo{
+					FnName: r.currentProgram.Fentry.FunctionName,
+				},
+			},
+		},
 	}
 }

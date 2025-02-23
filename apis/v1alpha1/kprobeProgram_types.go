@@ -37,10 +37,10 @@ type KprobeAttachInfo struct {
 	// +kubebuilder:default:=0
 	Offset uint64 `json:"offset"`
 
-	// Whether the program is a kretprobe.  Default is false
+	// Whether the program is a retprobe.  Default is false
 	// +optional
 	// +kubebuilder:default:=false
-	RetProbe bool `json:"retprobe"`
+	Retprobe bool `json:"retprobe"`
 }
 
 type KprobeProgramInfoState struct {
@@ -63,6 +63,8 @@ type KprobeAttachInfoState struct {
 	// Not allowed for kretprobes.
 	Offset uint64 `json:"offset"`
 
-	// Whether the program is a kretprobe.
-	RetProbe bool `json:"retprobe"`
+	// Whether the program is a retprobe.  Default is false
+	// +optional
+	// +kubebuilder:default:=false
+	Retprobe bool `json:"retprobe"`
 }
