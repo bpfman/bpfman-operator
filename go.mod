@@ -8,7 +8,7 @@ require (
 	github.com/bpfman/bpfman v0.5.6
 	github.com/containers/image/v5 v5.34.0
 	github.com/go-logr/logr v1.4.2
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/kong/kubernetes-testing-framework v0.47.2
 	github.com/openshift/api v0.0.0-20240605201059-cefcda60d938
 	github.com/stretchr/testify v1.10.0
