@@ -2,20 +2,19 @@ name: Kubernetes Integration Tests
 
 on:
   pull_request:
-    branches: ['*']
+    branches: ["*"]
   workflow_dispatch:
   schedule:
-    - cron: '0 5 * * *'  # Runs every day at 5 AM UTC
+    - cron: "0 5 * * *" # Runs every day at 5 AM UTC
 
 jobs:
-
   kubernetes-integration-tests:
     name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }})
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        go: ['1.23']
-        oci_bin: ['docker', 'podman']
+        go: ["1.24"]
+        oci_bin: ["docker", "podman"]
     env:
       BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
       BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
