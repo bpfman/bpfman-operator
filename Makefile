@@ -366,7 +366,7 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
+	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG} quay.io/bpfman/bpfman:latest
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.

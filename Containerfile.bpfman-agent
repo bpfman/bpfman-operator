@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG BUILDPLATFORM
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS bpfman-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24 AS bpfman-agent-build
 
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
@@ -25,7 +25,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod vendor -o bpfman-agent ./cmd/bpfman-agent/main.go
 
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS cri-tools-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24 AS cri-tools-build
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
 ARG TARGETARCH
