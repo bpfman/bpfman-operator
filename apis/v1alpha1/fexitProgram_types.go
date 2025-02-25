@@ -18,53 +18,32 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-// +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// FexitProgram is the Schema for the FexitPrograms API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`,priority=1
-type FexitProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec FexitProgramSpec `json:"spec"`
-	// +optional
-	Status FexitProgramStatus `json:"status,omitempty"`
-}
-
-// FexitProgramSpec defines the desired state of FexitProgram
-// +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`
-type FexitProgramSpec struct {
-	FexitProgramInfo `json:",inline"`
-	BpfAppCommon     `json:",inline"`
-}
-
 // FexitProgramInfo defines the Fexit program details
 type FexitProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
-	// Function to attach the fexit to.
-	FunctionName string `json:"func_name"`
+	FexitLoadInfo `json:",inline"`
+	// Whether the program should be attached to the function.
+	// This may be updated after the program has been loaded.
+	// +optional
+	FexitAttachInfo `json:",inline"`
 }
 
-// FexitProgramStatus defines the observed state of FexitProgram
-type FexitProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+// FexitLoadInfo contains the program-specific load information for Fexit
+// programs
+type FexitLoadInfo struct {
+	// FunctionName is the name of the function to attach the Fexit program to.
+	FunctionName string `json:"function_name"`
 }
 
-// +kubebuilder:object:root=true
-// FexitProgramList contains a list of FexitPrograms
-type FexitProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []FexitProgram `json:"items"`
+type FexitAttachInfo struct {
+	Attach bool `json:"attach"`
+}
+
+type FexitProgramInfoState struct {
+	FexitLoadInfo        `json:",inline"`
+	FexitAttachInfoState `json:",inline"`
+}
+
+type FexitAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
+	Attach                bool `json:"attach"`
 }

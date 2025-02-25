@@ -18,55 +18,33 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// +genclient
-// +genclient:nonNamespaced
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// TracepointProgram is the Schema for the TracepointPrograms API
-// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
-// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
-// +kubebuilder:printcolumn:name="TracePoint",type=string,JSONPath=`.spec.name`,priority=1
-type TracepointProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec TracepointProgramSpec `json:"spec"`
-	// +optional
-	Status TracepointProgramStatus `json:"status,omitempty"`
-}
-
-// TracepointProgramSpec defines the desired state of TracepointProgram
-// +kubebuilder:printcolumn:name="TracePoint",type=string,JSONPath=`.spec.name`
-type TracepointProgramSpec struct {
-	TracepointProgramInfo `json:",inline"`
-	BpfAppCommon          `json:",inline"`
-}
-
-// TracepointProgramInfo defines the Tracepoint program details
+// TracepointProgramInfo contains the Tracepoint program details
 type TracepointProgramInfo struct {
-	BpfProgramCommon `json:",inline"`
+	// The list of points to which the program should be attached.  The list is
+	// optional and may be udated after the bpf program has been loaded
+	// +optional
+	AttachPoints []TracepointAttachInfo `json:"attach_points"`
+}
 
-	// Names refers to the names of kernel tracepoints to attach the
+type TracepointAttachInfo struct {
+	// Name refers to the name of a kernel tracepoint to attach the
 	// bpf program to.
-	Names []string `json:"names"`
+	Name string `json:"name"`
 }
 
-// TracepointProgramStatus defines the observed state of TracepointProgram
-type TracepointProgramStatus struct {
-	BpfProgramStatusCommon `json:",inline"`
+type TracepointProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
+	// in *AttachInfoState represents a specific, unique attach point that is
+	// derived from *AttachInfo by fully expanding any selectors.  Each entry
+	// also contains information about the attach point required by the
+	// reconciler
+	// +optional
+	AttachPoints []TracepointAttachInfoState `json:"attach_points"`
 }
 
-// +kubebuilder:object:root=true
-// TracepointProgramList contains a list of TracepointPrograms
-type TracepointProgramList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []TracepointProgram `json:"items"`
+type TracepointAttachInfoState struct {
+	AttachInfoStateCommon `json:",inline"`
+
+	// The name of a kernel tracepoint to attach the bpf program to.
+	Name string `json:"name"`
 }

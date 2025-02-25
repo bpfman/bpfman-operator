@@ -10,47 +10,65 @@ spec:
   nodeselector: {}
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/go-app-counter:latest
+      url: quay.io/bpfman-bytecode/app-test:latest
   programs:
-    - type: TC
+    - bpffunctionname: tc_pass_test
+      type: TC
       tc:
-        bpffunctionname: stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
-        direction: ingress
-        containers:
-          pods:
-            matchLabels:
-              app: nginx
-    - type: TCX
+        attach_points:
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 55
+            direction: ingress
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - bpffunctionname: tcx_next_test
+      type: TCX
       tcx:
-        bpffunctionname: tcx_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 500
-        direction: ingress
-        containers:
-          pods:
-            matchLabels:
-              app: nginx
-    - type: Uprobe
+        attach_points:
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: egress
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - bpffunctionname: uprobe_test
+      type: Uprobe
       uprobe:
-        bpffunctionname: uprobe_counter
-        func_name: malloc
-        target: libc
-        retprobe: false
-        containers:
-          pods:
-            matchLabels:
-              app: nginx
-    - type: XDP
+        attach_points:
+          - func_name: malloc
+            target: libc
+            retprobe: false
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - bpffunctionname: uretprobe_test
+      type: Uprobe
+      uprobe:
+        attach_points:
+          - func_name: malloc
+            target: libc
+            retprobe: true
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
+    - bpffunctionname: xdp_pass_test
+      type: XDP
       xdp:
-        bpffunctionname: xdp_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
-        containers:
-          pods:
-            matchLabels:
-              app: nginx
+        attach_points:
+          - interfaceselector:
+              interfaces:
+                - eth0
+            priority: 100
+            containers:
+              pods:
+                matchLabels:
+                  app: nginx
