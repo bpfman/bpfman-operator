@@ -69,10 +69,10 @@ func TestApplicationGoCounter(t *testing.T) {
 		require.Eventually(t, func() bool {
 			logs, err := req.Stream(ctx)
 			require.NoError(t, err)
-			defer logs.Close()
 			output := new(bytes.Buffer)
 			_, err = io.Copy(output, logs)
 			require.NoError(t, err)
+			logs.Close()
 
 			if f(t, output) {
 				return true
