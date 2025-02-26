@@ -121,8 +121,9 @@ func doAppXdpCheck(t *testing.T, output *bytes.Buffer) bool {
 func doProbeCommonCheck(t *testing.T, output *bytes.Buffer, str string) (bool, int) {
 	want := regexp.MustCompile(str)
 	matches := want.FindAllStringSubmatch(output.String(), -1)
-	if len(matches) >= 1 && len(matches[0]) >= 2 {
-		count, err := strconv.Atoi(matches[0][1])
+	numMatches := len(matches)
+	if numMatches >= 1 && len(matches[numMatches-1]) >= 2 {
+		count, err := strconv.Atoi(matches[numMatches-1][1])
 		require.NoError(t, err)
 		if count > 0 {
 			return true, count
