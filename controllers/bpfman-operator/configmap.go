@@ -309,6 +309,7 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.Dae
 	bpfmanAgentLogLevel := config.Data["bpfman.agent.log.level"]
 	bpfmanHealthProbeAddr := config.Data["bpfman.agent.healthprobe.addr"]
 	bpfmanMetricAddr := config.Data["bpfman.agent.metric.addr"]
+	bpfmanConfigs := config.Data["bpfman.toml"]
 
 	// Annotate the log level on the ds so we get automatic restarts on changes.
 	if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
@@ -319,6 +320,7 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.Dae
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.loglevel"] = bpfmanAgentLogLevel
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.healthprobeaddr"] = bpfmanHealthProbeAddr
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.metricaddr"] = bpfmanMetricAddr
+	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.toml"] = bpfmanConfigs
 	staticBpfmanDeployment.Name = internal.BpfmanDsName
 	staticBpfmanDeployment.Namespace = config.Namespace
 	staticBpfmanDeployment.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
