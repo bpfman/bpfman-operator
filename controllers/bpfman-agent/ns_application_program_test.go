@@ -44,10 +44,11 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 		namespace      = "bpfman"
 		bytecodePath   = "/tmp/hello.o"
 
-		xdpBpfFunctionName    = "XdpTest"
-		tcxBpfFunctionName    = "TcxTest"
-		uprobeBpfFunctionName = "UprobeTest"
-		tcBpfFunctionName     = "TcTest"
+		xdpBpfFunctionName       = "XdpTest"
+		tcxBpfFunctionName       = "TcxTest"
+		uprobeBpfFunctionName    = "UprobeTest"
+		uretprobeBpfFunctionName = "UretprobeTest"
+		tcBpfFunctionName        = "TcTest"
 
 		direction  = "ingress"
 		AttachName = "AttachNameTest"
@@ -129,6 +130,23 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 		},
 	}
 	programs = append(programs, uprobeProgram)
+
+	uretprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
+		Name: uretprobeBpfFunctionName,
+		Type: bpfmaniov1alpha1.ProgTypeUretprobe,
+		UretprobeInfo: &bpfmaniov1alpha1.UprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.UprobeAttachInfo{
+				{
+					Function:   AttachName,
+					Offset:     0,
+					Target:     "/bin/bash",
+					Pid:        &fakePid,
+					Containers: fakeContainers,
+				},
+			},
+		},
+	}
+	programs = append(programs, uretprobeProgram)
 
 	tcProceedOn := []bpfmaniov1alpha1.TcProceedOnValue{bpfmaniov1alpha1.TcProceedOnValue("ok"),
 		bpfmaniov1alpha1.TcProceedOnValue("shot")}

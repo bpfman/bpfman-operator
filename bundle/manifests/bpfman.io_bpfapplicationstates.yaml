@@ -254,10 +254,78 @@ spec:
                       - tc
                       - tcx
                       - uprobe
+                      - uretprobe
                       type: string
                     uprobeInfo:
                       description: uprobe defines the desired state of the application's
                         UprobePrograms.
+                      properties:
+                        links:
+                          default: []
+                          description: |-
+                            List of attach points for the BPF program on the given node. Each entry
+                            in *AttachInfoState represents a specific, unique attach point that is
+                            derived from *AttachInfo by fully expanding any selectors.  Each entry
+                            also contains information about the attach point required by the
+                            reconciler
+                          items:
+                            properties:
+                              containerPid:
+                                description: Container pid to attach the uprobe program
+                                  in.
+                                format: int32
+                                type: integer
+                              function:
+                                description: Function to attach the uprobe to.
+                                type: string
+                              linkId:
+                                description: |-
+                                  An identifier for the link assigned by bpfman. This field is
+                                  empty until the program is successfully attached and bpfman returns the
+                                  id.
+                                format: int32
+                                type: integer
+                              linkStatus:
+                                description: |-
+                                  LinkStatus reflects whether the attachment has been reconciled
+                                  successfully, and if not, why.
+                                type: string
+                              offset:
+                                default: 0
+                                description: Offset added to the address of the function
+                                  for uprobe.
+                                format: int64
+                                type: integer
+                              pid:
+                                description: |-
+                                  Only execute uprobe for given process identification number (PID). If PID
+                                  is not provided, uprobe executes for all PIDs.
+                                format: int32
+                                type: integer
+                              shouldAttach:
+                                description: ShouldAttach reflects whether the attachment
+                                  should exist.
+                                type: boolean
+                              target:
+                                description: Library name or the absolute path to
+                                  a binary or library.
+                                type: string
+                              uuid:
+                                description: Unique identifier for the attach point
+                                  assigned by bpfman agent.
+                                type: string
+                            required:
+                            - linkId
+                            - linkStatus
+                            - shouldAttach
+                            - target
+                            - uuid
+                            type: object
+                          type: array
+                      type: object
+                    uretprobeInfo:
+                      description: uretprobe defines the desired state of the application's
+                        UretprobePrograms.
                       properties:
                         links:
                           default: []

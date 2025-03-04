@@ -287,8 +287,39 @@ spec:
                                 type: string
                               offset:
                                 default: 0
-                                description: Offset added to the address of the function
-                                  for kprobe.
+                                description: |-
+                                  Offset added to the address of the function for kprobe.
+                                  The offset must be zero for kretprobes.
+                                  TODO: Add a webhook to enforce kretprobe offset=0.
+                                  See: https://github.com/bpfman/bpfman-operator/issues/403
+                                format: int64
+                                type: integer
+                            required:
+                            - function
+                            type: object
+                          type: array
+                      type: object
+                    kretprobeInfo:
+                      description: kretprobe defines the desired state of the application's
+                        KretprobePrograms.
+                      properties:
+                        links:
+                          default: []
+                          description: |-
+                            The list of points to which the program should be attached.  The list items
+                            are optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              function:
+                                description: Function to attach the kprobe to.
+                                type: string
+                              offset:
+                                default: 0
+                                description: |-
+                                  Offset added to the address of the function for kprobe.
+                                  The offset must be zero for kretprobes.
+                                  TODO: Add a webhook to enforce kretprobe offset=0.
+                                  See: https://github.com/bpfman/bpfman-operator/issues/403
                                 format: int64
                                 type: integer
                             required:
@@ -598,12 +629,118 @@ spec:
                       - fentry
                       - fexit
                       - kprobe
+                      - kretprobe
                       - uprobe
+                      - uretprobe
                       - tracepoint
                       type: string
                     uprobeInfo:
                       description: uprobe defines the desired state of the application's
                         UprobePrograms.
+                      properties:
+                        links:
+                          default: []
+                          description: |-
+                            The list of points to which the program should be attached.  The list items
+                            are optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the
+                                  uprobe. If Containers is not specified, the uprobe will be attached in
+                                  the bpfman-agent container.
+                                properties:
+                                  containerNames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  namespace:
+                                    default: ""
+                                    description: Target namespaces.
+                                    type: string
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              function:
+                                description: Function to attach the uprobe to.
+                                type: string
+                              offset:
+                                default: 0
+                                description: Offset added to the address of the function
+                                  for uprobe.
+                                format: int64
+                                type: integer
+                              pid:
+                                description: |-
+                                  Only execute uprobe for given process identification number (PID). If PID
+                                  is not provided, uprobe executes for all PIDs.
+                                format: int32
+                                type: integer
+                              target:
+                                description: Library name or the absolute path to
+                                  a binary or library.
+                                type: string
+                            required:
+                            - target
+                            type: object
+                          type: array
+                      type: object
+                    uretprobeInfo:
+                      description: uretprobe defines the desired state of the application's
+                        UretprobePrograms.
                       properties:
                         links:
                           default: []
@@ -860,10 +997,22 @@ spec:
                       and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''fexit'' ?  has(self.fexitInfo)
                       : !has(self.fexitInfo)'
+                  - message: kprobeInfo configuration is required when type is kprobe,
+                      and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''kprobe'' ?  has(self.kprobeInfo)
+                      : !has(self.kprobeInfo)'
+                  - message: kretprobeInfo configuration is required when type is
+                      kretprobe, and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''kretprobe'' ?  has(self.kretprobeInfo)
+                      : !has(self.kretprobeInfo)'
                   - message: uprobeInfo configuration is required when type is uprobe,
                       and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''uprobe'' ?  has(self.uprobeInfo)
                       : !has(self.uprobeInfo)'
+                  - message: uretprobeInfo configuration is required when type is
+                      uretprobe, and forbidden otherwise
+                    rule: 'has(self.type) && self.type == ''uretprobe'' ?  has(self.uretprobeInfo)
+                      : !has(self.uretprobeInfo)'
                   - message: tracepointInfo configuration is required when type is
                       tracepoint, and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''tracepoint'' ?  has(self.tracepointInfo)

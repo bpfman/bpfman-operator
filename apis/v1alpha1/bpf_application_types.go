@@ -34,7 +34,7 @@ type BpfApplicationProgram struct {
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"uprobe"
+	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"uprobe";"uretprobe"
 	Type EBPFProgType `json:"type,omitempty"`
 
 	// xdp defines the desired state of the application's XdpPrograms.
@@ -56,6 +56,11 @@ type BpfApplicationProgram struct {
 	// +unionMember
 	// +optional
 	UprobeInfo *UprobeProgramInfo `json:"uprobeInfo,omitempty"`
+
+	// uretprobe defines the desired state of the application's UretprobePrograms.
+	// +unionMember
+	// +optional
+	UretprobeInfo *UprobeProgramInfo `json:"uretprobeInfo,omitempty"`
 }
 
 // BpfApplicationSpec defines the desired state of BpfApplication

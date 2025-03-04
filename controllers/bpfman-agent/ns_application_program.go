@@ -309,7 +309,7 @@ func (r *NsBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 	var rec ProgramReconciler
 
 	switch prog.Type {
-	case bpfmaniov1alpha1.ProgTypeUprobe:
+	case bpfmaniov1alpha1.ProgTypeUprobe, bpfmaniov1alpha1.ProgTypeUretprobe:
 		rec = &NsUprobeProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			NsProgramReconcilerCommon: NsProgramReconcilerCommon{
@@ -584,6 +584,11 @@ func (r *NsBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 				Links: []bpfmaniov1alpha1.UprobeAttachInfoState{},
 			}
 
+		case bpfmaniov1alpha1.ProgTypeUretprobe:
+			progState.UretprobeInfo = &bpfmaniov1alpha1.UprobeProgramInfoState{
+				Links: []bpfmaniov1alpha1.UprobeAttachInfoState{},
+			}
+
 		case bpfmaniov1alpha1.ProgTypeXDP:
 			progState.XDPInfo = &bpfmaniov1alpha1.XdpProgramInfoState{
 				Links: []bpfmaniov1alpha1.XdpAttachInfoState{},
@@ -711,6 +716,8 @@ func (r *NsBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.BpfAp
 		program.TCXInfo.Links = []bpfmaniov1alpha1.TcxAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUprobe:
 		program.UprobeInfo.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
+	case bpfmaniov1alpha1.ProgTypeUretprobe:
+		program.UretprobeInfo.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeXDP:
 		program.XDPInfo.Links = []bpfmaniov1alpha1.XdpAttachInfoState{}
 	default:

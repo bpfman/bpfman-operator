@@ -326,7 +326,7 @@ func (r *ClBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 			},
 		}
 
-	case bpfmaniov1alpha1.ProgTypeKprobe:
+	case bpfmaniov1alpha1.ProgTypeKprobe, bpfmaniov1alpha1.ProgTypeKretprobe:
 		rec = &ClKprobeProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			ClProgramReconcilerCommon: ClProgramReconcilerCommon{
@@ -335,7 +335,7 @@ func (r *ClBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 			},
 		}
 
-	case bpfmaniov1alpha1.ProgTypeUprobe:
+	case bpfmaniov1alpha1.ProgTypeUprobe, bpfmaniov1alpha1.ProgTypeUretprobe:
 		rec = &ClUprobeProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			ClProgramReconcilerCommon: ClProgramReconcilerCommon{
@@ -628,6 +628,11 @@ func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 				Links: []bpfmaniov1alpha1.ClKprobeAttachInfoState{},
 			}
 
+		case bpfmaniov1alpha1.ProgTypeKretprobe:
+			progState.KretprobeInfo = &bpfmaniov1alpha1.ClKprobeProgramInfoState{
+				Links: []bpfmaniov1alpha1.ClKprobeAttachInfoState{},
+			}
+
 		case bpfmaniov1alpha1.ProgTypeTC:
 			progState.TCInfo = &bpfmaniov1alpha1.ClTcProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClTcAttachInfoState{},
@@ -645,6 +650,11 @@ func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 
 		case bpfmaniov1alpha1.ProgTypeUprobe:
 			progState.UprobeInfo = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
+				Links: []bpfmaniov1alpha1.ClUprobeAttachInfoState{},
+			}
+
+		case bpfmaniov1alpha1.ProgTypeUretprobe:
+			progState.UretprobeInfo = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClUprobeAttachInfoState{},
 			}
 
@@ -775,6 +785,8 @@ func (r *ClBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.ClBpf
 		program.FexitInfo.Links = []bpfmaniov1alpha1.ClFexitAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeKprobe:
 		program.KprobeInfo.Links = []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		program.KretprobeInfo.Links = []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTC:
 		program.TCInfo.Links = []bpfmaniov1alpha1.ClTcAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTCX:
@@ -783,6 +795,8 @@ func (r *ClBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.ClBpf
 		program.TracepointInfo.Links = []bpfmaniov1alpha1.ClTracepointAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUprobe:
 		program.UprobeInfo.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
+	case bpfmaniov1alpha1.ProgTypeUretprobe:
+		program.UretprobeInfo.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeXDP:
 		program.XDPInfo.Links = []bpfmaniov1alpha1.ClXdpAttachInfoState{}
 	default:

@@ -19,7 +19,6 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
@@ -122,8 +121,10 @@ func (r *ClUprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.UprobeInfo.Links {
-		r.currentProgramState.UprobeInfo.Links[i].ShouldAttach = false
+
+	appStateLinks := r.getAppStateLinks()
+	for i := range *appStateLinks {
+		(*appStateLinks)[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -131,22 +132,21 @@ func (r *ClUprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 		return nil
 	}
 
-	if r.currentProgram.UprobeInfo != nil && r.currentProgram.UprobeInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.UprobeInfo.Links {
-			expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
-			if error != nil {
-				return fmt.Errorf("failed to get node links: %v", error)
-			}
-			for _, link := range expectedLinks {
-				index := r.findLink(link)
-				if index != nil {
-					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.UprobeInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
-				} else {
-					// Link doesn't exist, so add it.
-					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.UprobeInfo.Links = append(r.currentProgramState.UprobeInfo.Links, link)
-				}
+	appLinks := r.getAppLinks()
+	for _, attachInfo := range *appLinks {
+		expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
+		if error != nil {
+			return fmt.Errorf("failed to get node links: %v", error)
+		}
+		for _, link := range expectedLinks {
+			index := r.findLink(link, appStateLinks)
+			if index != nil {
+				// Link already exists, so set ShouldAttach to true.
+				(*appStateLinks)[*index].AttachInfoStateCommon.ShouldAttach = true
+			} else {
+				// Link doesn't exist, so add it.
+				r.Logger.Info("Link doesn't exist.  Adding it.")
+				*appStateLinks = append(*appStateLinks, link)
 			}
 		}
 	}
@@ -159,14 +159,12 @@ func (r *ClUprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	return nil
 }
 
-func (r *ClUprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClUprobeAttachInfoState) *int {
-	for i, a := range r.currentProgramState.UprobeInfo.Links {
+func (r *ClUprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClUprobeAttachInfoState,
+	links *[]bpfmaniov1alpha1.ClUprobeAttachInfoState) *int {
+	for i, a := range *links {
 		// attachInfoState is the same as a if the the following fields are the
 		// same: IfName, ContainerPid, Priority, and Direction.
-		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset &&
-			a.Target == attachInfoState.Target &&
-			reflect.DeepEqual(a.Pid, attachInfoState.Pid) &&
-			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) {
+		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset {
 			return &i
 		}
 	}
@@ -184,9 +182,10 @@ func (r *ClUprobeProgramReconciler) processLinks(ctx context.Context) error {
 	// links.
 	linksToRemove := make(map[int]bool)
 
+	appStateLinks := r.getAppStateLinks()
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.UprobeInfo.Links {
-		r.currentLink = &r.currentProgramState.UprobeInfo.Links[i]
+	for i := range *appStateLinks {
+		r.currentLink = &(*appStateLinks)[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -204,7 +203,7 @@ func (r *ClUprobeProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.UprobeInfo.Links = r.removeLinks(r.currentProgramState.UprobeInfo.Links, linksToRemove)
+		*appStateLinks = r.removeLinks(*appStateLinks, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -213,13 +212,45 @@ func (r *ClUprobeProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *ClUprobeProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.UprobeInfo.Links {
+	appStateLinks := r.getAppStateLinks()
+	for _, link := range *appStateLinks {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
 		}
 	}
 	r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachSuccess)
+}
+
+func (r *ClUprobeProgramReconciler) getAppStateLinks() *[]bpfmaniov1alpha1.ClUprobeAttachInfoState {
+	var appStateLinks *[]bpfmaniov1alpha1.ClUprobeAttachInfoState
+	switch r.currentProgramState.Type {
+	case bpfmaniov1alpha1.ProgTypeUprobe:
+		appStateLinks = &r.currentProgramState.UprobeInfo.Links
+	case bpfmaniov1alpha1.ProgTypeUretprobe:
+		appStateLinks = &r.currentProgramState.UretprobeInfo.Links
+	default:
+		r.Logger.Error(fmt.Errorf("unexpected programState type: %v", r.currentProgramState.Type), "")
+		appStateLinks = &[]bpfmaniov1alpha1.ClUprobeAttachInfoState{}
+	}
+	return appStateLinks
+}
+
+func (r *ClUprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.ClUprobeAttachInfo {
+	appLinks := &[]bpfmaniov1alpha1.ClUprobeAttachInfo{}
+	switch r.currentProgram.Type {
+	case bpfmaniov1alpha1.ProgTypeUprobe:
+		if r.currentProgram.UprobeInfo != nil && r.currentProgram.UprobeInfo.Links != nil {
+			appLinks = &r.currentProgram.UprobeInfo.Links
+		}
+	case bpfmaniov1alpha1.ProgTypeUretprobe:
+		if r.currentProgram.UretprobeInfo != nil && r.currentProgram.UretprobeInfo.Links != nil {
+			appLinks = &r.currentProgram.UretprobeInfo.Links
+		}
+	default:
+		r.Logger.Error(fmt.Errorf("unexpected program type: %v", r.currentProgram.Type), "")
+	}
+	return appLinks
 }
 
 // removeLinks removes links from a slice of links based on the keys in the map.

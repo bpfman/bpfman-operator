@@ -111,8 +111,10 @@ func (r *ClKprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.KprobeInfo.Links {
-		r.currentProgramState.KprobeInfo.Links[i].ShouldAttach = false
+
+	appStateLinks := r.getAppStateLinks()
+	for i := range *appStateLinks {
+		(*appStateLinks)[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -120,22 +122,21 @@ func (r *ClKprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 		return nil
 	}
 
-	if r.currentProgram.KprobeInfo != nil && r.currentProgram.KprobeInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.KprobeInfo.Links {
-			expectedLinks, error := r.getExpectedLinks(attachInfo)
-			if error != nil {
-				return fmt.Errorf("failed to get node links: %v", error)
-			}
-			for _, link := range expectedLinks {
-				index := r.findLink(link)
-				if index != nil {
-					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.KprobeInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
-				} else {
-					// Link doesn't exist, so add it.
-					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.KprobeInfo.Links = append(r.currentProgramState.KprobeInfo.Links, link)
-				}
+	appLinks := r.getAppLinks()
+	for _, attachInfo := range *appLinks {
+		expectedLinks, error := r.getExpectedLinks(attachInfo)
+		if error != nil {
+			return fmt.Errorf("failed to get node links: %v", error)
+		}
+		for _, link := range expectedLinks {
+			index := r.findLink(link, appStateLinks)
+			if index != nil {
+				// Link already exists, so set ShouldAttach to true.
+				(*appStateLinks)[*index].AttachInfoStateCommon.ShouldAttach = true
+			} else {
+				// Link doesn't exist, so add it.
+				r.Logger.Info("Link doesn't exist.  Adding it.")
+				*appStateLinks = append(*appStateLinks, link)
 			}
 		}
 	}
@@ -148,8 +149,9 @@ func (r *ClKprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	return nil
 }
 
-func (r *ClKprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClKprobeAttachInfoState) *int {
-	for i, a := range r.currentProgramState.KprobeInfo.Links {
+func (r *ClKprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClKprobeAttachInfoState,
+	links *[]bpfmaniov1alpha1.ClKprobeAttachInfoState) *int {
+	for i, a := range *links {
 		// attachInfoState is the same as a if the the following fields are the
 		// same: IfName, ContainerPid, Priority, and Direction.
 		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset {
@@ -170,9 +172,11 @@ func (r *ClKprobeProgramReconciler) processLinks(ctx context.Context) error {
 	// links.
 	linksToRemove := make(map[int]bool)
 
+	appStateLinks := r.getAppStateLinks()
+
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.KprobeInfo.Links {
-		r.currentLink = &r.currentProgramState.KprobeInfo.Links[i]
+	for i := range *appStateLinks {
+		r.currentLink = &(*appStateLinks)[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			// All errors are logged, but the last error is saved to return and
@@ -189,7 +193,7 @@ func (r *ClKprobeProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.KprobeInfo.Links = r.removeLinks(r.currentProgramState.KprobeInfo.Links, linksToRemove)
+		*appStateLinks = r.removeLinks(*appStateLinks, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -198,13 +202,45 @@ func (r *ClKprobeProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *ClKprobeProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.KprobeInfo.Links {
+	appStateLinks := r.getAppStateLinks()
+	for _, link := range *appStateLinks {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
 		}
 	}
 	r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachSuccess)
+}
+
+func (r *ClKprobeProgramReconciler) getAppStateLinks() *[]bpfmaniov1alpha1.ClKprobeAttachInfoState {
+	var appStateLinks *[]bpfmaniov1alpha1.ClKprobeAttachInfoState
+	switch r.currentProgramState.Type {
+	case bpfmaniov1alpha1.ProgTypeKprobe:
+		appStateLinks = &r.currentProgramState.KprobeInfo.Links
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		appStateLinks = &r.currentProgramState.KretprobeInfo.Links
+	default:
+		r.Logger.Error(fmt.Errorf("unexpected programState type: %v", r.currentProgramState.Type), "")
+		appStateLinks = &[]bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+	}
+	return appStateLinks
+}
+
+func (r *ClKprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.ClKprobeAttachInfo {
+	appLinks := &[]bpfmaniov1alpha1.ClKprobeAttachInfo{}
+	switch r.currentProgram.Type {
+	case bpfmaniov1alpha1.ProgTypeKprobe:
+		if r.currentProgram.KprobeInfo != nil && r.currentProgram.KprobeInfo.Links != nil {
+			appLinks = &r.currentProgram.KprobeInfo.Links
+		}
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		if r.currentProgram.KretprobeInfo != nil && r.currentProgram.KretprobeInfo.Links != nil {
+			appLinks = &r.currentProgram.KretprobeInfo.Links
+		}
+	default:
+		r.Logger.Error(fmt.Errorf("unexpected program type: %v", r.currentProgram.Type), "")
+	}
+	return appLinks
 }
 
 // removeLinks removes links from a slice of links based on the keys in the map.

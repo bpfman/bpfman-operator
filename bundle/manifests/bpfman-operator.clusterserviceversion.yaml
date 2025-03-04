@@ -102,8 +102,8 @@ metadata:
               },
               {
                 "name": "uretprobe_test",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "uretprobe",
+                "uretprobeInfo": {
                   "links": [
                     {
                       "containers": {
@@ -149,7 +149,7 @@ metadata:
           "apiVersion": "bpfman.io/v1alpha1",
           "kind": "BpfApplicationState",
           "metadata": {
-            "creationTimestamp": "2025-03-03T23:12:05Z",
+            "creationTimestamp": "2025-03-04T22:12:48Z",
             "finalizers": [
               "bpfman.io.nsbpfapplicationcontroller/finalizer"
             ],
@@ -158,7 +158,7 @@ metadata:
               "bpfman.io/ownedByProgram": "bpfapplication-sample",
               "kubernetes.io/hostname": "bpfman-deployment-control-plane"
             },
-            "name": "bpfapplication-sample-36166f8e",
+            "name": "bpfapplication-sample-39654e9e",
             "namespace": "acme",
             "ownerReferences": [
               {
@@ -167,11 +167,11 @@ metadata:
                 "controller": true,
                 "kind": "BpfApplication",
                 "name": "bpfapplication-sample",
-                "uid": "d4cd631a-5407-4470-b9a4-0f773e78c19a"
+                "uid": "ec225895-0954-4e6e-aa21-a32128e8bd73"
               }
             ],
-            "resourceVersion": "2027",
-            "uid": "f585d154-9f6a-48e2-a5cd-998833a5ccbd"
+            "resourceVersion": "2232",
+            "uid": "66d14188-a467-4882-9207-214d82500e7b"
           },
           "spec": {
             "appLoadStatus": "LoadSuccess",
@@ -179,15 +179,15 @@ metadata:
             "programs": [
               {
                 "name": "tc_pass_test",
-                "programId": 2535,
+                "programId": 4125,
                 "programLinkStatus": "Success",
                 "tcInfo": {
                   "links": [
                     {
-                      "containerPid": 3051,
+                      "containerPid": 3078,
                       "direction": "ingress",
                       "ifName": "eth0",
-                      "linkId": 1875380272,
+                      "linkId": 832290746,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
@@ -195,13 +195,13 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "d39837cb-2c9c-447b-a610-0f5d2ffbd9f4"
+                      "uuid": "00168ad2-abcd-427c-96b8-7ec2b73b8460"
                     },
                     {
-                      "containerPid": 2980,
+                      "containerPid": 2981,
                       "direction": "ingress",
                       "ifName": "eth0",
-                      "linkId": 4055218758,
+                      "linkId": 256466427,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
@@ -209,7 +209,7 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "75d01aa5-4d27-450f-8a02-f330b33f33f4"
+                      "uuid": "3d99959a-6690-4de9-a8b5-26ade29525d2"
                     }
                   ]
                 },
@@ -217,29 +217,29 @@ metadata:
               },
               {
                 "name": "tcx_next_test",
-                "programId": 2536,
+                "programId": 4126,
                 "programLinkStatus": "Success",
                 "tcxInfo": {
                   "links": [
                     {
-                      "containerPid": 3051,
+                      "containerPid": 3078,
                       "direction": "egress",
                       "ifName": "eth0",
-                      "linkId": 1800264343,
+                      "linkId": 533548322,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "shouldAttach": true,
-                      "uuid": "cf6ad2f9-e86a-4152-ab41-3a2d97da7a87"
+                      "uuid": "b299efd7-b0af-4ba7-8ed7-dfe067d80de2"
                     },
                     {
-                      "containerPid": 2980,
+                      "containerPid": 2981,
                       "direction": "egress",
                       "ifName": "eth0",
-                      "linkId": 1281696802,
+                      "linkId": 777895864,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "shouldAttach": true,
-                      "uuid": "22e2324a-0a2a-474f-88a9-a5dc739585bf"
+                      "uuid": "5918b228-4724-43dc-8462-28d69a5cdcde"
                     }
                   ]
                 },
@@ -247,75 +247,55 @@ metadata:
               },
               {
                 "name": "uprobe_test",
-                "programId": 2537,
+                "programId": 4127,
                 "programLinkStatus": "Success",
                 "type": "uprobe",
                 "uprobeInfo": {
                   "links": [
                     {
-                      "containerPid": 3051,
+                      "containerPid": 3078,
                       "function": "malloc",
-                      "linkId": 4099588985,
+                      "linkId": 1103062122,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "942752c9-12f1-44c7-bef8-6c9fc28ed01f"
-                    },
-                    {
-                      "containerPid": 2980,
-                      "function": "malloc",
-                      "linkId": 1110782719,
-                      "linkStatus": "Attached",
-                      "offset": 0,
-                      "shouldAttach": true,
-                      "target": "libc",
-                      "uuid": "7560d97e-3554-46cc-ac33-cf37be1c0f67"
+                      "uuid": "b76f7b7b-7e24-4ad3-858e-ef6dc9abc561"
                     }
                   ]
                 }
               },
               {
                 "name": "uretprobe_test",
-                "programId": 2538,
+                "programId": 4128,
                 "programLinkStatus": "Success",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "uretprobe",
+                "uretprobeInfo": {
                   "links": [
                     {
-                      "containerPid": 3051,
+                      "containerPid": 3078,
                       "function": "malloc",
-                      "linkId": 2706414718,
+                      "linkId": 2890973738,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "3f1fe325-59e6-472e-b348-fc2eb43f23f6"
-                    },
-                    {
-                      "containerPid": 2980,
-                      "function": "malloc",
-                      "linkId": 2816099170,
-                      "linkStatus": "Attached",
-                      "offset": 0,
-                      "shouldAttach": true,
-                      "target": "libc",
-                      "uuid": "5a48f09d-3073-4a5b-8c59-d473b55e8a24"
+                      "uuid": "25495af0-988e-4ca5-9d5a-3c2380f2b490"
                     }
                   ]
                 }
               },
               {
                 "name": "xdp_pass_test",
-                "programId": 2539,
+                "programId": 4129,
                 "programLinkStatus": "Success",
                 "type": "xdp",
                 "xdpInfo": {
                   "links": [
                     {
-                      "containerPid": 3051,
+                      "containerPid": 3078,
                       "ifName": "eth0",
-                      "linkId": 140888790,
+                      "linkId": 1368615850,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "proceedOn": [
@@ -323,12 +303,12 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "2458f115-ace4-4b93-89b0-7ba68b27a3d6"
+                      "uuid": "6f8ad067-99c7-4ba3-a61d-a4f3f4fc56b9"
                     },
                     {
-                      "containerPid": 2980,
+                      "containerPid": 2981,
                       "ifName": "eth0",
-                      "linkId": 2812011548,
+                      "linkId": 3080543731,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "proceedOn": [
@@ -336,7 +316,7 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "4982d10f-027c-4ee6-a837-4e217fc786ab"
+                      "uuid": "19c62c5c-c544-41fe-ab80-e9a6fc3e4fce"
                     }
                   ]
                 }
@@ -347,7 +327,7 @@ metadata:
           "status": {
             "conditions": [
               {
-                "lastTransitionTime": "2025-03-03T23:12:17Z",
+                "lastTransitionTime": "2025-03-04T22:12:50Z",
                 "message": "The BPF application has been successfully loaded and attached",
                 "reason": "Success",
                 "status": "True",
@@ -397,16 +377,15 @@ metadata:
                 "type": "kprobe"
               },
               {
-                "kprobeInfo": {
+                "kretprobeInfo": {
                   "links": [
                     {
-                      "function": "try_to_wake_up",
-                      "offset": 0
+                      "function": "try_to_wake_up"
                     }
                   ]
                 },
                 "name": "kretprobe_test",
-                "type": "kprobe"
+                "type": "kretprobe"
               },
               {
                 "name": "tracepoint_test",
@@ -495,8 +474,8 @@ metadata:
               },
               {
                 "name": "uretprobe_test",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "uretprobe",
+                "uretprobeInfo": {
                   "links": [
                     {
                       "containers": {
@@ -581,7 +560,7 @@ metadata:
           "apiVersion": "bpfman.io/v1alpha1",
           "kind": "ClusterBpfApplicationState",
           "metadata": {
-            "creationTimestamp": "2025-03-03T23:03:39Z",
+            "creationTimestamp": "2025-03-04T21:59:13Z",
             "finalizers": [
               "bpfman.io.clbpfapplicationcontroller/finalizer"
             ],
@@ -590,7 +569,7 @@ metadata:
               "bpfman.io/ownedByProgram": "clusterbpfapplication-sample",
               "kubernetes.io/hostname": "bpfman-deployment-control-plane"
             },
-            "name": "clusterbpfapplication-sample-28d21f69",
+            "name": "clusterbpfapplication-sample-7f0ab017",
             "ownerReferences": [
               {
                 "apiVersion": "bpfman.io/v1alpha1",
@@ -598,11 +577,11 @@ metadata:
                 "controller": true,
                 "kind": "ClusterBpfApplication",
                 "name": "clusterbpfapplication-sample",
-                "uid": "a380c83f-7844-43f1-8794-f373772bac70"
+                "uid": "a5f706e7-aecf-473c-bdfc-6acb684d65b1"
               }
             ],
-            "resourceVersion": "1073",
-            "uid": "6ebdc390-5d78-4ae8-be88-a0ea4dd37a3e"
+            "resourceVersion": "729",
+            "uid": "86a048c6-df30-47ab-b544-3fd75f3b11dc"
           },
           "spec": {
             "appLoadStatus": "LoadSuccess",
@@ -613,49 +592,49 @@ metadata:
                   "links": [
                     {
                       "function": "try_to_wake_up",
-                      "linkId": 261956930,
+                      "linkId": 4211340334,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
-                      "uuid": "6d85e170-589a-4b8c-ac8f-1c0ed232623c"
+                      "uuid": "eff9d4e1-5386-48ac-9ebf-4f7ce5518629"
                     }
                   ]
                 },
                 "name": "kprobe_test",
-                "programId": 2476,
+                "programId": 4044,
                 "programLinkStatus": "Success",
                 "type": "kprobe"
               },
               {
-                "kprobeInfo": {
+                "kretprobeInfo": {
                   "links": [
                     {
                       "function": "try_to_wake_up",
-                      "linkId": 3439349262,
+                      "linkId": 1254903747,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
-                      "uuid": "370b42b8-cc1d-45dc-9e87-371594109b2b"
+                      "uuid": "3e8203b3-2de7-4032-abe5-a42493b38dd4"
                     }
                   ]
                 },
                 "name": "kretprobe_test",
-                "programId": 2477,
+                "programId": 4045,
                 "programLinkStatus": "Success",
-                "type": "kprobe"
+                "type": "kretprobe"
               },
               {
                 "name": "tracepoint_test",
-                "programId": 2478,
+                "programId": 4046,
                 "programLinkStatus": "Success",
                 "tracepointInfo": {
                   "links": [
                     {
-                      "linkId": 3411066403,
+                      "linkId": 1360955591,
                       "linkStatus": "Attached",
                       "name": "syscalls/sys_enter_openat",
                       "shouldAttach": true,
-                      "uuid": "22f6f294-565d-4b02-b01d-1edd32433523"
+                      "uuid": "554408d0-19fe-43c9-81b5-21c685c18631"
                     }
                   ]
                 },
@@ -663,14 +642,14 @@ metadata:
               },
               {
                 "name": "tc_pass_test",
-                "programId": 2480,
+                "programId": 4048,
                 "programLinkStatus": "Success",
                 "tcInfo": {
                   "links": [
                     {
                       "direction": "ingress",
                       "ifName": "eth0",
-                      "linkId": 3747609694,
+                      "linkId": 2071011696,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
@@ -678,7 +657,7 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "dd4766d9-5db7-47d7-a2be-8e1844de0853"
+                      "uuid": "b11abbd5-abe3-48ea-be76-51fcebb1e29e"
                     }
                   ]
                 },
@@ -686,28 +665,28 @@ metadata:
               },
               {
                 "name": "tcx_next_test",
-                "programId": 2481,
+                "programId": 4049,
                 "programLinkStatus": "Success",
                 "tcxInfo": {
                   "links": [
                     {
                       "direction": "ingress",
                       "ifName": "eth0",
-                      "linkId": 2225025931,
+                      "linkId": 1065661122,
                       "linkStatus": "Attached",
                       "priority": 500,
                       "shouldAttach": true,
-                      "uuid": "f016a6d3-9ac1-4e99-afa7-35996015f7dc"
+                      "uuid": "1c568cad-0ff9-44e5-973b-24599844e48a"
                     },
                     {
-                      "containerPid": 2055,
+                      "containerPid": 2044,
                       "direction": "egress",
                       "ifName": "eth0",
-                      "linkId": 2315187157,
+                      "linkId": 890204004,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "shouldAttach": true,
-                      "uuid": "dc2a7b40-784c-4ebc-8b63-04e67acb0750"
+                      "uuid": "ef125fe7-f05c-4c8a-a5a7-540828d63d82"
                     }
                   ]
                 },
@@ -715,74 +694,54 @@ metadata:
               },
               {
                 "name": "uprobe_test",
-                "programId": 2482,
+                "programId": 4050,
                 "programLinkStatus": "Success",
                 "type": "uprobe",
                 "uprobeInfo": {
                   "links": [
                     {
-                      "containerPid": 2055,
+                      "containerPid": 2044,
                       "function": "malloc",
-                      "linkId": 3268342214,
+                      "linkId": 2632600106,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "2661a27d-82b7-4287-8ca6-9fd84910076b"
-                    },
-                    {
-                      "containerPid": 2006,
-                      "function": "malloc",
-                      "linkId": 2590566373,
-                      "linkStatus": "Attached",
-                      "offset": 0,
-                      "shouldAttach": true,
-                      "target": "libc",
-                      "uuid": "29d2d105-622a-4007-a7d3-99c93b837ad0"
+                      "uuid": "9052bea1-f07c-4b18-84f3-aa78503f2713"
                     }
                   ]
                 }
               },
               {
                 "name": "uretprobe_test",
-                "programId": 2483,
+                "programId": 4051,
                 "programLinkStatus": "Success",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "uretprobe",
+                "uretprobeInfo": {
                   "links": [
                     {
-                      "containerPid": 2055,
+                      "containerPid": 2044,
                       "function": "malloc",
-                      "linkId": 1024110577,
+                      "linkId": 1662220018,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "ae90f9f2-41e3-42d2-970d-2f38b451e6ab"
-                    },
-                    {
-                      "containerPid": 2006,
-                      "function": "malloc",
-                      "linkId": 1779959424,
-                      "linkStatus": "Attached",
-                      "offset": 0,
-                      "shouldAttach": true,
-                      "target": "libc",
-                      "uuid": "98fe6e76-559a-496d-a0e4-6c3bc25fbc00"
+                      "uuid": "f685d1df-3fe4-45c7-96e7-d98746428a10"
                     }
                   ]
                 }
               },
               {
                 "name": "xdp_pass_test",
-                "programId": 2485,
+                "programId": 4053,
                 "programLinkStatus": "Success",
                 "type": "xdp",
                 "xdpInfo": {
                   "links": [
                     {
                       "ifName": "eth0",
-                      "linkId": 1668985367,
+                      "linkId": 775398736,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
@@ -790,12 +749,12 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "8778c35f-3008-456a-91dd-ff38a4988c18"
+                      "uuid": "f4ed47ee-0bea-4d0e-8603-861cb1827d51"
                     },
                     {
-                      "containerPid": 2055,
+                      "containerPid": 2044,
                       "ifName": "eth0",
-                      "linkId": 332600090,
+                      "linkId": 1232024606,
                       "linkStatus": "Attached",
                       "priority": 100,
                       "proceedOn": [
@@ -803,7 +762,7 @@ metadata:
                         "dispatcher_return"
                       ],
                       "shouldAttach": true,
-                      "uuid": "f377e8ab-90cf-4082-8459-85baba335414"
+                      "uuid": "c3fe1930-1d70-4ade-9f20-a43a6cb49e68"
                     }
                   ]
                 }
@@ -813,15 +772,15 @@ metadata:
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "linkId": 4210295314,
+                      "linkId": 3721740425,
                       "linkStatus": "Attached",
                       "shouldAttach": true,
-                      "uuid": "fb9c49a2-208c-4f18-86ff-0bf5de002743"
+                      "uuid": "878fd945-39f2-4864-9a13-5e3101add0fc"
                     }
                   ]
                 },
                 "name": "fentry_test",
-                "programId": 2486,
+                "programId": 4054,
                 "programLinkStatus": "Success",
                 "type": "fentry"
               },
@@ -830,15 +789,15 @@ metadata:
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "linkId": 3125788100,
+                      "linkId": 3161417735,
                       "linkStatus": "Attached",
                       "shouldAttach": true,
-                      "uuid": "418c6d61-cce9-4a4c-aaff-9c760151bdc6"
+                      "uuid": "e38912f9-1798-4fe8-b282-81bb3dfd10f2"
                     }
                   ]
                 },
                 "name": "fexit_test",
-                "programId": 2487,
+                "programId": 4055,
                 "programLinkStatus": "Success",
                 "type": "fexit"
               }
@@ -848,7 +807,7 @@ metadata:
           "status": {
             "conditions": [
               {
-                "lastTransitionTime": "2025-03-03T23:03:53Z",
+                "lastTransitionTime": "2025-03-04T21:59:21Z",
                 "message": "The BPF application has been successfully loaded and attached",
                 "reason": "Success",
                 "status": "True",
@@ -861,7 +820,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-03-04T15:37:43Z"
+    createdAt: "2025-03-04T22:18:04Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

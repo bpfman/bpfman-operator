@@ -3,14 +3,14 @@ items:
 - apiVersion: bpfman.io/v1alpha1
   kind: BpfApplicationState
   metadata:
-    creationTimestamp: "2025-03-03T23:12:05Z"
+    creationTimestamp: "2025-03-04T22:12:48Z"
     finalizers:
     - bpfman.io.nsbpfapplicationcontroller/finalizer
     generation: 2
     labels:
       bpfman.io/ownedByProgram: bpfapplication-sample
       kubernetes.io/hostname: bpfman-deployment-control-plane
-    name: bpfapplication-sample-36166f8e
+    name: bpfapplication-sample-39654e9e
     namespace: acme
     ownerReferences:
     - apiVersion: bpfman.io/v1alpha1
@@ -18,137 +18,121 @@ items:
       controller: true
       kind: BpfApplication
       name: bpfapplication-sample
-      uid: d4cd631a-5407-4470-b9a4-0f773e78c19a
-    resourceVersion: "2027"
-    uid: f585d154-9f6a-48e2-a5cd-998833a5ccbd
+      uid: ec225895-0954-4e6e-aa21-a32128e8bd73
+    resourceVersion: "2232"
+    uid: 66d14188-a467-4882-9207-214d82500e7b
   spec:
     appLoadStatus: LoadSuccess
     node: bpfman-deployment-control-plane
     programs:
     - name: tc_pass_test
-      programId: 2535
+      programId: 4125
       programLinkStatus: Success
       tcInfo:
         links:
-        - containerPid: 3051
+        - containerPid: 3078
           direction: ingress
           ifName: eth0
-          linkId: 1875380272
+          linkId: 832290746
           linkStatus: Attached
           priority: 55
           proceedOn:
           - pipe
           - dispatcher_return
           shouldAttach: true
-          uuid: d39837cb-2c9c-447b-a610-0f5d2ffbd9f4
-        - containerPid: 2980
+          uuid: 00168ad2-abcd-427c-96b8-7ec2b73b8460
+        - containerPid: 2981
           direction: ingress
           ifName: eth0
-          linkId: 4055218758
+          linkId: 256466427
           linkStatus: Attached
           priority: 55
           proceedOn:
           - pipe
           - dispatcher_return
           shouldAttach: true
-          uuid: 75d01aa5-4d27-450f-8a02-f330b33f33f4
+          uuid: 3d99959a-6690-4de9-a8b5-26ade29525d2
       type: tc
     - name: tcx_next_test
-      programId: 2536
+      programId: 4126
       programLinkStatus: Success
       tcxInfo:
         links:
-        - containerPid: 3051
+        - containerPid: 3078
           direction: egress
           ifName: eth0
-          linkId: 1800264343
+          linkId: 533548322
           linkStatus: Attached
           priority: 100
           shouldAttach: true
-          uuid: cf6ad2f9-e86a-4152-ab41-3a2d97da7a87
-        - containerPid: 2980
+          uuid: b299efd7-b0af-4ba7-8ed7-dfe067d80de2
+        - containerPid: 2981
           direction: egress
           ifName: eth0
-          linkId: 1281696802
+          linkId: 777895864
           linkStatus: Attached
           priority: 100
           shouldAttach: true
-          uuid: 22e2324a-0a2a-474f-88a9-a5dc739585bf
+          uuid: 5918b228-4724-43dc-8462-28d69a5cdcde
       type: tcx
     - name: uprobe_test
-      programId: 2537
+      programId: 4127
       programLinkStatus: Success
       type: uprobe
       uprobeInfo:
         links:
-        - containerPid: 3051
+        - containerPid: 3078
           function: malloc
-          linkId: 4099588985
+          linkId: 1103062122
           linkStatus: Attached
           offset: 0
           shouldAttach: true
           target: libc
-          uuid: 942752c9-12f1-44c7-bef8-6c9fc28ed01f
-        - containerPid: 2980
-          function: malloc
-          linkId: 1110782719
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 7560d97e-3554-46cc-ac33-cf37be1c0f67
+          uuid: b76f7b7b-7e24-4ad3-858e-ef6dc9abc561
     - name: uretprobe_test
-      programId: 2538
+      programId: 4128
       programLinkStatus: Success
-      type: uprobe
-      uprobeInfo:
+      type: uretprobe
+      uretprobeInfo:
         links:
-        - containerPid: 3051
+        - containerPid: 3078
           function: malloc
-          linkId: 2706414718
+          linkId: 2890973738
           linkStatus: Attached
           offset: 0
           shouldAttach: true
           target: libc
-          uuid: 3f1fe325-59e6-472e-b348-fc2eb43f23f6
-        - containerPid: 2980
-          function: malloc
-          linkId: 2816099170
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 5a48f09d-3073-4a5b-8c59-d473b55e8a24
+          uuid: 25495af0-988e-4ca5-9d5a-3c2380f2b490
     - name: xdp_pass_test
-      programId: 2539
+      programId: 4129
       programLinkStatus: Success
       type: xdp
       xdpInfo:
         links:
-        - containerPid: 3051
+        - containerPid: 3078
           ifName: eth0
-          linkId: 140888790
+          linkId: 1368615850
           linkStatus: Attached
           priority: 100
           proceedOn:
           - pass
           - dispatcher_return
           shouldAttach: true
-          uuid: 2458f115-ace4-4b93-89b0-7ba68b27a3d6
-        - containerPid: 2980
+          uuid: 6f8ad067-99c7-4ba3-a61d-a4f3f4fc56b9
+        - containerPid: 2981
           ifName: eth0
-          linkId: 2812011548
+          linkId: 3080543731
           linkStatus: Attached
           priority: 100
           proceedOn:
           - pass
           - dispatcher_return
           shouldAttach: true
-          uuid: 4982d10f-027c-4ee6-a837-4e217fc786ab
+          uuid: 19c62c5c-c544-41fe-ab80-e9a6fc3e4fce
     updateCount: 2
   status:
     conditions:
-    - lastTransitionTime: "2025-03-03T23:12:17Z"
+    - lastTransitionTime: "2025-03-04T22:12:50Z"
       message: The BPF application has been successfully loaded and attached
       reason: Success
       status: "True"

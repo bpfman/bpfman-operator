@@ -47,7 +47,9 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		fentryBpfFunctionName     = "FentryTest"
 		fexitBpfFunctionName      = "FexitTest"
 		uprobeBpfFunctionName     = "UprobeTest"
+		uretprobeBpfFunctionName  = "UretprobeTest"
 		kprobeBpfFunctionName     = "KprobeTest"
+		kretprobeBpfFunctionName  = "KretprobeTest"
 		tracepointBpfFunctionName = "TracepointTest"
 		tcBpfFunctionName         = "TcTest"
 		tcxBpfFunctionName        = "TcxTest"
@@ -130,6 +132,20 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	}
 	programs = append(programs, kprobeProgram)
 
+	kretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: kretprobeBpfFunctionName,
+		Type: bpfmaniov1alpha1.ProgTypeKretprobe,
+		KretprobeInfo: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+				{
+					Function: AttachName,
+					Offset:   0,
+				},
+			},
+		},
+	}
+	programs = append(programs, kretprobeProgram)
+
 	uprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: uprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeUprobe,
@@ -145,6 +161,22 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		},
 	}
 	programs = append(programs, uprobeProgram)
+
+	uretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
+		Name: uretprobeBpfFunctionName,
+		Type: bpfmaniov1alpha1.ProgTypeUretprobe,
+		UretprobeInfo: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+				{
+					Function: AttachName,
+					Offset:   100,
+					Target:   "/bin/bash",
+					Pid:      &fakePid,
+				},
+			},
+		},
+	}
+	programs = append(programs, uretprobeProgram)
 
 	tracepointProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tracepointBpfFunctionName,

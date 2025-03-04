@@ -25,8 +25,8 @@ spec:
         #   - function: try_to_wake_up
         #     offset: 0
     - name: kretprobe_test
-      type: kprobe
-      kprobeInfo:
+      type: kretprobe
+      kretprobeInfo:
         # links:
         #   - function: try_to_wake_up
         #     offset: 0
@@ -78,8 +78,8 @@ spec:
         #         - bpfman
         #         - bpfman-agent
     - name: uretprobe_test
-      type: uprobe
-      uprobeInfo:
+      type: uretprobe
+      uretprobeInfo:
         # links:
         #   - function: malloc
         #     target: libc

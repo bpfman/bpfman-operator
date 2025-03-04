@@ -482,10 +482,111 @@ spec:
                       - tc
                       - tcx
                       - uprobe
+                      - uretprobe
                       type: string
                     uprobeInfo:
                       description: uprobe defines the desired state of the application's
                         UprobePrograms.
+                      properties:
+                        links:
+                          default: []
+                          description: |-
+                            The list of points to which the program should be attached.  The list items
+                            are optional and may be udated after the bpf program has been loaded
+                          items:
+                            properties:
+                              containers:
+                                description: |-
+                                  Containers identifies the set of containers in which to attach the
+                                  uprobe.
+                                properties:
+                                  containerNames:
+                                    description: |-
+                                      Name(s) of container(s).  If none are specified, all containers in the
+                                      pod are selected.
+                                    items:
+                                      type: string
+                                    type: array
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
+                              function:
+                                description: Function to attach the uprobe to.
+                                type: string
+                              offset:
+                                default: 0
+                                description: Offset added to the address of the function
+                                  for uprobe.
+                                format: int64
+                                type: integer
+                              pid:
+                                description: |-
+                                  Only execute uprobe for given process identification number (PID). If PID
+                                  is not provided, uprobe executes for all PIDs.
+                                format: int32
+                                type: integer
+                              target:
+                                description: Library name or the absolute path to
+                                  a binary or library.
+                                type: string
+                            required:
+                            - containers
+                            - target
+                            type: object
+                          type: array
+                      type: object
+                    uretprobeInfo:
+                      description: uretprobe defines the desired state of the application's
+                        UretprobePrograms.
                       properties:
                         links:
                           default: []

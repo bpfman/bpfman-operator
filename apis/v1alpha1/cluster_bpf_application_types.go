@@ -42,8 +42,14 @@ const (
 	// ProgTypeKprobe refers to the Kprobe program type.
 	ProgTypeKprobe EBPFProgType = "kprobe"
 
+	// ProgTypeKretprobe refers to the Kretprobe program type.
+	ProgTypeKretprobe EBPFProgType = "kretprobe"
+
 	// ProgTypeUprobe refers to the Uprobe program type.
 	ProgTypeUprobe EBPFProgType = "uprobe"
+
+	// ProgTypeUretprobe refers to the Uretprobe program type.
+	ProgTypeUretprobe EBPFProgType = "uretprobe"
 
 	// ProgTypeTracepoint refers to the Tracepoint program type.
 	ProgTypeTracepoint EBPFProgType = "tracepoint"
@@ -56,7 +62,10 @@ const (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tcx' ?  has(self.tcxInfo) : !has(self.tcxInfo)",message="tcxInfo configuration is required when type is tcx, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fentry' ?  has(self.fentryInfo) : !has(self.fentryInfo)",message="fentryInfo configuration is required when type is fentry, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fexit' ?  has(self.fexitInfo) : !has(self.fexitInfo)",message="fexitInfo configuration is required when type is fexit, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kprobe' ?  has(self.kprobeInfo) : !has(self.kprobeInfo)",message="kprobeInfo configuration is required when type is kprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kretprobe' ?  has(self.kretprobeInfo) : !has(self.kretprobeInfo)",message="kretprobeInfo configuration is required when type is kretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uprobe' ?  has(self.uprobeInfo) : !has(self.uprobeInfo)",message="uprobeInfo configuration is required when type is uprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uretprobe' ?  has(self.uretprobeInfo) : !has(self.uretprobeInfo)",message="uretprobeInfo configuration is required when type is uretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tracepoint' ?  has(self.tracepointInfo) : !has(self.tracepointInfo)",message="tracepointInfo configuration is required when type is tracepoint, and forbidden otherwise"
 type ClBpfApplicationProgram struct {
 	// Name is the name of the function that is the entry point for the BPF
@@ -66,7 +75,7 @@ type ClBpfApplicationProgram struct {
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"uprobe";"tracepoint"
+	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"kretprobe";"uprobe";"uretprobe";"tracepoint"
 	Type EBPFProgType `json:"type,omitempty"`
 
 	// xdp defines the desired state of the application's XdpPrograms.
@@ -99,10 +108,20 @@ type ClBpfApplicationProgram struct {
 	// +optional
 	KprobeInfo *ClKprobeProgramInfo `json:"kprobeInfo,omitempty"`
 
+	// kretprobe defines the desired state of the application's KretprobePrograms.
+	// +unionMember
+	// +optional
+	KretprobeInfo *ClKprobeProgramInfo `json:"kretprobeInfo,omitempty"`
+
 	// uprobe defines the desired state of the application's UprobePrograms.
 	// +unionMember
 	// +optional
 	UprobeInfo *ClUprobeProgramInfo `json:"uprobeInfo,omitempty"`
+
+	// uretprobe defines the desired state of the application's UretprobePrograms.
+	// +unionMember
+	// +optional
+	UretprobeInfo *ClUprobeProgramInfo `json:"uretprobeInfo,omitempty"`
 
 	// tracepoint defines the desired state of the application's TracepointPrograms.
 	// +unionMember

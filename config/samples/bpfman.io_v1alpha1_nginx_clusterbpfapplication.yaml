@@ -55,8 +55,8 @@ spec:
                 matchLabels:
                   app: nginx
     - name: uretprobe_test
-      type: uprobe
-      uprobeInfo:
+      type: uretprobe
+      uretprobeInfo:
         links:
           - function: malloc
             target: libc

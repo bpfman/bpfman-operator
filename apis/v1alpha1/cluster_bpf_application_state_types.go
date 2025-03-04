@@ -30,14 +30,16 @@ import (
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fentry' ?  has(self.fentryInfo) : !has(self.fentryInfo)",message="fentryInfo configuration is required when type is fentry, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fexit' ?  has(self.fexitInfo) : !has(self.fexitInfo)",message="fexitInfo configuration is required when type is fexit, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kprobe' ?  has(self.kprobeInfo) : !has(self.kprobeInfo)",message="kprobeInfo configuration is required when type is kprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kretprobe' ?  has(self.kretprobeInfo) : !has(self.kretprobeInfo)",message="kretprobeInfo configuration is required when type is kretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uprobe' ?  has(self.uprobeInfo) : !has(self.uprobeInfo)",message="uprobeInfo configuration is required when type is uprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uretprobe' ?  has(self.uretprobeInfo) : !has(self.uretprobeInfo)",message="uretprobeInfo configuration is required when type is uretprobe, and forbidden otherwise"
 // +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tracepoint' ?  has(self.tracepointInfo) : !has(self.tracepointInfo)",message="tracepointInfo configuration is required when type is tracepoint, and forbidden otherwise"
 type ClBpfApplicationProgramState struct {
 	BpfProgramStateCommon `json:",inline"`
 	// Type specifies the bpf program type
 	// +unionDiscriminator
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"uprobe";"tracepoint"
+	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"kretprobe";"uprobe";"uretprobe";"tracepoint"
 
 	Type EBPFProgType `json:"type,omitempty"`
 
@@ -71,10 +73,20 @@ type ClBpfApplicationProgramState struct {
 	// +optional
 	KprobeInfo *ClKprobeProgramInfoState `json:"kprobeInfo,omitempty"`
 
+	// kprobe defines the desired state of the application's KprobePrograms.
+	// +unionMember
+	// +optional
+	KretprobeInfo *ClKprobeProgramInfoState `json:"kretprobeInfo,omitempty"`
+
 	// uprobe defines the desired state of the application's UprobePrograms.
 	// +unionMember
 	// +optional
 	UprobeInfo *ClUprobeProgramInfoState `json:"uprobeInfo,omitempty"`
+
+	// uretprobe defines the desired state of the application's UretprobePrograms.
+	// +unionMember
+	// +optional
+	UretprobeInfo *ClUprobeProgramInfoState `json:"uretprobeInfo,omitempty"`
 
 	// tracepoint defines the desired state of the application's TracepointPrograms.
 	// +unionMember
