@@ -15,69 +15,6 @@ resources:
     crdVersion: v1
   controller: true
   domain: bpfman.io
-  kind: BpfProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: XdpProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: TcProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: TcxProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: TracePointProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: KprobeProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: UprobeProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: FentryProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
-  kind: FexitProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-  controller: true
-  domain: bpfman.io
   kind: BpfApplication
   path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
@@ -86,47 +23,21 @@ resources:
     namespaced: true
   controller: true
   domain: bpfman.io
-  kind: BpfNsProgram
+  kind: ClusterBpfApplication
   path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-    namespaced: true
   controller: true
   domain: bpfman.io
-  kind: XdpNsProgram
+  kind: BpfApplicationState
   path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
-    namespaced: true
   controller: true
   domain: bpfman.io
-  kind: TcNsProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: bpfman.io
-  kind: TcxNsProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: bpfman.io
-  kind: UprobeNsProgram
-  path: github.com/bpfman/bpfman-operator/apis/v1alpha1
-  version: v1alpha1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: bpfman.io
-  kind: BpfNsApplication
+  kind: ClusterBpfApplicationState
   path: github.com/bpfman/bpfman-operator/apis/v1alpha1
   version: v1alpha1
 version: "3"

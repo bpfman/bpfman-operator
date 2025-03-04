@@ -27,7 +27,7 @@ rules:
 - apiGroups:
     - bpfman.io
   resources:
-    - bpfnsprograms
+    - bpfapplicationstates
   verbs:
     - get
     - list
@@ -35,14 +35,14 @@ rules:
 - apiGroups:
     - bpfman.io
   resources:
-    - bpfnsprograms/status
+    - bpfapplicationstates/status
   verbs:
     - get
     - list
     - watch
 - apiGroups:
     - bpfman.io
-  resources: ['bpfnsapplications', 'tcnsprograms', 'tcxnsprograms', 'uprobensprograms', 'xdpnsprograms']
+  resources: ['bpfapplications']
   verbs:
     - create
     - delete

@@ -31,9 +31,8 @@ type BpfApplicationLister interface {
 	// List lists all BpfApplications in the indexer.
 	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error)
-	// Get retrieves the BpfApplication from the index for a given name.
-	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.BpfApplication, error)
+	// BpfApplications returns an object that can list and get BpfApplications.
+	BpfApplications(namespace string) BpfApplicationNamespaceLister
 	BpfApplicationListerExpansion
 }
 
@@ -55,9 +54,41 @@ func (s *bpfApplicationLister) List(selector labels.Selector) (ret []*v1alpha1.B
 	return ret, err
 }
 
-// Get retrieves the BpfApplication from the index for a given name.
-func (s *bpfApplicationLister) Get(name string) (*v1alpha1.BpfApplication, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// BpfApplications returns an object that can list and get BpfApplications.
+func (s *bpfApplicationLister) BpfApplications(namespace string) BpfApplicationNamespaceLister {
+	return bpfApplicationNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// BpfApplicationNamespaceLister helps list and get BpfApplications.
+// All objects returned here must be treated as read-only.
+type BpfApplicationNamespaceLister interface {
+	// List lists all BpfApplications in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
+	List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error)
+	// Get retrieves the BpfApplication from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
+	Get(name string) (*v1alpha1.BpfApplication, error)
+	BpfApplicationNamespaceListerExpansion
+}
+
+// bpfApplicationNamespaceLister implements the BpfApplicationNamespaceLister
+// interface.
+type bpfApplicationNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all BpfApplications in the indexer for a given namespace.
+func (s bpfApplicationNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.BpfApplication))
+	})
+	return ret, err
+}
+
+// Get retrieves the BpfApplication from the indexer for a given namespace and name.
+func (s bpfApplicationNamespaceLister) Get(name string) (*v1alpha1.BpfApplication, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

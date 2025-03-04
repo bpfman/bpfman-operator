@@ -42,32 +42,33 @@ type BpfApplicationInformer interface {
 type bpfApplicationInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
+	namespace        string
 }
 
 // NewBpfApplicationInformer constructs a new informer for BpfApplication type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewBpfApplicationInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredBpfApplicationInformer(client, resyncPeriod, indexers, nil)
+func NewBpfApplicationInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredBpfApplicationInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredBpfApplicationInformer constructs a new informer for BpfApplication type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredBpfApplicationInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredBpfApplicationInformer(client clientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().BpfApplications().List(context.TODO(), options)
+				return client.BpfmanV1alpha1().BpfApplications(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().BpfApplications().Watch(context.TODO(), options)
+				return client.BpfmanV1alpha1().BpfApplications(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&apisv1alpha1.BpfApplication{},
@@ -77,7 +78,7 @@ func NewFilteredBpfApplicationInformer(client clientset.Interface, resyncPeriod 
 }
 
 func (f *bpfApplicationInformer) defaultInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredBpfApplicationInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredBpfApplicationInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *bpfApplicationInformer) Informer() cache.SharedIndexInformer {

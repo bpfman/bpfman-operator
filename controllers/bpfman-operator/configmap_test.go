@@ -68,7 +68,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	bpfmanConfig := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      internal.BpfmanConfigName,
-			Namespace: internal.BpfmanNs,
+			Namespace: internal.BpfmanNamespace,
 		},
 		Data: map[string]string{
 			"bpfman.agent.image":     "BPFMAN_AGENT_IS_SCARY",
@@ -93,22 +93,22 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	rc := ReconcilerCommon[bpfmaniov1alpha1.BpfProgram, bpfmaniov1alpha1.BpfProgramList]{
+	rc := ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList]{
 		Client: cl,
 		Scheme: s,
 	}
 
-	cpr := ClusterProgramReconciler{
+	cpr := ClusterApplicationReconciler{
 		ReconcilerCommon: rc,
 	}
 
 	// Create a BpfmanConfigReconciler object with the scheme and
 	// fake client.
 	r := &BpfmanConfigReconciler{
-		ClusterProgramReconciler: cpr,
-		BpfmanStandardDeployment: resolveConfigPath(internal.BpfmanDaemonManifestPath),
-		CsiDriverDeployment:      resolveConfigPath(internal.BpfmanCsiDriverPath),
-		IsOpenshift:              isOpenShift,
+		ClusterApplicationReconciler: cpr,
+		BpfmanStandardDeployment:     resolveConfigPath(internal.BpfmanDaemonManifestPath),
+		CsiDriverDeployment:          resolveConfigPath(internal.BpfmanCsiDriverPath),
+		IsOpenshift:                  isOpenShift,
 	}
 	if isOpenShift {
 		r.RestrictedSCC = resolveConfigPath(internal.BpfmanRestrictedSCCPath)
@@ -119,7 +119,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      internal.BpfmanConfigName,
-			Namespace: internal.BpfmanNs,
+			Namespace: internal.BpfmanNamespace,
 		},
 	}
 
@@ -194,8 +194,8 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 			// Require no requeue
 			require.False(t, res.Requeue)
 
-			// Check the BpfProgram Object was created successfully
-			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNs}, bpfmanConfig)
+			// Check the Object was created successfully
+			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNamespace}, bpfmanConfig)
 			require.NoError(t, err)
 
 			// Check the bpfman-operator finalizer was successfully added
