@@ -352,6 +352,8 @@ const (
 	AppUnloadError AppLoadStatus = "UnloadError"
 	// The app is not selected to run on the node
 	NotSelected AppLoadStatus = "NotSelected"
+	// The app is not selected to run on the node
+	ProgListChangedError AppLoadStatus = "ProgramListChangedError"
 )
 
 type ProgramLinkStatus string

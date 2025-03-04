@@ -87,6 +87,7 @@ type ApplicationReconciler interface {
 	isBeingDeleted() bool
 	updateBpfAppStatus(ctx context.Context, condition metav1.Condition) error
 	updateLoadStatus(updateStatus bpfmaniov1alpha1.AppLoadStatus)
+	validateProgramList() error
 	load(ctx context.Context) error
 	isLoaded(ctx context.Context) bool
 	getLoadRequest() (*gobpfman.LoadRequest, error)
@@ -120,7 +121,7 @@ type ProgramReconciler interface {
 func (r *ReconcilerCommon) reconcileLoad(ctx context.Context, rec ApplicationReconciler) error {
 	isNodeSelected, err := isNodeSelected(rec.getNodeSelector(), rec.getNode().Labels)
 	if err != nil {
-		return fmt.Errorf("failed to check if node is selected: %v", err)
+		return fmt.Errorf("check if node is selected failed: %v", err)
 	}
 
 	if !isNodeSelected {
@@ -132,7 +133,11 @@ func (r *ReconcilerCommon) reconcileLoad(ctx context.Context, rec ApplicationRec
 		rec.unload(ctx)
 		rec.updateLoadStatus(bpfmaniov1alpha1.AppUnLoadSuccess)
 	} else {
-		// The program should be loaded.  Load it if necessary.
+		err := rec.validateProgramList()
+		if err != nil {
+			rec.updateLoadStatus(bpfmaniov1alpha1.ProgListChangedError)
+			return err
+		}
 		if rec.isLoaded(ctx) {
 			rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
 		} else {

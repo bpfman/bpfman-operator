@@ -175,7 +175,7 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			bpfAppStateOriginal = r.currentAppState.DeepCopy()
 		}
 
-		r.Logger.Info("From getBpfAppState", "new", bpfAppStateNew)
+		r.Logger.Info("BpfApplicationState status", "new", bpfAppStateNew)
 
 		if bpfAppStateNew {
 			// Create the object and return. We'll get the updated object in the
@@ -248,9 +248,9 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 				err = rec.reconcileProgram(ctx, rec, r.isBeingDeleted())
 				if err != nil {
-					r.Logger.Info("Error reconciling program", "Name", rec.getProgName(), "Index", appProgramIndex)
+					r.Logger.Info("Error reconciling program", "Name", rec.getProgName())
 				} else {
-					r.Logger.Info("Successfully reconciled program", "Name", rec.getProgName(), "Index", appProgramIndex)
+					r.Logger.Info("Successfully reconciled program", "Name", rec.getProgName())
 				}
 			}
 
@@ -788,4 +788,46 @@ func (r *ClBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.ClBpf
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected EBPFProgType"), "unexpected EBPFProgType", "Type", program.Type)
 	}
+}
+
+// validateProgramList checks the BpfApplicationPrograms to ensure that none
+// have been added or deleted.
+func (r *ClBpfApplicationReconciler) validateProgramList() error {
+	// Create a map of the programs in r.currentAppState.Spec.Programs to make
+	// the checks more efficient.
+	appStateProgMap := make(map[string]bool)
+	for _, program := range r.currentAppState.Spec.Programs {
+		appStateProgMap[program.Name] = true
+	}
+
+	// Check that all the programs in r.currentApp.Spec.Programs are on the
+	// list.  If not, that indicates that the program has been added, which is
+	// not allowed.  Remove them if they are on the list so we can check if any
+	// are left over which would indicate that they have been removed from the
+	// list.
+	addedPrograms := ""
+	for _, program := range r.currentApp.Spec.Programs {
+		if _, ok := appStateProgMap[program.Name]; !ok {
+			addedPrograms = addedPrograms + program.Name + " "
+		} else {
+			delete(appStateProgMap, program.Name)
+		}
+	}
+
+	if addedPrograms != "" {
+		return fmt.Errorf("programs have been added: %s", addedPrograms)
+	}
+
+	// Now, see if there are any programs left on the list, which would indicate that
+	// they have been removed from the list.
+	if len(appStateProgMap) > 0 {
+		// create a string containing the names of the programs that have been removed
+		removedPrograms := ""
+		for program := range appStateProgMap {
+			removedPrograms = removedPrograms + program + " "
+		}
+		return fmt.Errorf("programs have been removed: %s", removedPrograms)
+	}
+
+	return nil
 }
