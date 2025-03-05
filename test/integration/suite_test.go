@@ -105,11 +105,11 @@ func TestMain(m *testing.M) {
 	if !keepKustomizeDeploys {
 		addCleanup(func(context.Context) error {
 			cleanupLog("delete bpfman configmap to cleanup bpfman daemon")
-			env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNs).Delete(ctx, internal.BpfmanConfigName, metav1.DeleteOptions{})
+			env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Delete(ctx, internal.BpfmanConfigName, metav1.DeleteOptions{})
 			clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfmanConfigMap)
 			waitForBpfmanConfigDelete(ctx, env)
 			cleanupLog("deleting bpfman namespace")
-			return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfmanNs, metav1.DeleteOptions{})
+			return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfmanNamespace, metav1.DeleteOptions{})
 		})
 	}
 
@@ -180,7 +180,7 @@ func waitForBpfmanReadiness(ctx context.Context, env environments.Environment) e
 			fmt.Println("INFO: waiting for bpfman")
 			var controlplaneReady, dataplaneReady bool
 
-			controlplane, err := env.Cluster().Client().AppsV1().Deployments(internal.BpfmanNs).Get(ctx, internal.BpfmanOperatorName, metav1.GetOptions{})
+			controlplane, err := env.Cluster().Client().AppsV1().Deployments(internal.BpfmanNamespace).Get(ctx, internal.BpfmanOperatorName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					fmt.Println("INFO: bpfman-operator dep not found yet")
@@ -192,7 +192,7 @@ func waitForBpfmanReadiness(ctx context.Context, env environments.Environment) e
 				controlplaneReady = true
 			}
 
-			dataplane, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfmanNs).Get(ctx, internal.BpfmanDsName, metav1.GetOptions{})
+			dataplane, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfmanNamespace).Get(ctx, internal.BpfmanDsName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					fmt.Println("INFO: bpfman daemon not found yet")
@@ -224,7 +224,7 @@ func waitForBpfmanConfigDelete(ctx context.Context, env environments.Environment
 		default:
 			fmt.Println("INFO: waiting for bpfman config deletion")
 
-			_, err := env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNs).Get(ctx, internal.BpfmanConfigName, metav1.GetOptions{})
+			_, err := env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Get(ctx, internal.BpfmanConfigName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
 					fmt.Println("INFO: bpfman configmap deleted successfully")
