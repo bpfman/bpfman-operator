@@ -3,7 +3,7 @@ module github.com/bpfman/bpfman-operator
 go 1.24.0
 
 require (
-	github.com/bpfman/bpfman v0.5.6
+	github.com/bpfman/bpfman v0.5.7-0.20250305151919-a74c631c3643
 	github.com/containers/image/v5 v5.34.0
 	github.com/go-logr/logr v1.4.2
 	github.com/kong/kubernetes-testing-framework v0.47.2
@@ -86,5 +86,3 @@ require (
 	sigs.k8s.io/kind v0.24.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 )
-
-replace github.com/bpfman/bpfman => github.com/dave-tucker/bpfman v0.0.0-20250228115711-aa3e60cdcec1
