@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The bpfman Authors.
+Copyright 2025 The bpfman Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import (
 // FakeBpfApplications implements BpfApplicationInterface
 type FakeBpfApplications struct {
 	Fake *FakeBpfmanV1alpha1
+	ns   string
 }
 
 var bpfapplicationsResource = v1alpha1.SchemeGroupVersion.WithResource("bpfapplications")
@@ -41,7 +42,8 @@ var bpfapplicationsKind = v1alpha1.SchemeGroupVersion.WithKind("BpfApplication")
 // Get takes name of the bpfApplication, and returns the corresponding bpfApplication object, and an error if there is any.
 func (c *FakeBpfApplications) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.BpfApplication, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(bpfapplicationsResource, name), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewGetAction(bpfapplicationsResource, c.ns, name), &v1alpha1.BpfApplication{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -51,7 +53,8 @@ func (c *FakeBpfApplications) Get(ctx context.Context, name string, options v1.G
 // List takes label and field selectors, and returns the list of BpfApplications that match those selectors.
 func (c *FakeBpfApplications) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.BpfApplicationList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(bpfapplicationsResource, bpfapplicationsKind, opts), &v1alpha1.BpfApplicationList{})
+		Invokes(testing.NewListAction(bpfapplicationsResource, bpfapplicationsKind, c.ns, opts), &v1alpha1.BpfApplicationList{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -72,13 +75,15 @@ func (c *FakeBpfApplications) List(ctx context.Context, opts v1.ListOptions) (re
 // Watch returns a watch.Interface that watches the requested bpfApplications.
 func (c *FakeBpfApplications) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(bpfapplicationsResource, opts))
+		InvokesWatch(testing.NewWatchAction(bpfapplicationsResource, c.ns, opts))
+
 }
 
 // Create takes the representation of a bpfApplication and creates it.  Returns the server's representation of the bpfApplication, and an error, if there is any.
 func (c *FakeBpfApplications) Create(ctx context.Context, bpfApplication *v1alpha1.BpfApplication, opts v1.CreateOptions) (result *v1alpha1.BpfApplication, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(bpfapplicationsResource, bpfApplication), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewCreateAction(bpfapplicationsResource, c.ns, bpfApplication), &v1alpha1.BpfApplication{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -88,7 +93,8 @@ func (c *FakeBpfApplications) Create(ctx context.Context, bpfApplication *v1alph
 // Update takes the representation of a bpfApplication and updates it. Returns the server's representation of the bpfApplication, and an error, if there is any.
 func (c *FakeBpfApplications) Update(ctx context.Context, bpfApplication *v1alpha1.BpfApplication, opts v1.UpdateOptions) (result *v1alpha1.BpfApplication, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(bpfapplicationsResource, bpfApplication), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewUpdateAction(bpfapplicationsResource, c.ns, bpfApplication), &v1alpha1.BpfApplication{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -99,7 +105,8 @@ func (c *FakeBpfApplications) Update(ctx context.Context, bpfApplication *v1alph
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeBpfApplications) UpdateStatus(ctx context.Context, bpfApplication *v1alpha1.BpfApplication, opts v1.UpdateOptions) (*v1alpha1.BpfApplication, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(bpfapplicationsResource, "status", bpfApplication), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewUpdateSubresourceAction(bpfapplicationsResource, "status", c.ns, bpfApplication), &v1alpha1.BpfApplication{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -109,13 +116,14 @@ func (c *FakeBpfApplications) UpdateStatus(ctx context.Context, bpfApplication *
 // Delete takes name of the bpfApplication and deletes it. Returns an error if one occurs.
 func (c *FakeBpfApplications) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(bpfapplicationsResource, name, opts), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewDeleteActionWithOptions(bpfapplicationsResource, c.ns, name, opts), &v1alpha1.BpfApplication{})
+
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeBpfApplications) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(bpfapplicationsResource, listOpts)
+	action := testing.NewDeleteCollectionAction(bpfapplicationsResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.BpfApplicationList{})
 	return err
@@ -124,7 +132,8 @@ func (c *FakeBpfApplications) DeleteCollection(ctx context.Context, opts v1.Dele
 // Patch applies the patch and returns the patched bpfApplication.
 func (c *FakeBpfApplications) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.BpfApplication, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(bpfapplicationsResource, name, pt, data, subresources...), &v1alpha1.BpfApplication{})
+		Invokes(testing.NewPatchSubresourceAction(bpfapplicationsResource, c.ns, name, pt, data, subresources...), &v1alpha1.BpfApplication{})
+
 	if obj == nil {
 		return nil, err
 	}

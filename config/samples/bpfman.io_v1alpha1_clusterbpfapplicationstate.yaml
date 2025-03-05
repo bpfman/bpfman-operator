@@ -1,0 +1,184 @@
+apiVersion: v1
+items:
+- apiVersion: bpfman.io/v1alpha1
+  kind: ClusterBpfApplicationState
+  metadata:
+    creationTimestamp: "2025-03-04T21:59:13Z"
+    finalizers:
+    - bpfman.io.clbpfapplicationcontroller/finalizer
+    generation: 2
+    labels:
+      bpfman.io/ownedByProgram: clusterbpfapplication-sample
+      kubernetes.io/hostname: bpfman-deployment-control-plane
+    name: clusterbpfapplication-sample-7f0ab017
+    ownerReferences:
+    - apiVersion: bpfman.io/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: ClusterBpfApplication
+      name: clusterbpfapplication-sample
+      uid: a5f706e7-aecf-473c-bdfc-6acb684d65b1
+    resourceVersion: "729"
+    uid: 86a048c6-df30-47ab-b544-3fd75f3b11dc
+  spec:
+    appLoadStatus: LoadSuccess
+    node: bpfman-deployment-control-plane
+    programs:
+    - kprobeInfo:
+        links:
+        - function: try_to_wake_up
+          linkId: 4211340334
+          linkStatus: Attached
+          offset: 0
+          shouldAttach: true
+          uuid: eff9d4e1-5386-48ac-9ebf-4f7ce5518629
+      name: kprobe_test
+      programId: 4044
+      programLinkStatus: Success
+      type: kprobe
+    - kretprobeInfo:
+        links:
+        - function: try_to_wake_up
+          linkId: 1254903747
+          linkStatus: Attached
+          offset: 0
+          shouldAttach: true
+          uuid: 3e8203b3-2de7-4032-abe5-a42493b38dd4
+      name: kretprobe_test
+      programId: 4045
+      programLinkStatus: Success
+      type: kretprobe
+    - name: tracepoint_test
+      programId: 4046
+      programLinkStatus: Success
+      tracepointInfo:
+        links:
+        - linkId: 1360955591
+          linkStatus: Attached
+          name: syscalls/sys_enter_openat
+          shouldAttach: true
+          uuid: 554408d0-19fe-43c9-81b5-21c685c18631
+      type: tracepoint
+    - name: tc_pass_test
+      programId: 4048
+      programLinkStatus: Success
+      tcInfo:
+        links:
+        - direction: ingress
+          ifName: eth0
+          linkId: 2071011696
+          linkStatus: Attached
+          priority: 55
+          proceedOn:
+          - pipe
+          - dispatcher_return
+          shouldAttach: true
+          uuid: b11abbd5-abe3-48ea-be76-51fcebb1e29e
+      type: tc
+    - name: tcx_next_test
+      programId: 4049
+      programLinkStatus: Success
+      tcxInfo:
+        links:
+        - direction: ingress
+          ifName: eth0
+          linkId: 1065661122
+          linkStatus: Attached
+          priority: 500
+          shouldAttach: true
+          uuid: 1c568cad-0ff9-44e5-973b-24599844e48a
+        - containerPid: 2044
+          direction: egress
+          ifName: eth0
+          linkId: 890204004
+          linkStatus: Attached
+          priority: 100
+          shouldAttach: true
+          uuid: ef125fe7-f05c-4c8a-a5a7-540828d63d82
+      type: tcx
+    - name: uprobe_test
+      programId: 4050
+      programLinkStatus: Success
+      type: uprobe
+      uprobeInfo:
+        links:
+        - containerPid: 2044
+          function: malloc
+          linkId: 2632600106
+          linkStatus: Attached
+          offset: 0
+          shouldAttach: true
+          target: libc
+          uuid: 9052bea1-f07c-4b18-84f3-aa78503f2713
+    - name: uretprobe_test
+      programId: 4051
+      programLinkStatus: Success
+      type: uretprobe
+      uretprobeInfo:
+        links:
+        - containerPid: 2044
+          function: malloc
+          linkId: 1662220018
+          linkStatus: Attached
+          offset: 0
+          shouldAttach: true
+          target: libc
+          uuid: f685d1df-3fe4-45c7-96e7-d98746428a10
+    - name: xdp_pass_test
+      programId: 4053
+      programLinkStatus: Success
+      type: xdp
+      xdpInfo:
+        links:
+        - ifName: eth0
+          linkId: 775398736
+          linkStatus: Attached
+          priority: 55
+          proceedOn:
+          - pass
+          - dispatcher_return
+          shouldAttach: true
+          uuid: f4ed47ee-0bea-4d0e-8603-861cb1827d51
+        - containerPid: 2044
+          ifName: eth0
+          linkId: 1232024606
+          linkStatus: Attached
+          priority: 100
+          proceedOn:
+          - pass
+          - dispatcher_return
+          shouldAttach: true
+          uuid: c3fe1930-1d70-4ade-9f20-a43a6cb49e68
+    - fentryInfo:
+        function: do_unlinkat
+        links:
+        - linkId: 3721740425
+          linkStatus: Attached
+          shouldAttach: true
+          uuid: 878fd945-39f2-4864-9a13-5e3101add0fc
+      name: fentry_test
+      programId: 4054
+      programLinkStatus: Success
+      type: fentry
+    - fexitInfo:
+        function: do_unlinkat
+        links:
+        - linkId: 3161417735
+          linkStatus: Attached
+          shouldAttach: true
+          uuid: e38912f9-1798-4fe8-b282-81bb3dfd10f2
+      name: fexit_test
+      programId: 4055
+      programLinkStatus: Success
+      type: fexit
+    updateCount: 2
+  status:
+    conditions:
+    - lastTransitionTime: "2025-03-04T21:59:21Z"
+      message: The BPF application has been successfully loaded and attached
+      reason: Success
+      status: "True"
+      type: Success
+kind: List
+metadata:
+  resourceVersion: ""

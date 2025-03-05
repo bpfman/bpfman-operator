@@ -10,6 +10,9 @@ data:
     [database]
     max_retries = 30
     millisec_delay = 10000
+    [signing]
+    allow_unsigned = true
+    verify_enabled = true
 kind: ConfigMap
 metadata:
   annotations: {}

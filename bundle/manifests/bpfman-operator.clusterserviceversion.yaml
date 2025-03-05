@@ -11,175 +11,135 @@ metadata:
             "labels": {
               "app.kubernetes.io/name": "bpfapplication"
             },
-            "name": "bpfapplication-sample"
-          },
-          "spec": {
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/go-app-counter:latest"
-              }
-            },
-            "nodeselector": {},
-            "programs": [
-              {
-                "kprobe": {
-                  "bpffunctionname": "kprobe_counter",
-                  "func_name": "try_to_wake_up",
-                  "offset": 0,
-                  "retprobe": false
-                },
-                "type": "Kprobe"
-              },
-              {
-                "tracepoint": {
-                  "bpffunctionname": "tracepoint_kill_recorder",
-                  "names": [
-                    "syscalls/sys_enter_kill"
-                  ]
-                },
-                "type": "Tracepoint"
-              },
-              {
-                "tc": {
-                  "bpffunctionname": "stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
-                },
-                "type": "TC"
-              },
-              {
-                "tcx": {
-                  "bpffunctionname": "tcx_stats",
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 500
-                },
-                "type": "TCX"
-              },
-              {
-                "type": "Uprobe",
-                "uprobe": {
-                  "bpffunctionname": "uprobe_counter",
-                  "containers": {
-                    "containernames": [
-                      "bpfman",
-                      "bpfman-agent"
-                    ],
-                    "namespace": "bpfman",
-                    "pods": {
-                      "matchLabels": {
-                        "name": "bpfman-daemon"
-                      }
-                    }
-                  },
-                  "func_name": "malloc",
-                  "retprobe": false,
-                  "target": "libc"
-                }
-              },
-              {
-                "type": "XDP",
-                "xdp": {
-                  "bpffunctionname": "xdp_stats",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
-                }
-              }
-            ]
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "BpfNsApplication",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "bpfnsapplication"
-            },
             "name": "bpfapplication-sample",
             "namespace": "acme"
           },
           "spec": {
-            "bytecode": {
+            "byteCode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/go-app-counter:latest"
+                "url": "quay.io/bpfman-bytecode/app-test:latest"
               }
             },
-            "nodeselector": {},
+            "globalData": {
+              "GLOBAL_u32": [
+                13,
+                12,
+                11,
+                10
+              ],
+              "GLOBAL_u8": [
+                1
+              ]
+            },
+            "nodeSelector": {},
             "programs": [
               {
-                "tc": {
-                  "bpffunctionname": "stats",
-                  "containers": {
-                    "pods": {
-                      "matchLabels": {
-                        "app": "nginx"
-                      }
+                "name": "tc_pass_test",
+                "tcInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
+                      },
+                      "direction": "ingress",
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 55
                     }
-                  },
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
+                  ]
                 },
-                "type": "TC"
+                "type": "tc"
               },
               {
-                "tcx": {
-                  "bpffunctionname": "tcx_stats",
-                  "containers": {
-                    "pods": {
-                      "matchLabels": {
-                        "app": "nginx"
-                      }
+                "name": "tcx_next_test",
+                "tcxInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
+                      },
+                      "direction": "egress",
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 100
                     }
-                  },
-                  "direction": "ingress",
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 500
+                  ]
                 },
-                "type": "TCX"
+                "type": "tcx"
               },
               {
-                "type": "Uprobe",
-                "uprobe": {
-                  "bpffunctionname": "uprobe_counter",
-                  "containers": {
-                    "pods": {
-                      "matchLabels": {
-                        "app": "nginx"
-                      }
+                "name": "uprobe_test",
+                "type": "uprobe",
+                "uprobeInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
+                      },
+                      "function": "malloc",
+                      "target": "libc"
                     }
-                  },
-                  "func_name": "malloc",
-                  "retprobe": false,
-                  "target": "libc"
+                  ]
                 }
               },
               {
-                "type": "XDP",
-                "xdp": {
-                  "bpffunctionname": "xdp_stats",
-                  "containers": {
-                    "pods": {
-                      "matchLabels": {
-                        "app": "nginx"
-                      }
+                "name": "uretprobe_test",
+                "type": "uretprobe",
+                "uretprobeInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
+                      },
+                      "function": "malloc",
+                      "target": "libc"
                     }
-                  },
-                  "interfaceselector": {
-                    "primarynodeinterface": true
-                  },
-                  "priority": 55
+                  ]
+                }
+              },
+              {
+                "name": "xdp_pass_test",
+                "type": "xdp",
+                "xdpInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
+                      },
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 100
+                    }
+                  ]
                 }
               }
             ]
@@ -187,305 +147,211 @@ metadata:
         },
         {
           "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "FentryProgram",
+          "kind": "BpfApplicationState",
           "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "fentryprogram"
-            },
-            "name": "fentry-example"
-          },
-          "spec": {
-            "bpffunctionname": "test_fentry",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/fentry:latest"
-              }
-            },
-            "func_name": "do_unlinkat",
-            "nodeselector": {}
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "FexitProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "fexitprogram"
-            },
-            "name": "fexit-example"
-          },
-          "spec": {
-            "bpffunctionname": "test_fexit",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/fexit:latest"
-              }
-            },
-            "func_name": "do_unlinkat",
-            "nodeselector": {}
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "KprobeProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "kprobeprogram"
-            },
-            "name": "kprobe-example"
-          },
-          "spec": {
-            "bpffunctionname": "my_kprobe",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/kprobe:latest"
-              }
-            },
-            "func_name": "try_to_wake_up",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "nodeselector": {},
-            "offset": 0,
-            "retprobe": false
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "TcNsProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "tcnsprogram"
-            },
-            "name": "tc-containers",
-            "namespace": "acme"
-          },
-          "spec": {
-            "bpffunctionname": "pass",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/tc_pass:latest"
-              }
-            },
-            "containers": {
-              "containernames": [
-                "nginx"
-              ],
-              "pods": {
-                "matchLabels": {
-                  "app": "nginx"
-                }
-              }
-            },
-            "direction": "ingress",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "interfaces": [
-                "eth0"
-              ]
-            },
-            "nodeselector": {},
-            "priority": 0
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "TcProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "tcprogram"
-            },
-            "name": "tc-pass-all-nodes"
-          },
-          "spec": {
-            "bpffunctionname": "pass",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/tc_pass:latest"
-              }
-            },
-            "direction": "ingress",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "primarynodeinterface": true
-            },
-            "nodeselector": {},
-            "priority": 0
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "TcxNsProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "tcxnsprogram"
-            },
-            "name": "tcx-containers",
-            "namespace": "acme"
-          },
-          "spec": {
-            "bpffunctionname": "tcx_next",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/tcx_test:latest"
-              }
-            },
-            "containers": {
-              "containernames": [
-                "nginx"
-              ],
-              "pods": {
-                "matchLabels": {
-                  "app": "nginx"
-                }
-              }
-            },
-            "direction": "ingress",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "interfaces": [
-                "eth0"
-              ]
-            },
-            "nodeselector": {},
-            "priority": 0
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "TcxProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "tcxprogram"
-            },
-            "name": "tcx-pass-all-nodes"
-          },
-          "spec": {
-            "bpffunctionname": "tcx_pass",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/tcx_test:latest"
-              }
-            },
-            "direction": "ingress",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "primarynodeinterface": true
-            },
-            "nodeselector": {},
-            "priority": 0
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "TracepointProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "tracepointprogram"
-            },
-            "name": "tracepoint-example"
-          },
-          "spec": {
-            "bpffunctionname": "enter_openat",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/tracepoint:latest"
-              }
-            },
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "names": [
-              "syscalls/sys_enter_openat"
+            "creationTimestamp": "2025-03-04T22:12:48Z",
+            "finalizers": [
+              "bpfman.io.nsbpfapplicationcontroller/finalizer"
             ],
-            "nodeselector": {}
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "UprobeNsProgram",
-          "metadata": {
+            "generation": 2,
             "labels": {
-              "app.kubernetes.io/name": "uprobensprogram"
+              "bpfman.io/ownedByProgram": "bpfapplication-sample",
+              "kubernetes.io/hostname": "bpfman-deployment-control-plane"
             },
-            "name": "uprobe-example",
-            "namespace": "acme"
+            "name": "bpfapplication-sample-39654e9e",
+            "namespace": "acme",
+            "ownerReferences": [
+              {
+                "apiVersion": "bpfman.io/v1alpha1",
+                "blockOwnerDeletion": true,
+                "controller": true,
+                "kind": "BpfApplication",
+                "name": "bpfapplication-sample",
+                "uid": "ec225895-0954-4e6e-aa21-a32128e8bd73"
+              }
+            ],
+            "resourceVersion": "2232",
+            "uid": "66d14188-a467-4882-9207-214d82500e7b"
           },
           "spec": {
-            "bpffunctionname": "my_uprobe",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/uprobe:latest"
-              }
-            },
-            "containers": {
-              "containernames": [
-                "nginx"
-              ],
-              "pods": {
-                "matchLabels": {
-                  "app": "nginx"
+            "appLoadStatus": "LoadSuccess",
+            "node": "bpfman-deployment-control-plane",
+            "programs": [
+              {
+                "name": "tc_pass_test",
+                "programId": 4125,
+                "programLinkStatus": "Success",
+                "tcInfo": {
+                  "links": [
+                    {
+                      "containerPid": 3078,
+                      "direction": "ingress",
+                      "ifName": "eth0",
+                      "linkId": 832290746,
+                      "linkStatus": "Attached",
+                      "priority": 55,
+                      "proceedOn": [
+                        "pipe",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "00168ad2-abcd-427c-96b8-7ec2b73b8460"
+                    },
+                    {
+                      "containerPid": 2981,
+                      "direction": "ingress",
+                      "ifName": "eth0",
+                      "linkId": 256466427,
+                      "linkStatus": "Attached",
+                      "priority": 55,
+                      "proceedOn": [
+                        "pipe",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "3d99959a-6690-4de9-a8b5-26ade29525d2"
+                    }
+                  ]
+                },
+                "type": "tc"
+              },
+              {
+                "name": "tcx_next_test",
+                "programId": 4126,
+                "programLinkStatus": "Success",
+                "tcxInfo": {
+                  "links": [
+                    {
+                      "containerPid": 3078,
+                      "direction": "egress",
+                      "ifName": "eth0",
+                      "linkId": 533548322,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "shouldAttach": true,
+                      "uuid": "b299efd7-b0af-4ba7-8ed7-dfe067d80de2"
+                    },
+                    {
+                      "containerPid": 2981,
+                      "direction": "egress",
+                      "ifName": "eth0",
+                      "linkId": 777895864,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "shouldAttach": true,
+                      "uuid": "5918b228-4724-43dc-8462-28d69a5cdcde"
+                    }
+                  ]
+                },
+                "type": "tcx"
+              },
+              {
+                "name": "uprobe_test",
+                "programId": 4127,
+                "programLinkStatus": "Success",
+                "type": "uprobe",
+                "uprobeInfo": {
+                  "links": [
+                    {
+                      "containerPid": 3078,
+                      "function": "malloc",
+                      "linkId": 1103062122,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "target": "libc",
+                      "uuid": "b76f7b7b-7e24-4ad3-858e-ef6dc9abc561"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "uretprobe_test",
+                "programId": 4128,
+                "programLinkStatus": "Success",
+                "type": "uretprobe",
+                "uretprobeInfo": {
+                  "links": [
+                    {
+                      "containerPid": 3078,
+                      "function": "malloc",
+                      "linkId": 2890973738,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "target": "libc",
+                      "uuid": "25495af0-988e-4ca5-9d5a-3c2380f2b490"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "xdp_pass_test",
+                "programId": 4129,
+                "programLinkStatus": "Success",
+                "type": "xdp",
+                "xdpInfo": {
+                  "links": [
+                    {
+                      "containerPid": 3078,
+                      "ifName": "eth0",
+                      "linkId": 1368615850,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "proceedOn": [
+                        "pass",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "6f8ad067-99c7-4ba3-a61d-a4f3f4fc56b9"
+                    },
+                    {
+                      "containerPid": 2981,
+                      "ifName": "eth0",
+                      "linkId": 3080543731,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "proceedOn": [
+                        "pass",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "19c62c5c-c544-41fe-ab80-e9a6fc3e4fce"
+                    }
+                  ]
                 }
               }
+            ],
+            "updateCount": 2
+          },
+          "status": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2025-03-04T22:12:50Z",
+                "message": "The BPF application has been successfully loaded and attached",
+                "reason": "Success",
+                "status": "True",
+                "type": "Success"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "bpfman.io/v1alpha1",
+          "kind": "ClusterBpfApplication",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "clusterbpfapplication"
             },
-            "func_name": "syscall",
-            "globaldata": {
+            "name": "clusterbpfapplication-sample"
+          },
+          "spec": {
+            "byteCode": {
+              "image": {
+                "url": "quay.io/bpfman-bytecode/app-test:latest"
+              }
+            },
+            "globalData": {
               "GLOBAL_u32": [
                 13,
                 12,
@@ -496,130 +362,465 @@ metadata:
                 1
               ]
             },
-            "nodeselector": {},
-            "retprobe": false,
-            "target": "libc"
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "UprobeProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "uprobeprogram"
-            },
-            "name": "uprobe-example"
-          },
-          "spec": {
-            "bpffunctionname": "my_uprobe",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/uprobe:latest"
-              }
-            },
-            "func_name": "syscall",
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "nodeselector": {},
-            "retprobe": false,
-            "target": "libc"
-          }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "XdpNsProgram",
-          "metadata": {
-            "labels": {
-              "app.kubernetes.io/name": "xdpnsprogram"
-            },
-            "name": "xdp-ns-pass-all-nodes",
-            "namespace": "acme"
-          },
-          "spec": {
-            "bpffunctionname": "pass",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/xdp_pass:latest"
-              }
-            },
-            "containers": {
-              "containernames": [
-                "nginx"
-              ],
-              "pods": {
-                "matchLabels": {
-                  "app": "nginx"
+            "nodeSelector": {},
+            "programs": [
+              {
+                "kprobeInfo": {
+                  "links": [
+                    {
+                      "function": "try_to_wake_up",
+                      "offset": 0
+                    }
+                  ]
+                },
+                "name": "kprobe_test",
+                "type": "kprobe"
+              },
+              {
+                "kretprobeInfo": {
+                  "links": [
+                    {
+                      "function": "try_to_wake_up"
+                    }
+                  ]
+                },
+                "name": "kretprobe_test",
+                "type": "kretprobe"
+              },
+              {
+                "name": "tracepoint_test",
+                "tracepointInfo": {
+                  "links": [
+                    {
+                      "name": "syscalls/sys_enter_openat"
+                    }
+                  ]
+                },
+                "type": "tracepoint"
+              },
+              {
+                "name": "tc_pass_test",
+                "tcInfo": {
+                  "links": [
+                    {
+                      "direction": "ingress",
+                      "interfaceSelector": {
+                        "primaryNodeInterface": true
+                      },
+                      "priority": 55
+                    }
+                  ]
+                },
+                "type": "tc"
+              },
+              {
+                "name": "tcx_next_test",
+                "tcxInfo": {
+                  "links": [
+                    {
+                      "direction": "ingress",
+                      "interfaceSelector": {
+                        "primaryNodeInterface": true
+                      },
+                      "priority": 500
+                    },
+                    {
+                      "containers": {
+                        "containerNames": [
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "direction": "egress",
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 100
+                    }
+                  ]
+                },
+                "type": "tcx"
+              },
+              {
+                "name": "uprobe_test",
+                "type": "uprobe",
+                "uprobeInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "containerNames": [
+                          "bpfman",
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "function": "malloc",
+                      "target": "libc"
+                    }
+                  ]
                 }
+              },
+              {
+                "name": "uretprobe_test",
+                "type": "uretprobe",
+                "uretprobeInfo": {
+                  "links": [
+                    {
+                      "containers": {
+                        "containerNames": [
+                          "bpfman",
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "function": "malloc",
+                      "target": "libc"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "xdp_pass_test",
+                "type": "xdp",
+                "xdpInfo": {
+                  "links": [
+                    {
+                      "interfaceSelector": {
+                        "primaryNodeInterface": true
+                      },
+                      "priority": 55
+                    },
+                    {
+                      "containers": {
+                        "containerNames": [
+                          "bpfman-agent"
+                        ],
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "priority": 100
+                    }
+                  ]
+                }
+              },
+              {
+                "fentryInfo": {
+                  "function": "do_unlinkat",
+                  "links": [
+                    {
+                      "attach": true
+                    }
+                  ]
+                },
+                "name": "fentry_test",
+                "type": "fentry"
+              },
+              {
+                "fexitInfo": {
+                  "function": "do_unlinkat",
+                  "links": [
+                    {
+                      "attach": true
+                    }
+                  ]
+                },
+                "name": "fexit_test",
+                "type": "fexit"
               }
-            },
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "interfaces": [
-                "eth0"
-              ]
-            },
-            "nodeselector": {},
-            "priority": 0
+            ]
           }
         },
         {
           "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "XdpProgram",
+          "kind": "ClusterBpfApplicationState",
           "metadata": {
+            "creationTimestamp": "2025-03-04T21:59:13Z",
+            "finalizers": [
+              "bpfman.io.clbpfapplicationcontroller/finalizer"
+            ],
+            "generation": 2,
             "labels": {
-              "app.kubernetes.io/name": "xdpprogram"
+              "bpfman.io/ownedByProgram": "clusterbpfapplication-sample",
+              "kubernetes.io/hostname": "bpfman-deployment-control-plane"
             },
-            "name": "xdp-pass-all-nodes"
+            "name": "clusterbpfapplication-sample-7f0ab017",
+            "ownerReferences": [
+              {
+                "apiVersion": "bpfman.io/v1alpha1",
+                "blockOwnerDeletion": true,
+                "controller": true,
+                "kind": "ClusterBpfApplication",
+                "name": "clusterbpfapplication-sample",
+                "uid": "a5f706e7-aecf-473c-bdfc-6acb684d65b1"
+              }
+            ],
+            "resourceVersion": "729",
+            "uid": "86a048c6-df30-47ab-b544-3fd75f3b11dc"
           },
           "spec": {
-            "bpffunctionname": "pass",
-            "bytecode": {
-              "image": {
-                "url": "quay.io/bpfman-bytecode/xdp_pass:latest"
+            "appLoadStatus": "LoadSuccess",
+            "node": "bpfman-deployment-control-plane",
+            "programs": [
+              {
+                "kprobeInfo": {
+                  "links": [
+                    {
+                      "function": "try_to_wake_up",
+                      "linkId": 4211340334,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "uuid": "eff9d4e1-5386-48ac-9ebf-4f7ce5518629"
+                    }
+                  ]
+                },
+                "name": "kprobe_test",
+                "programId": 4044,
+                "programLinkStatus": "Success",
+                "type": "kprobe"
+              },
+              {
+                "kretprobeInfo": {
+                  "links": [
+                    {
+                      "function": "try_to_wake_up",
+                      "linkId": 1254903747,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "uuid": "3e8203b3-2de7-4032-abe5-a42493b38dd4"
+                    }
+                  ]
+                },
+                "name": "kretprobe_test",
+                "programId": 4045,
+                "programLinkStatus": "Success",
+                "type": "kretprobe"
+              },
+              {
+                "name": "tracepoint_test",
+                "programId": 4046,
+                "programLinkStatus": "Success",
+                "tracepointInfo": {
+                  "links": [
+                    {
+                      "linkId": 1360955591,
+                      "linkStatus": "Attached",
+                      "name": "syscalls/sys_enter_openat",
+                      "shouldAttach": true,
+                      "uuid": "554408d0-19fe-43c9-81b5-21c685c18631"
+                    }
+                  ]
+                },
+                "type": "tracepoint"
+              },
+              {
+                "name": "tc_pass_test",
+                "programId": 4048,
+                "programLinkStatus": "Success",
+                "tcInfo": {
+                  "links": [
+                    {
+                      "direction": "ingress",
+                      "ifName": "eth0",
+                      "linkId": 2071011696,
+                      "linkStatus": "Attached",
+                      "priority": 55,
+                      "proceedOn": [
+                        "pipe",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "b11abbd5-abe3-48ea-be76-51fcebb1e29e"
+                    }
+                  ]
+                },
+                "type": "tc"
+              },
+              {
+                "name": "tcx_next_test",
+                "programId": 4049,
+                "programLinkStatus": "Success",
+                "tcxInfo": {
+                  "links": [
+                    {
+                      "direction": "ingress",
+                      "ifName": "eth0",
+                      "linkId": 1065661122,
+                      "linkStatus": "Attached",
+                      "priority": 500,
+                      "shouldAttach": true,
+                      "uuid": "1c568cad-0ff9-44e5-973b-24599844e48a"
+                    },
+                    {
+                      "containerPid": 2044,
+                      "direction": "egress",
+                      "ifName": "eth0",
+                      "linkId": 890204004,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "shouldAttach": true,
+                      "uuid": "ef125fe7-f05c-4c8a-a5a7-540828d63d82"
+                    }
+                  ]
+                },
+                "type": "tcx"
+              },
+              {
+                "name": "uprobe_test",
+                "programId": 4050,
+                "programLinkStatus": "Success",
+                "type": "uprobe",
+                "uprobeInfo": {
+                  "links": [
+                    {
+                      "containerPid": 2044,
+                      "function": "malloc",
+                      "linkId": 2632600106,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "target": "libc",
+                      "uuid": "9052bea1-f07c-4b18-84f3-aa78503f2713"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "uretprobe_test",
+                "programId": 4051,
+                "programLinkStatus": "Success",
+                "type": "uretprobe",
+                "uretprobeInfo": {
+                  "links": [
+                    {
+                      "containerPid": 2044,
+                      "function": "malloc",
+                      "linkId": 1662220018,
+                      "linkStatus": "Attached",
+                      "offset": 0,
+                      "shouldAttach": true,
+                      "target": "libc",
+                      "uuid": "f685d1df-3fe4-45c7-96e7-d98746428a10"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "xdp_pass_test",
+                "programId": 4053,
+                "programLinkStatus": "Success",
+                "type": "xdp",
+                "xdpInfo": {
+                  "links": [
+                    {
+                      "ifName": "eth0",
+                      "linkId": 775398736,
+                      "linkStatus": "Attached",
+                      "priority": 55,
+                      "proceedOn": [
+                        "pass",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "f4ed47ee-0bea-4d0e-8603-861cb1827d51"
+                    },
+                    {
+                      "containerPid": 2044,
+                      "ifName": "eth0",
+                      "linkId": 1232024606,
+                      "linkStatus": "Attached",
+                      "priority": 100,
+                      "proceedOn": [
+                        "pass",
+                        "dispatcher_return"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "c3fe1930-1d70-4ade-9f20-a43a6cb49e68"
+                    }
+                  ]
+                }
+              },
+              {
+                "fentryInfo": {
+                  "function": "do_unlinkat",
+                  "links": [
+                    {
+                      "linkId": 3721740425,
+                      "linkStatus": "Attached",
+                      "shouldAttach": true,
+                      "uuid": "878fd945-39f2-4864-9a13-5e3101add0fc"
+                    }
+                  ]
+                },
+                "name": "fentry_test",
+                "programId": 4054,
+                "programLinkStatus": "Success",
+                "type": "fentry"
+              },
+              {
+                "fexitInfo": {
+                  "function": "do_unlinkat",
+                  "links": [
+                    {
+                      "linkId": 3161417735,
+                      "linkStatus": "Attached",
+                      "shouldAttach": true,
+                      "uuid": "e38912f9-1798-4fe8-b282-81bb3dfd10f2"
+                    }
+                  ]
+                },
+                "name": "fexit_test",
+                "programId": 4055,
+                "programLinkStatus": "Success",
+                "type": "fexit"
               }
-            },
-            "globaldata": {
-              "GLOBAL_u32": [
-                13,
-                12,
-                11,
-                10
-              ],
-              "GLOBAL_u8": [
-                1
-              ]
-            },
-            "interfaceselector": {
-              "primarynodeinterface": true
-            },
-            "nodeselector": {},
-            "priority": 0
+            ],
+            "updateCount": 2
+          },
+          "status": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2025-03-04T21:59:21Z",
+                "message": "The BPF application has been successfully loaded and attached",
+                "reason": "Success",
+                "status": "True",
+                "type": "Success"
+              }
+            ]
           }
         }
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-02-19T20:12:43Z"
+    createdAt: "2025-03-05T16:14:12Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -666,85 +867,27 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: BpfApplication is the Schema for the bpfapplications API
-      displayName: Bpf Application
+    - description: BpfApplication is the Schema for the BpfApplications API
+      displayName: Namespaced Bpf Application
       kind: BpfApplication
       name: bpfapplications.bpfman.io
       version: v1alpha1
-    - description: BpfNsApplication is the Schema for the BpfNsApplications API
-      displayName: Bpf Namespaced Application
-      kind: BpfNsApplication
-      name: bpfnsapplications.bpfman.io
+    - description: BpfApplicationState is the Schema for the BpfApplicationState API
+      displayName: Namespaced Bpf Application State
+      kind: BpfApplicationState
+      name: bpfapplicationstates.bpfman.io
       version: v1alpha1
-    - description: BpfNsProgram is the Schema for the BpfNsProgram API
-      displayName: Bpf Namespaced Program
-      kind: BpfNsProgram
-      name: bpfnsprograms.bpfman.io
+    - description: ClusterBpfApplication is the Schema for the clusterbpfapplications
+        API
+      displayName: Cluster Bpf Application
+      kind: ClusterBpfApplication
+      name: clusterbpfapplications.bpfman.io
       version: v1alpha1
-    - description: BpfProgram is the Schema for the BpfProgram API
-      displayName: Bpf Program
-      kind: BpfProgram
-      name: bpfprograms.bpfman.io
-      version: v1alpha1
-    - description: FentryProgram is the Schema for the Fentryprograms API
-      displayName: Fentry Program
-      kind: FentryProgram
-      name: fentryprograms.bpfman.io
-      version: v1alpha1
-    - description: FexitProgram is the Schema for the Fexitprograms API
-      displayName: Fexit Program
-      kind: FexitProgram
-      name: fexitprograms.bpfman.io
-      version: v1alpha1
-    - description: KprobeProgram is the Schema for the Kprobeprograms API
-      displayName: Kprobe Program
-      kind: KprobeProgram
-      name: kprobeprograms.bpfman.io
-      version: v1alpha1
-    - description: TcNsProgram is the Schema for the Tcnsprograms API
-      displayName: TC Namespaced Program
-      kind: TcNsProgram
-      name: tcnsprograms.bpfman.io
-      version: v1alpha1
-    - description: TcProgram is the Schema for the Tcprograms API
-      displayName: TC Program
-      kind: TcProgram
-      name: tcprograms.bpfman.io
-      version: v1alpha1
-    - description: TcxNsProgram is the Schema for the Tcxnsprograms API
-      displayName: TCX Namespaced Program
-      kind: TcxNsProgram
-      name: tcxnsprograms.bpfman.io
-      version: v1alpha1
-    - description: TcxProgram is the Schema for the Tcxprograms API
-      displayName: TCX Program
-      kind: TcxProgram
-      name: tcxprograms.bpfman.io
-      version: v1alpha1
-    - description: TracepointProgram is the Schema for the Tracepointprograms API
-      displayName: Tracepoint Program
-      kind: TracepointProgram
-      name: tracepointprograms.bpfman.io
-      version: v1alpha1
-    - description: UprobeNsProgram is the Schema for the Uprobensprograms API
-      displayName: Uprobe Namespaced Program
-      kind: UprobeNsProgram
-      name: uprobensprograms.bpfman.io
-      version: v1alpha1
-    - description: UprobeProgram is the Schema for the Uprobeprograms API
-      displayName: Uprobe Program
-      kind: UprobeProgram
-      name: uprobeprograms.bpfman.io
-      version: v1alpha1
-    - description: XdpNsProgram is the Schema for the Xdpnsprograms API
-      displayName: Xdp Namespaced Program
-      kind: XdpNsProgram
-      name: xdpnsprograms.bpfman.io
-      version: v1alpha1
-    - description: XdpProgram is the Schema for the Xdpprograms API
-      displayName: Xdp Program
-      kind: XdpProgram
-      name: xdpprograms.bpfman.io
+    - description: ClusterBpfApplicationState is the Schema for the ClusterBpfApplicationState
+        API
+      displayName: Cluster Bpf Application State
+      kind: ClusterBpfApplicationState
+      name: clusterbpfapplicationstates.bpfman.io
       version: v1alpha1
   description: "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
@@ -759,11 +902,9 @@ spec:
     `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`:
     the log level for the bpfman-agent currently supports `info`, `debug`, and `trace`
     \n\nThe bpfman operator deploys eBPF programs via CRDs. The following CRDs are
-    currently available, \n\n- BpfApplication\n- FentryProgram\n- FexitProgram\n -
-    KprobeProgram\n- TcProgram\n- TcxProgram\n- TracepointProgram\n- UprobeProgram\n-
-    XdpProgram\n - BpfNsApplication\n- TcNsProgram\n- TcxNsProgram\n- UprobeNsProgram\n-
-    XdpNsProgram\n- BpfProgram\n - BpfNsProgram\n\n ## More information\n\nPlease
-    checkout the [bpfman community website](https://bpfman.io/) for more information."
+    currently available, \n\n- BpfApplication\n- ClusterBpfApplication\n - BpfApplicationState\n-
+    ClusterBpfApplicationState\n\n ## More information\n\nPlease checkout the [bpfman
+    community website](https://bpfman.io/) for more information."
   displayName: Bpfman Operator
   icon:
   - base64data: |
@@ -1110,7 +1251,15 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications
+          - bpfapplicationstates
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - clusterbpfapplications
           verbs:
           - create
           - delete
@@ -1122,13 +1271,13 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications/finalizers
+          - clusterbpfapplications/finalizers
           verbs:
           - update
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications/status
+          - clusterbpfapplications/status
           verbs:
           - get
           - patch
@@ -1136,15 +1285,7 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsprograms
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - bpfprograms
+          - clusterbpfapplicationstates
           verbs:
           - get
           - list
@@ -1154,318 +1295,6 @@ spec:
           resources:
           - configmaps/finalizers
           verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fentryprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fentryprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fentryprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fexitprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fexitprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - fexitprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - kprobeprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - kprobeprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - kprobeprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tracepointprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tracepointprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tracepointprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobeprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobeprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobeprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpprograms/status
-          verbs:
-          - get
-          - patch
           - update
         - apiGroups:
           - ""
@@ -1656,7 +1485,7 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications
+          - bpfapplications
           verbs:
           - create
           - delete
@@ -1668,13 +1497,13 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications/finalizers
+          - bpfapplications/finalizers
           verbs:
           - update
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsapplications/status
+          - bpfapplications/status
           verbs:
           - get
           - patch
@@ -1682,115 +1511,11 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - bpfnsprograms
+          - bpfapplicationstates
           verbs:
           - get
           - list
           - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - tcxnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - uprobensprograms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - xdpnsprograms/status
-          verbs:
-          - get
-          - patch
-          - update
         serviceAccountName: bpfman-operator
     strategy: deployment
   installModes:

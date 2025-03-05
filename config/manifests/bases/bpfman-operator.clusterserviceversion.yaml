@@ -49,85 +49,25 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: BpfApplication is the Schema for the bpfapplications API
-        displayName: Bpf Application
+      - description: ClusterBpfApplication is the Schema for the clusterbpfapplications API
+        displayName: Cluster Bpf Application
+        kind: ClusterBpfApplication
+        name: clusterbpfapplications.bpfman.io
+        version: v1alpha1
+      - description: BpfApplication is the Schema for the BpfApplications API
+        displayName: Namespaced Bpf Application
         kind: BpfApplication
         name: bpfapplications.bpfman.io
         version: v1alpha1
-      - description: BpfNsApplication is the Schema for the BpfNsApplications API
-        displayName: Bpf Namespaced Application
-        kind: BpfNsApplication
-        name: bpfnsapplications.bpfman.io
+      - description: ClusterBpfApplicationState is the Schema for the ClusterBpfApplicationState API
+        displayName: Cluster Bpf Application State
+        kind: ClusterBpfApplicationState
+        name: clusterbpfapplicationstates.bpfman.io
         version: v1alpha1
-      - description: BpfProgram is the Schema for the BpfProgram API
-        displayName: Bpf Program
-        kind: BpfProgram
-        name: bpfprograms.bpfman.io
-        version: v1alpha1
-      - description: BpfNsProgram is the Schema for the BpfNsProgram API
-        displayName: Bpf Namespaced Program
-        kind: BpfNsProgram
-        name: bpfnsprograms.bpfman.io
-        version: v1alpha1
-      - description: XdpProgram is the Schema for the Xdpprograms API
-        displayName: Xdp Program
-        kind: XdpProgram
-        name: xdpprograms.bpfman.io
-        version: v1alpha1
-      - description: XdpNsProgram is the Schema for the Xdpnsprograms API
-        displayName: Xdp Namespaced Program
-        kind: XdpNsProgram
-        name: xdpnsprograms.bpfman.io
-        version: v1alpha1
-      - description: TcProgram is the Schema for the Tcprograms API
-        displayName: TC Program
-        kind: TcProgram
-        name: tcprograms.bpfman.io
-        version: v1alpha1
-      - description: TcNsProgram is the Schema for the Tcnsprograms API
-        displayName: TC Namespaced Program
-        kind: TcNsProgram
-        name: tcnsprograms.bpfman.io
-        version: v1alpha1
-      - description: TcxProgram is the Schema for the Tcxprograms API
-        displayName: TCX Program
-        kind: TcxProgram
-        name: tcxprograms.bpfman.io
-        version: v1alpha1
-      - description: TcxNsProgram is the Schema for the Tcxnsprograms API
-        displayName: TCX Namespaced Program
-        kind: TcxNsProgram
-        name: tcxnsprograms.bpfman.io
-        version: v1alpha1
-      - description: TracepointProgram is the Schema for the Tracepointprograms API
-        displayName: Tracepoint Program
-        kind: TracepointProgram
-        name: tracepointprograms.bpfman.io
-        version: v1alpha1
-      - description: KprobeProgram is the Schema for the Kprobeprograms API
-        displayName: Kprobe Program
-        kind: KprobeProgram
-        name: kprobeprograms.bpfman.io
-        version: v1alpha1
-      - description: UprobeProgram is the Schema for the Uprobeprograms API
-        displayName: Uprobe Program
-        kind: UprobeProgram
-        name: uprobeprograms.bpfman.io
-        version: v1alpha1
-      - description: UprobeNsProgram is the Schema for the Uprobensprograms API
-        displayName: Uprobe Namespaced Program
-        kind: UprobeNsProgram
-        name: uprobensprograms.bpfman.io
-        version: v1alpha1
-      - description: FentryProgram is the Schema for the Fentryprograms API
-        displayName: Fentry Program
-        kind: FentryProgram
-        name: fentryprograms.bpfman.io
-        version: v1alpha1
-      - description: FexitProgram is the Schema for the Fexitprograms API
-        displayName: Fexit Program
-        kind: FexitProgram
-        name: fexitprograms.bpfman.io
+      - description: BpfApplicationState is the Schema for the BpfApplicationState API
+        displayName: Namespaced Bpf Application State
+        kind: BpfApplicationState
+        name: bpfapplicationstates.bpfman.io
         version: v1alpha1
   description:
     "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
@@ -143,10 +83,8 @@ spec:
     supports `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- 
     `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports 
     `info`, `debug`, and `trace` \n\nThe bpfman operator deploys eBPF programs via CRDs. 
-    The following CRDs are currently available, \n\n- BpfApplication\n- FentryProgram\n- FexitProgram\n
-    - KprobeProgram\n- TcProgram\n- TcxProgram\n- TracepointProgram\n- UprobeProgram\n- XdpProgram\n
-    - BpfNsApplication\n- TcNsProgram\n- TcxNsProgram\n- UprobeNsProgram\n- XdpNsProgram\n- BpfProgram\n
-    - BpfNsProgram\n\n
+    The following CRDs are currently available, \n\n- BpfApplication\n- ClusterBpfApplication\n
+    - BpfApplicationState\n- ClusterBpfApplicationState\n\n
     ## More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/) 
     for more information."
   displayName: Bpfman Operator

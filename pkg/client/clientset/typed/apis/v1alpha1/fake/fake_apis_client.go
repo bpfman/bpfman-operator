@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The bpfman Authors.
+Copyright 2025 The bpfman Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,68 +28,20 @@ type FakeBpfmanV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeBpfmanV1alpha1) BpfApplications() v1alpha1.BpfApplicationInterface {
-	return &FakeBpfApplications{c}
+func (c *FakeBpfmanV1alpha1) BpfApplications(namespace string) v1alpha1.BpfApplicationInterface {
+	return &FakeBpfApplications{c, namespace}
 }
 
-func (c *FakeBpfmanV1alpha1) BpfNsApplications(namespace string) v1alpha1.BpfNsApplicationInterface {
-	return &FakeBpfNsApplications{c, namespace}
+func (c *FakeBpfmanV1alpha1) BpfApplicationStates(namespace string) v1alpha1.BpfApplicationStateInterface {
+	return &FakeBpfApplicationStates{c, namespace}
 }
 
-func (c *FakeBpfmanV1alpha1) BpfNsPrograms(namespace string) v1alpha1.BpfNsProgramInterface {
-	return &FakeBpfNsPrograms{c, namespace}
+func (c *FakeBpfmanV1alpha1) ClusterBpfApplications() v1alpha1.ClusterBpfApplicationInterface {
+	return &FakeClusterBpfApplications{c}
 }
 
-func (c *FakeBpfmanV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
-	return &FakeBpfPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) FentryPrograms() v1alpha1.FentryProgramInterface {
-	return &FakeFentryPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) FexitPrograms() v1alpha1.FexitProgramInterface {
-	return &FakeFexitPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) KprobePrograms() v1alpha1.KprobeProgramInterface {
-	return &FakeKprobePrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) TcNsPrograms(namespace string) v1alpha1.TcNsProgramInterface {
-	return &FakeTcNsPrograms{c, namespace}
-}
-
-func (c *FakeBpfmanV1alpha1) TcPrograms() v1alpha1.TcProgramInterface {
-	return &FakeTcPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) TcxNsPrograms(namespace string) v1alpha1.TcxNsProgramInterface {
-	return &FakeTcxNsPrograms{c, namespace}
-}
-
-func (c *FakeBpfmanV1alpha1) TcxPrograms() v1alpha1.TcxProgramInterface {
-	return &FakeTcxPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInterface {
-	return &FakeTracepointPrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) UprobeNsPrograms(namespace string) v1alpha1.UprobeNsProgramInterface {
-	return &FakeUprobeNsPrograms{c, namespace}
-}
-
-func (c *FakeBpfmanV1alpha1) UprobePrograms() v1alpha1.UprobeProgramInterface {
-	return &FakeUprobePrograms{c}
-}
-
-func (c *FakeBpfmanV1alpha1) XdpNsPrograms(namespace string) v1alpha1.XdpNsProgramInterface {
-	return &FakeXdpNsPrograms{c, namespace}
-}
-
-func (c *FakeBpfmanV1alpha1) XdpPrograms() v1alpha1.XdpProgramInterface {
-	return &FakeXdpPrograms{c}
+func (c *FakeBpfmanV1alpha1) ClusterBpfApplicationStates() v1alpha1.ClusterBpfApplicationStateInterface {
+	return &FakeClusterBpfApplicationStates{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

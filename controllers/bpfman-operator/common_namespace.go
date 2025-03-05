@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2024 The bpfman Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,39 +29,39 @@ import (
 	internal "github.com/bpfman/bpfman-operator/internal"
 )
 
-type NamespaceProgramReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.BpfNsProgram, bpfmaniov1alpha1.BpfNsProgramList]
+type NamespaceApplicationReconciler struct {
+	ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
-func (r *NamespaceProgramReconciler) getBpfList(
+func (r *NamespaceApplicationReconciler) getAppStateList(
 	ctx context.Context,
-	progName string,
-	progNamespace string,
-) (*bpfmaniov1alpha1.BpfNsProgramList, error) {
+	appName string,
+	appNamespace string,
+) (*bpfmaniov1alpha1.BpfApplicationStateList, error) {
 
-	bpfProgramList := &bpfmaniov1alpha1.BpfNsProgramList{}
+	appStateList := &bpfmaniov1alpha1.BpfApplicationStateList{}
 
-	// Only list bpfPrograms for this Program
+	// Only list BpfApplicationState objects for this Program
 	opts := []client.ListOption{
-		client.MatchingLabels{internal.BpfProgramOwner: progName},
-		client.InNamespace(progNamespace),
+		client.MatchingLabels{internal.BpfAppStateOwner: appName},
+		client.InNamespace(appNamespace),
 	}
 
-	err := r.List(ctx, bpfProgramList, opts...)
+	err := r.List(ctx, appStateList, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	return bpfProgramList, nil
+	return appStateList, nil
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
-func (r *NamespaceProgramReconciler) containsFinalizer(
-	bpfProgram *bpfmaniov1alpha1.BpfNsProgram,
+func (r *NamespaceApplicationReconciler) containsFinalizer(
+	bpfAppState *bpfmaniov1alpha1.BpfApplicationState,
 	finalizer string,
 ) bool {
-	return controllerutil.ContainsFinalizer(bpfProgram, finalizer)
+	return controllerutil.ContainsFinalizer(bpfAppState, finalizer)
 }
 
 func statusChangedPredicateNamespace() predicate.Funcs {
@@ -73,8 +73,8 @@ func statusChangedPredicateNamespace() predicate.Funcs {
 			return false
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfNsProgram)
-			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfNsProgram)
+			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfApplicationState)
+			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfApplicationState)
 			return !reflect.DeepEqual(oldObject.GetStatus(), newObject.Status)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
