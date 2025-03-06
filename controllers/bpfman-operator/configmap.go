@@ -86,9 +86,8 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 				r.Logger.Error(err, "failed adding bpfman-operator finalizer to bpfman config")
 				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 			}
-		} else {
-			return r.ReconcileBpfmanConfig(ctx, req, bpfmanConfig)
 		}
+		return r.ReconcileBpfmanConfig(ctx, req, bpfmanConfig)
 	}
 
 	return ctrl.Result{}, nil

@@ -130,6 +130,7 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 		}
 	}
 
+	pendingBpfApplications := []string{}
 	failedBpfApplications := []string{}
 	finalApplied := []string{}
 	// Make sure no BpfApplications had any issues in the loading or unloading process
@@ -142,6 +143,8 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 		status := bpfAppState.GetStatus()
 		if bpfmanHelpers.IsBpfAppStateConditionFailure(&status.Conditions) {
 			failedBpfApplications = append(failedBpfApplications, bpfAppState.GetName())
+		} else if bpfmanHelpers.IsBpfAppStateConditionPending(&status.Conditions) {
+			pendingBpfApplications = append(pendingBpfApplications, bpfAppState.GetName())
 		}
 	}
 
@@ -153,18 +156,17 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 			return r.removeFinalizer(ctx, app, internal.BpfmanOperatorFinalizer)
 		}
 
-		// Causes Requeue
 		return rec.updateStatus(ctx, appNamespace, appName, bpfmaniov1alpha1.BpfAppCondDeleteError,
 			fmt.Sprintf("Program Deletion failed on the following BpfApplicationState objects: %v", finalApplied))
 	}
 
 	if len(failedBpfApplications) != 0 {
-		// Causes Requeue
 		return rec.updateStatus(ctx, appNamespace, appName, bpfmaniov1alpha1.BpfAppCondError,
-			fmt.Sprintf("bpfProgramReconciliation failed on the following BpfApplicationState objects: %v", failedBpfApplications))
+			fmt.Sprintf("BpfApplication Reconciliation failed on the following BpfApplicationState objects: %v", failedBpfApplications))
+	} else if len(pendingBpfApplications) != 0 {
+		return rec.updateStatus(ctx, appNamespace, appName, bpfmaniov1alpha1.BpfAppCondPending,
+			fmt.Sprintf("BpfApplication Reconciliation is pending on the following BpfApplicationState objects: %v", pendingBpfApplications))
 	}
-
-	// Causes Requeue
 	return rec.updateStatus(ctx, appNamespace, appName, bpfmaniov1alpha1.BpfAppCondSuccess, "")
 }
 
