@@ -56,7 +56,7 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 	fakeInts := []string{fakeInt}
 
 	interfaceSelector := bpfmaniov1alpha1.InterfaceSelector{
-		Interfaces: &fakeInts,
+		Interfaces: fakeInts,
 	}
 
 	proceedOn := []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),

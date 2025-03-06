@@ -19,7 +19,9 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
 	"reflect"
+	"sync"
 	"time"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
@@ -101,6 +103,17 @@ func (r *NsBpfApplicationReconciler) updateLoadStatus(status bpfmaniov1alpha1.Ap
 // programs on the node via bpfman, and create or update a BpfNsApplicationState
 // object to reflect per node state information.
 func (r *NsBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Logger = ctrl.Log.WithName("namespace-app")
+	r.interfaces = &sync.Map{}
+	informer := ifaces.NewWatcher(buffersLength)
+	registerer := ifaces.NewRegisterer(informer, buffersLength)
+
+	ifaceEvents, err := registerer.Subscribe(r.Context)
+	if err != nil {
+		return fmt.Errorf("instantiating interfaces' informer err: %w", err)
+	}
+	go interfaceListener(r.Context, ifaceEvents, r.onInterfaceEvent)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfmaniov1alpha1.BpfApplication{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
@@ -124,10 +137,18 @@ func (r *NsBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+func (r *NsBpfApplicationReconciler) onInterfaceEvent(iface ifaces.Interface, add bool) {
+	if add {
+		r.Logger.Info("interface created", "Name", iface.Name, "netns", iface.NetNS)
+	} else {
+		r.Logger.Info("interface deleted", "Name", iface.Name, "netns", iface.NetNS)
+	}
+	r.interfaces.Store(iface, add)
+}
+
 func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.ourNode = &v1.Node{}
-	r.Logger = ctrl.Log.WithName("namespace-app")
 	r.finalizer = internal.NsBpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
 

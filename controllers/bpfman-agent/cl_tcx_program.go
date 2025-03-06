@@ -235,7 +235,7 @@ func (r *ClTcxProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClTcxAttac
 // points.
 func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.ClTcxAttachInfo,
 ) ([]bpfmaniov1alpha1.ClTcxAttachInfoState, error) {
-	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
+	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode, r.interfaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get interfaces for TcxProgram: %v", err)
 	}
@@ -274,7 +274,16 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 						Priority:     attachInfo.Priority,
 						Direction:    attachInfo.Direction,
 					}
-					nodeLinks = append(nodeLinks, link)
+					if attachInfo.InterfaceSelector.InterfaceAutoDiscovery != nil && !*attachInfo.InterfaceSelector.InterfaceAutoDiscovery {
+						link.Direction = "ingress"
+						nodeLinks = append(nodeLinks, link)
+						link = *link.DeepCopy()
+						link.UUID = uuid.New().String()
+						link.Direction = "egress"
+						nodeLinks = append(nodeLinks, link)
+					} else {
+						nodeLinks = append(nodeLinks, link)
+					}
 				}
 			}
 		}
@@ -292,7 +301,16 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 				Priority:     attachInfo.Priority,
 				Direction:    attachInfo.Direction,
 			}
-			nodeLinks = append(nodeLinks, link)
+			if attachInfo.InterfaceSelector.InterfaceAutoDiscovery != nil && !*attachInfo.InterfaceSelector.InterfaceAutoDiscovery {
+				link.Direction = "ingress"
+				nodeLinks = append(nodeLinks, link)
+				link = *link.DeepCopy()
+				link.UUID = uuid.New().String()
+				link.Direction = "egress"
+				nodeLinks = append(nodeLinks, link)
+			} else {
+				nodeLinks = append(nodeLinks, link)
+			}
 		}
 	}
 
