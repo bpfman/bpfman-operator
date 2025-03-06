@@ -315,6 +315,26 @@ spec:
                                     items:
                                       type: string
                                     type: array
+                                  interfacesDiscoveryConfig:
+                                    description: discoveryConfig allow configuring
+                                      interface discovery functionality,
+                                    properties:
+                                      excludeInterfaces:
+                                        default:
+                                        - lo
+                                        description: |-
+                                          excludeInterfaces contains the interface names that are excluded from interface discovery
+                                          it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
+                                      interfaceAutoDiscovery:
+                                        default: false
+                                        description: |-
+                                          interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                          automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                        type: boolean
+                                    type: object
                                   primaryNodeInterface:
                                     description: primaryNodeInterface to attach BPF
                                       program to the primary interface on the node.
@@ -353,10 +373,8 @@ spec:
                                   type: string
                                 type: array
                             required:
-                            - containers
                             - direction
                             - interfaceSelector
-                            - priority
                             type: object
                           type: array
                       type: object
@@ -456,6 +474,26 @@ spec:
                                     items:
                                       type: string
                                     type: array
+                                  interfacesDiscoveryConfig:
+                                    description: discoveryConfig allow configuring
+                                      interface discovery functionality,
+                                    properties:
+                                      excludeInterfaces:
+                                        default:
+                                        - lo
+                                        description: |-
+                                          excludeInterfaces contains the interface names that are excluded from interface discovery
+                                          it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
+                                      interfaceAutoDiscovery:
+                                        default: false
+                                        description: |-
+                                          interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                          automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                        type: boolean
+                                    type: object
                                   primaryNodeInterface:
                                     description: primaryNodeInterface to attach BPF
                                       program to the primary interface on the node.
@@ -782,6 +820,26 @@ spec:
                                     items:
                                       type: string
                                     type: array
+                                  interfacesDiscoveryConfig:
+                                    description: discoveryConfig allow configuring
+                                      interface discovery functionality,
+                                    properties:
+                                      excludeInterfaces:
+                                        default:
+                                        - lo
+                                        description: |-
+                                          excludeInterfaces contains the interface names that are excluded from interface discovery
+                                          it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
+                                      interfaceAutoDiscovery:
+                                        default: false
+                                        description: |-
+                                          interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                          automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                        type: boolean
+                                    type: object
                                   primaryNodeInterface:
                                     description: primaryNodeInterface to attach BPF
                                       program to the primary interface on the node.
@@ -815,9 +873,7 @@ spec:
                                   type: string
                                 type: array
                             required:
-                            - containers
                             - interfaceSelector
-                            - priority
                             type: object
                           type: array
                       type: object

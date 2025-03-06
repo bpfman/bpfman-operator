@@ -235,7 +235,7 @@ func (r *NsXdpProgramReconciler) removeLinks(links []bpfmaniov1alpha1.XdpAttachI
 // points.
 func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.XdpAttachInfo,
 ) ([]bpfmaniov1alpha1.XdpAttachInfoState, error) {
-	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
+	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode, r.Interfaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get interfaces for XdpNsProgram: %v", err)
 	}

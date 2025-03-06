@@ -235,7 +235,7 @@ func (r *ClTcxProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClTcxAttac
 // points.
 func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.ClTcxAttachInfo,
 ) ([]bpfmaniov1alpha1.ClTcxAttachInfoState, error) {
-	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
+	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode, r.Interfaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get interfaces for TcxProgram: %v", err)
 	}

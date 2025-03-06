@@ -235,12 +235,8 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
-                            - direction
-                            - interfaceName
                             - linkId
                             - linkStatus
-                            - priority
                             - shouldAttach
                             - uuid
                             type: object

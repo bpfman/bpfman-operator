@@ -22,13 +22,16 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagent "github.com/bpfman/bpfman-operator/controllers/bpfman-agent"
-
 	"github.com/bpfman/bpfman-operator/internal/conn"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/api/core/v1"
@@ -44,6 +47,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
+
+const buffersLength = 50
 
 var (
 	scheme   = runtime.NewScheme()
@@ -61,13 +66,15 @@ func main() {
 	var metricsAddr string
 	var probeAddr string
 	var opts zap.Options
-	var enableHTTP2 bool
+	var enableHTTP2, enableInterfacesDiscovery bool
 	var pprofAddr string
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8174", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.StringVar(&pprofAddr, "profiling-bind-address", "", "The address the profiling endpoint binds to, such as ':6060'. Leave unset to disable profiling.")
+	flag.BoolVar(&enableInterfacesDiscovery, "enable-interfaces-discovery", true, "Enable ebpfman agent process to auto detect interfaces creation and deletion")
+
 	flag.Parse()
 
 	// Get the Log level for bpfman deployment where this pod is running
@@ -145,6 +152,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, canceler := context.WithCancel(context.Background())
+	// Subscribe to signals for terminating the program.
+	go func() {
+		stopper := make(chan os.Signal, 1)
+		signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
+		<-stopper
+		canceler()
+	}()
+
 	commonApp := bpfmanagent.ReconcilerCommon{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -152,6 +168,7 @@ func main() {
 		BpfmanClient: gobpfman.NewBpfmanClient(conn),
 		NodeName:     nodeName,
 		Containers:   containerGetter,
+		Interfaces:   &sync.Map{},
 	}
 
 	if err = (&bpfmanagent.ClBpfApplicationReconciler{
@@ -159,6 +176,18 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create BpfApplicationReconciler")
 		os.Exit(1)
+	}
+
+	if enableInterfacesDiscovery {
+		informer := ifaces.NewWatcher(buffersLength)
+		registerer := ifaces.NewRegisterer(informer, buffersLength)
+
+		ifaceEvents, err := registerer.Subscribe(ctx)
+		if err != nil {
+			setupLog.Error(err, "instantiating interfaces' informer")
+			os.Exit(1)
+		}
+		go interfaceListener(ctx, ifaceEvents, commonApp.Interfaces)
 	}
 
 	if err = (&bpfmanagent.NsBpfApplicationReconciler{
@@ -183,5 +212,25 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event, interfaces *sync.Map) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-ifaceEvents:
+			iface := event.Interface
+			switch event.Type {
+			case ifaces.EventAdded:
+				setupLog.Info("interface created", "Name", iface.Name, "netns", iface.NetNS)
+				interfaces.Store(iface, true)
+			case ifaces.EventDeleted:
+				setupLog.Info("interface deleted", "Name", iface.Name, "netns", iface.NetNS)
+				interfaces.Store(iface, false)
+			default:
+			}
+		}
 	}
 }
