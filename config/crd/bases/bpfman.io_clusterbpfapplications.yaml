@@ -431,9 +431,24 @@ spec:
                               interfaceSelector:
                                 description: interfaceSelector to determine the network
                                   interface (or interfaces)
-                                maxProperties: 1
+                                maxProperties: 3
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       interfaces refers to a list of network interfaces to attach the BPF
@@ -479,9 +494,7 @@ spec:
                                   type: string
                                 type: array
                             required:
-                            - direction
                             - interfaceSelector
-                            - priority
                             type: object
                           type: array
                       type: object
@@ -576,9 +589,24 @@ spec:
                               interfaceSelector:
                                 description: interfaceSelector to determine the network
                                   interface (or interfaces)
-                                maxProperties: 1
+                                maxProperties: 3
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       interfaces refers to a list of network interfaces to attach the BPF
@@ -602,9 +630,7 @@ spec:
                                 minimum: 0
                                 type: integer
                             required:
-                            - direction
                             - interfaceSelector
-                            - priority
                             type: object
                           type: array
                       type: object
@@ -943,9 +969,24 @@ spec:
                               interfaceSelector:
                                 description: interfaceSelector to determine the network
                                   interface (or interfaces)
-                                maxProperties: 1
+                                maxProperties: 3
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       interfaces refers to a list of network interfaces to attach the BPF
@@ -987,7 +1028,6 @@ spec:
                                 type: array
                             required:
                             - interfaceSelector
-                            - priority
                             type: object
                           type: array
                       type: object
