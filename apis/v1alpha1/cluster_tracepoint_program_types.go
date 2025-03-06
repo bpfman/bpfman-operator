@@ -22,8 +22,7 @@ type ClTracepointProgramInfo struct {
 	// links is the list of points to which the program should be attached.  The list items
 	// are optional and may be updated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClTracepointAttachInfo `json:"links"`
+	Links []ClTracepointAttachInfo `json:"links,omitempty"`
 }
 
 type ClTracepointAttachInfo struct {
@@ -42,8 +41,7 @@ type ClTracepointProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClTracepointAttachInfoState `json:"links"`
+	Links []ClTracepointAttachInfoState `json:"links,omitempty"`
 }
 
 type ClTracepointAttachInfoState struct {

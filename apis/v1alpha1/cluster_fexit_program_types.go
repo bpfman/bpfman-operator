@@ -23,8 +23,7 @@ type ClFexitProgramInfo struct {
 	// Whether the program should be attached to the function.
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
-	// +kubebuilder:default:={}
-	Links []ClFexitAttachInfo `json:"links"`
+	Links []ClFexitAttachInfo `json:"links,omitempty"`
 }
 
 // ClFexitLoadInfo contains the program-specific load information for Fexit
@@ -49,8 +48,7 @@ type ClFexitProgramInfoState struct {
 	ClFexitLoadInfo `json:",inline"`
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
-	// +kubebuilder:default:={}
-	Links []ClFexitAttachInfoState `json:"links"`
+	Links []ClFexitAttachInfoState `json:"links,omitempty"`
 }
 
 type ClFexitAttachInfoState struct {

@@ -3,7 +3,7 @@ kind: ClusterBpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: clusterbpfapplication
-  name: clusterbpfapplication-sample
+  name: clusterbpfapplication-sample-if-dicovery
 spec:
   nodeSelector: {}
   byteCode:

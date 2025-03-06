@@ -115,7 +115,8 @@ func (r *NsBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).
-		// Watch for changes in Pod resources in case we are using a container selector.
+		// Watch for changes in Pod resources in case we are using a container
+		// or network namespace selector.
 		Watches(
 			&v1.Pod{},
 			&handler.EnqueueRequestForObject{},
@@ -154,15 +155,27 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	for appProgramIndex := range appPrograms.Items {
 		r.currentApp = &appPrograms.Items[appProgramIndex]
 
+		r.Logger.Info("Reconciling BpfApplication", "Name", r.currentApp.Name)
+
 		// Get the corresponding BpfNsApplicationState object, and if it doesn't
 		// exist, instantiate a copy. If bpfAppStateNew is true, then we need to
 		// create a new BpfNsApplicationState instead of just updating the
 		// existing one.
-		appState, bpfAppStateNew, err := r.getBpfAppState(ctx, true)
+		appState, bpfAppStateNew, err := r.getBpfAppState(ctx, !r.isBeingDeleted())
 		if err != nil {
 			r.Logger.Error(err, "failed to get BpfNsApplicationState")
 			return ctrl.Result{}, err
 		}
+
+		if appState == nil && r.isBeingDeleted() {
+			// If the BpfApplicationState doesn't exist and the BpfApplication
+			// is being deleted, we don't need to do anything.  Just continue
+			// with the next BpfApplication.
+			r.Logger.Info("BpfApplicationState doesn't exist and BpfApplication is being deleted",
+				"Name", r.currentApp.Name)
+			continue
+		}
+
 		r.currentAppState = appState
 
 		// Save a copy of the original BpfNsApplicationState to check for changes
@@ -196,7 +209,7 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		// Make sure the BpfApplication code is loaded on the node.
-		r.Logger.Info("Calling reconcileLoad()")
+		r.Logger.Info("Calling reconcileLoad()", "isBeingDeleted", r.isBeingDeleted())
 		err = r.reconcileLoad(ctx, r)
 		if err != nil {
 			// There's no point continuing to reconcile the links if we
@@ -699,11 +712,11 @@ func (r *NsBpfApplicationReconciler) unload(ctx context.Context) {
 				// that case, we should log the error and continue.
 				r.Logger.Error(err, "failed to unload program", "ProgramId", *program.ProgramId)
 			}
+			r.currentAppState.Spec.Programs[i].ProgramId = nil
+			// When bpfman deletes a program, it also automatically detaches all links, so,
+			// we can just delete the links from the state.
+			r.deleteLinks(&r.currentAppState.Spec.Programs[i])
 		}
-		r.currentAppState.Spec.Programs[i].ProgramId = nil
-		// When bpfman deletes a program, it also automatically detaches all links, so,
-		// we can just delete the links from the state.
-		r.deleteLinks(&r.currentAppState.Spec.Programs[i])
 		r.currentAppState.Spec.Programs[i].ProgramLinkStatus = bpfmaniov1alpha1.ProgAttachSuccess
 	}
 }

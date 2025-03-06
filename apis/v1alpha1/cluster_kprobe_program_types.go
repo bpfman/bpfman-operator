@@ -22,8 +22,7 @@ type ClKprobeProgramInfo struct {
 	// The list of points to which the program should be attached.  The list items
 	// are optional and may be udated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClKprobeAttachInfo `json:"links"`
+	Links []ClKprobeAttachInfo `json:"links,omitempty"`
 }
 
 type ClKprobeAttachInfo struct {
@@ -49,8 +48,7 @@ type ClKprobeProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClKprobeAttachInfoState `json:"links"`
+	Links []ClKprobeAttachInfoState `json:"links,omitempty"`
 }
 
 type ClKprobeAttachInfoState struct {

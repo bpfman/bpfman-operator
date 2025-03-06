@@ -100,10 +100,8 @@ func (r *NsXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 		Iface:     r.currentLink.InterfaceName,
 		ProceedOn: xdpProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
+		Netns:     &r.currentLink.NetnsPath,
 	}
-
-	netns := fmt.Sprintf("/host/proc/%d/ns/net", r.currentLink.ContainerPid)
-	attachInfo.Netns = &netns
 
 	return &gobpfman.AttachRequest{
 		Id: *r.currentProgramState.ProgramId,
@@ -162,9 +160,10 @@ func (r *NsXdpProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAttachInfoState) *int {
 	for i, a := range r.currentProgramState.XDP.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: InterfaceName, ContainerPid, Priority, and ProceedOn.
-		if a.InterfaceName == attachInfoState.InterfaceName && reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
-			a.Priority == attachInfoState.Priority && reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
+		// same: IfName, NetnsPath, Priority, and ProceedOn.
+		if a.InterfaceName == attachInfoState.InterfaceName && a.Priority == attachInfoState.Priority &&
+			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) &&
+			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
 			return &i
 		}
 	}
@@ -242,23 +241,26 @@ func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 
 	nodeLinks := []bpfmaniov1alpha1.XdpAttachInfoState{}
 
+	// There is a network namespace selector, so see if there are any matching
+	// pods on this node.
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
 		r.getNamespace(),
-		attachInfo.Containers.Pods,
-		attachInfo.Containers.ContainerNames,
+		attachInfo.NetworkNamespaces.Pods,
+		nil,
 		r.Logger,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get container pids: %v", err)
 	}
 
-	if containerInfo != nil && len(*containerInfo) != 0 {
-		// Containers were found, so create links.
-		for i := range *containerInfo {
-			container := (*containerInfo)[i]
+	if containerInfo != nil {
+		// Just use one container per pod to get the pod's network
+		// namespace.
+		containerInfo = GetOneContainerPerPod(containerInfo)
+		for _, container := range *containerInfo {
+			netnsPath := netnsPathFromPID(container.pid)
 			for _, iface := range interfaces {
-				containerPid := container.pid
 				link := bpfmaniov1alpha1.XdpAttachInfoState{
 					AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
 						ShouldAttach: true,
@@ -267,7 +269,7 @@ func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 					},
 					InterfaceName: iface,
-					ContainerPid:  containerPid,
+					NetnsPath:     netnsPath,
 					Priority:      attachInfo.Priority,
 					ProceedOn:     attachInfo.ProceedOn,
 				}

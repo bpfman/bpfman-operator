@@ -91,16 +91,17 @@ func (r *ClTcxProgramReconciler) getCurrentLinkStatus() bpfmaniov1alpha1.LinkSta
 
 func (r *ClTcxProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
+	var netnsPath *string = nil
+	if len(r.currentLink.NetnsPath) > 0 {
+		netnsPath = &r.currentLink.NetnsPath
+	}
+
 	attachInfo := &gobpfman.TCXAttachInfo{
 		Priority:  r.currentLink.Priority,
 		Iface:     r.currentLink.InterfaceName,
 		Direction: directionToStr(r.currentLink.Direction),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
-	}
-
-	if r.currentLink.ContainerPid != nil {
-		netns := fmt.Sprintf("/host/proc/%d/ns/net", *r.currentLink.ContainerPid)
-		attachInfo.Netns = &netns
+		Netns:     netnsPath,
 	}
 
 	return &gobpfman.AttachRequest{
@@ -161,10 +162,10 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 func (r *ClTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcxAttachInfoState) *int {
 	for i, a := range r.currentProgramState.TCX.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: InterfaceName, ContainerPid, Priority, and Direction.
+		// same: InterfaceName, NetnsPath, Priority, and Direction.
 		if a.InterfaceName == attachInfoState.InterfaceName && a.Priority == attachInfoState.Priority &&
 			a.Direction == attachInfoState.Direction &&
-			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) {
+			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) {
 			return &i
 		}
 	}
@@ -242,26 +243,26 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 
 	nodeLinks := []bpfmaniov1alpha1.ClTcxAttachInfoState{}
 
-	if attachInfo.Containers != nil {
-		// There is a container selector, so see if there are any matching
-		// containers on this node.
+	if attachInfo.NetworkNamespaces != nil {
+		// If the pod selector is set, we use the pod selector.
 		containerInfo, err := r.Containers.GetContainers(
 			ctx,
-			attachInfo.Containers.Namespace,
-			attachInfo.Containers.Pods,
-			attachInfo.Containers.ContainerNames,
+			attachInfo.NetworkNamespaces.Namespace,
+			attachInfo.NetworkNamespaces.Pods,
+			nil,
 			r.Logger,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get container pids: %v", err)
 		}
 
-		if containerInfo != nil && len(*containerInfo) != 0 {
-			// Containers were found, so create links.
-			for i := range *containerInfo {
-				container := (*containerInfo)[i]
+		if containerInfo != nil {
+			// Just use one container per pod to get the pod's network
+			// namespace.
+			containerInfo = GetOneContainerPerPod(containerInfo)
+			for _, container := range *containerInfo {
+				netnsPath := netnsPathFromPID(container.pid)
 				for _, iface := range interfaces {
-					containerPid := container.pid
 					link := bpfmaniov1alpha1.ClTcxAttachInfoState{
 						AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
 							ShouldAttach: true,
@@ -270,13 +271,16 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 						},
 						InterfaceName: iface,
-						ContainerPid:  &containerPid,
+						NetnsPath:     netnsPath,
 						Priority:      attachInfo.Priority,
 						Direction:     attachInfo.Direction,
 					}
 					nodeLinks = append(nodeLinks, link)
 				}
 			}
+		} else {
+			// This is an error -- either namespacePath or pods must be set.
+			r.Logger.Error(fmt.Errorf("neither namespacePath nor pods is set"), "internal error")
 		}
 	} else {
 		for _, iface := range interfaces {
@@ -288,7 +292,6 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 				},
 				InterfaceName: iface,
-				ContainerPid:  nil,
 				Priority:      attachInfo.Priority,
 				Direction:     attachInfo.Direction,
 			}

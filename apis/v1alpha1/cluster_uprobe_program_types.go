@@ -22,8 +22,7 @@ type ClUprobeProgramInfo struct {
 	// links in the list of points to which the program should be attached.  The list items
 	// are optional and may be udated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClUprobeAttachInfo `json:"links"`
+	Links []ClUprobeAttachInfo `json:"links,omitempty"`
 }
 
 type ClUprobeAttachInfo struct {
@@ -32,12 +31,12 @@ type ClUprobeAttachInfo struct {
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
-	Function string `json:"function"`
+	Function string `json:"function,omitempty"`
 
 	// offset added to the address of the function for uprobe.
 	// +optional
 	// +kubebuilder:default:=0
-	Offset uint64 `json:"offset"`
+	Offset uint64 `json:"offset,omitempty"`
 
 	// target is the Library name or the absolute path to a binary or library.
 	Target string `json:"target"`
@@ -45,13 +44,13 @@ type ClUprobeAttachInfo struct {
 	// pid only execute uprobe for given process identification number (PID). If PID
 	// is not provided, uprobe executes for all PIDs.
 	// +optional
-	Pid *int32 `json:"pid"`
+	Pid *int32 `json:"pid,omitempty"`
 
 	// containers identify the set of containers in which to attach the
 	// uprobe. If Containers is not specified, the uprobe will be attached in
 	// the bpfman-agent container.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	Containers *ClContainerSelector `json:"containers,omitempty"`
 }
 
 type ClUprobeProgramInfoState struct {
@@ -61,8 +60,7 @@ type ClUprobeProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClUprobeAttachInfoState `json:"links"`
+	Links []ClUprobeAttachInfoState `json:"links,omitempty"`
 }
 
 type ClUprobeAttachInfoState struct {
@@ -70,7 +68,7 @@ type ClUprobeAttachInfoState struct {
 
 	// function to attach the uprobe to.
 	// +optional
-	Function string `json:"function"`
+	Function string `json:"function,omitempty"`
 
 	// offset added to the address of the function for uprobe.
 	// +optional
@@ -83,9 +81,9 @@ type ClUprobeAttachInfoState struct {
 	// pid only execute uprobe for given process identification number (PID). If PID
 	// is not provided, uprobe executes for all PIDs.
 	// +optional
-	Pid *int32 `json:"pid"`
+	Pid *int32 `json:"pid,omitempty"`
 
 	// Optional container pid to attach the uprobe program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	ContainerPid *int32 `json:"containerPid,omitempty"`
 }

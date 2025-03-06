@@ -153,7 +153,7 @@ func (r *ClKprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.Cl
 	links *[]bpfmaniov1alpha1.ClKprobeAttachInfoState) *int {
 	for i, a := range *links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and Direction.
+		// same: Function and Offset.
 		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset {
 			return &i
 		}

@@ -223,7 +223,6 @@ spec:
                           pattern: ^[a-zA-Z][a-zA-Z0-9_]+.
                           type: string
                         links:
-                          default: []
                           description: Whether the program should be attached to the
                             function.
                           items:
@@ -257,7 +256,6 @@ spec:
                           pattern: ^[a-zA-Z][a-zA-Z0-9_]+.
                           type: string
                         links:
-                          default: []
                           description: Whether the program should be attached to the
                             function.
                           items:
@@ -284,7 +282,6 @@ spec:
                         KprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             The list of points to which the program should be attached.  The list items
                             are optional and may be udated after the bpf program has been loaded
@@ -315,7 +312,6 @@ spec:
                         KretprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             The list of points to which the program should be attached.  The list items
                             are optional and may be udated after the bpf program has been loaded
@@ -345,81 +341,11 @@ spec:
                         TcPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             The list of points to which the program should be attached.  The list items
                             are optional and may be udated after the bpf program has been loaded
                           items:
                             properties:
-                              containers:
-                                description: |-
-                                  containers identifies the set of containers in which to attach the eBPF
-                                  program. If Containers is not specified, the BPF program will be attached
-                                  in the root network namespace.
-                                properties:
-                                  containerNames:
-                                    description: |-
-                                      containerNames indicate the Name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
-                                    items:
-                                      type: string
-                                    type: array
-                                  namespace:
-                                    default: ""
-                                    description: namespaces indicate the target namespaces.
-                                    type: string
-                                  pods:
-                                    description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
-                                      standard metav1.LabelSelector semantics and make it empty.
-                                    properties:
-                                      matchExpressions:
-                                        description: matchExpressions is a list of
-                                          label selector requirements. The requirements
-                                          are ANDed.
-                                        items:
-                                          description: |-
-                                            A label selector requirement is a selector that contains values, a key, and an operator that
-                                            relates the key and values.
-                                          properties:
-                                            key:
-                                              description: key is the label key that
-                                                the selector applies to.
-                                              type: string
-                                            operator:
-                                              description: |-
-                                                operator represents a key's relationship to a set of values.
-                                                Valid operators are In, NotIn, Exists and DoesNotExist.
-                                              type: string
-                                            values:
-                                              description: |-
-                                                values is an array of string values. If the operator is In or NotIn,
-                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                the values array must be empty. This array is replaced during a strategic
-                                                merge patch.
-                                              items:
-                                                type: string
-                                              type: array
-                                              x-kubernetes-list-type: atomic
-                                          required:
-                                          - key
-                                          - operator
-                                          type: object
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                      matchLabels:
-                                        additionalProperties:
-                                          type: string
-                                        description: |-
-                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                        type: object
-                                    type: object
-                                    x-kubernetes-map-type: atomic
-                                required:
-                                - pods
-                                type: object
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tc program should
@@ -467,74 +393,18 @@ spec:
                                       Only 'true' accepted.
                                     type: boolean
                                 type: object
-                              priority:
+                              networkNamespaces:
                                 description: |-
-                                  priority specifies the priority of the tc program in relation to
-                                  other programs of the same type with the same attach point. It is a value
-                                  from 0 to 1000 where lower values have higher precedence.
-                                format: int32
-                                maximum: 1000
-                                minimum: 0
-                                type: integer
-                              proceedOn:
-                                default:
-                                - Pipe
-                                - DispatcherReturn
-                                description: |-
-                                  proceedOn allows the user to call other tc programs in chain on this exit code.
-                                  Multiple values are supported by repeating the parameter.
-                                items:
-                                  enum:
-                                  - UnSpec
-                                  - OK
-                                  - ReClassify
-                                  - Shot
-                                  - Pipe
-                                  - Stolen
-                                  - Queued
-                                  - Repeat
-                                  - ReDirect
-                                  - Trap
-                                  - DispatcherReturn
-                                  type: string
-                                type: array
-                            required:
-                            - direction
-                            - interfaceSelector
-                            type: object
-                          type: array
-                      type: object
-                    tcx:
-                      description: tcx defines the desired state of the application's
-                        TcxPrograms.
-                      properties:
-                        links:
-                          default: []
-                          description: |-
-                            links is the list of points to which the program should be attached. The list items
-                            are optional and may be updated after the bpf program has been loaded
-                          items:
-                            properties:
-                              containers:
-                                description: |-
-                                  containers identify the set of containers in which to attach the eBPF
-                                  program. If Containers is not specified, the BPF program will be attached
-                                  in the root network namespace.
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program. If networkNamespaces is not specified, the BPF
+                                  program will be attached in the root network namespace.
                                 properties:
-                                  containerNames:
-                                    description: |-
-                                      containerNames indicate the Name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
-                                    items:
-                                      type: string
-                                    type: array
                                   namespace:
-                                    default: ""
-                                    description: namespaces indicate the target namespaces.
+                                    description: Target namespace.
                                     type: string
                                   pods:
                                     description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
+                                      Target pods. This field must be specified, to select all pods use
                                       standard metav1.LabelSelector semantics and make it empty.
                                     properties:
                                       matchExpressions:
@@ -584,6 +454,53 @@ spec:
                                 required:
                                 - pods
                                 type: object
+                              priority:
+                                description: |-
+                                  priority specifies the priority of the tc program in relation to
+                                  other programs of the same type with the same attach point. It is a value
+                                  from 0 to 1000 where lower values have higher precedence.
+                                format: int32
+                                maximum: 1000
+                                minimum: 0
+                                type: integer
+                              proceedOn:
+                                default:
+                                - Pipe
+                                - DispatcherReturn
+                                description: |-
+                                  proceedOn allows the user to call other tc programs in chain on this exit code.
+                                  Multiple values are supported by repeating the parameter.
+                                items:
+                                  enum:
+                                  - UnSpec
+                                  - OK
+                                  - ReClassify
+                                  - Shot
+                                  - Pipe
+                                  - Stolen
+                                  - Queued
+                                  - Repeat
+                                  - ReDirect
+                                  - Trap
+                                  - DispatcherReturn
+                                  type: string
+                                type: array
+                            required:
+                            - direction
+                            - interfaceSelector
+                            type: object
+                          type: array
+                      type: object
+                    tcx:
+                      description: tcx defines the desired state of the application's
+                        TcxPrograms.
+                      properties:
+                        links:
+                          description: |-
+                            links is the list of points to which the program should be attached. The list items
+                            are optional and may be updated after the bpf program has been loaded
+                          items:
+                            properties:
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tcx program should
@@ -631,6 +548,67 @@ spec:
                                       Only 'true' accepted.
                                     type: boolean
                                 type: object
+                              networkNamespaces:
+                                description: |-
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program. If networkNamespaces is not specified, the BPF
+                                  program will be attached in the root network namespace.
+                                properties:
+                                  namespace:
+                                    description: Target namespace.
+                                    type: string
+                                  pods:
+                                    description: |-
+                                      Target pods. This field must be specified, to select all pods use
+                                      standard metav1.LabelSelector semantics and make it empty.
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - pods
+                                type: object
                               priority:
                                 description: |-
                                   priority specifies the priority of the tcx program in relation to
@@ -651,7 +629,6 @@ spec:
                         application's TracepointPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links is the list of points to which the program should be attached.  The list items
                             are optional and may be updated after the bpf program has been loaded
@@ -689,7 +666,6 @@ spec:
                         UprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links in the list of points to which the program should be attached.  The list items
                             are optional and may be udated after the bpf program has been loaded
@@ -709,7 +685,6 @@ spec:
                                       type: string
                                     type: array
                                   namespace:
-                                    default: ""
                                     description: namespaces indicate the target namespaces.
                                     type: string
                                   pods:
@@ -796,7 +771,6 @@ spec:
                         application's UretprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links in the list of points to which the program should be attached.  The list items
                             are optional and may be udated after the bpf program has been loaded
@@ -816,7 +790,6 @@ spec:
                                       type: string
                                     type: array
                                   namespace:
-                                    default: ""
                                     description: namespaces indicate the target namespaces.
                                     type: string
                                   pods:
@@ -903,32 +876,62 @@ spec:
                         XdpPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links is the list of points to which the program should be attached.  The list items
                             are optional and may be updated after the bpf program has been loaded
                           items:
                             properties:
-                              containers:
-                                description: |-
-                                  containers identify the set of containers in which to attach the eBPF
-                                  program. If Containers is not specified, the BPF program will be attached
-                                  in the root network namespace.
+                              interfaceSelector:
+                                description: interfaceSelector to determine the network
+                                  interface (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
                                 properties:
-                                  containerNames:
+                                  interfaces:
                                     description: |-
-                                      containerNames indicate the Name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
+                                      interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
                                     items:
                                       type: string
                                     type: array
+                                  interfacesDiscoveryConfig:
+                                    description: discoveryConfig allow configuring
+                                      interface discovery functionality,
+                                    properties:
+                                      excludeInterfaces:
+                                        default:
+                                        - lo
+                                        description: |-
+                                          excludeInterfaces contains the interface names that are excluded from interface discovery
+                                          it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
+                                      interfaceAutoDiscovery:
+                                        default: false
+                                        description: |-
+                                          interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                          automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                        type: boolean
+                                    type: object
+                                  primaryNodeInterface:
+                                    description: primaryNodeInterface to attach BPF
+                                      program to the primary interface on the node.
+                                      Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              networkNamespaces:
+                                description: |-
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program. If networkNamespaces is not specified, the BPF
+                                  program will be attached in the root network namespace.
+                                properties:
                                   namespace:
-                                    default: ""
-                                    description: namespaces indicate the target namespaces.
+                                    description: Target namespace.
                                     type: string
                                   pods:
                                     description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
+                                      Target pods. This field must be specified, to select all pods use
                                       standard metav1.LabelSelector semantics and make it empty.
                                     properties:
                                       matchExpressions:
@@ -977,45 +980,6 @@ spec:
                                     x-kubernetes-map-type: atomic
                                 required:
                                 - pods
-                                type: object
-                              interfaceSelector:
-                                description: interfaceSelector to determine the network
-                                  interface (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
-                                properties:
-                                  interfaces:
-                                    description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
-                                    items:
-                                      type: string
-                                    type: array
-                                  interfacesDiscoveryConfig:
-                                    description: discoveryConfig allow configuring
-                                      interface discovery functionality,
-                                    properties:
-                                      excludeInterfaces:
-                                        default:
-                                        - lo
-                                        description: |-
-                                          excludeInterfaces contains the interface names that are excluded from interface discovery
-                                          it is matched as a case-sensitive string.
-                                        items:
-                                          type: string
-                                        type: array
-                                      interfaceAutoDiscovery:
-                                        default: false
-                                        description: |-
-                                          interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
-                                          automatically attaching eBPF hooks to newly discovered interfaces in both directions.
-                                        type: boolean
-                                    type: object
-                                  primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
-                                    type: boolean
                                 type: object
                               priority:
                                 description: |-

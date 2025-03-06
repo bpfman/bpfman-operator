@@ -25,19 +25,18 @@ type ClTcProgramInfo struct {
 	// The list of points to which the program should be attached.  The list items
 	// are optional and may be udated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClTcAttachInfo `json:"links"`
+	Links []ClTcAttachInfo `json:"links,omitempty"`
 }
 
 type ClTcAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identifies the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If networkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers,omitempty"`
+	NetworkNamespaces *ClNetworkNamespaceSelector `json:"networkNamespaces,omitempty"`
 
 	// direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.
@@ -66,8 +65,7 @@ type ClTcProgramInfoState struct {
 	// also contains information about the attached point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClTcAttachInfoState `json:"links"`
+	Links []ClTcAttachInfoState `json:"links,omitempty"`
 }
 
 type ClTcAttachInfoState struct {
@@ -76,9 +74,9 @@ type ClTcAttachInfoState struct {
 	// interfaceName is the Interface name to attach the tc program to.
 	InterfaceName string `json:"interfaceName"`
 
-	// Optional container pid to attach the tc program in.
+	// Optional network namespace to attach the tc program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath string `json:"netnsPath,omitempty"`
 
 	// direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.

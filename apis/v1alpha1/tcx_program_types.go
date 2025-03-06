@@ -22,17 +22,16 @@ type TcxProgramInfo struct {
 	// links is The list of points to which the program should be attached.  The list items
 	// are optional and may be updated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []TcxAttachInfo `json:"links"`
+	Links []TcxAttachInfo `json:"links,omitempty"`
 }
 
 type TcxAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program.
-	Containers ContainerSelector `json:"containers"`
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program.
+	NetworkNamespaces NetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.
@@ -54,8 +53,7 @@ type TcxProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []TcxAttachInfoState `json:"links"`
+	Links []TcxAttachInfoState `json:"links,omitempty"`
 }
 
 type TcxAttachInfoState struct {
@@ -65,9 +63,9 @@ type TcxAttachInfoState struct {
 	// +optional
 	InterfaceName string `json:"interfaceName,omitempty"`
 
-	// containerPid is the container pid to attach the tcx program in.
-	// +optional
-	ContainerPid int32 `json:"containerPid,omitempty"`
+	// netnsPath is the path to the Network namespace to attach the tcx program
+	// in.
+	NetnsPath string `json:"netnsPath"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.

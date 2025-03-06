@@ -25,19 +25,18 @@ type ClXdpProgramInfo struct {
 	// links is the list of points to which the program should be attached.  The list items
 	// are optional and may be updated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClXdpAttachInfo `json:"links"`
+	Links []ClXdpAttachInfo `json:"links,omitempty"`
 }
 
 type ClXdpAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If networkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers,omitempty"`
+	NetworkNamespaces *ClNetworkNamespaceSelector `json:"networkNamespaces,omitempty"`
 
 	// priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value
@@ -61,8 +60,7 @@ type ClXdpProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []ClXdpAttachInfoState `json:"links"`
+	Links []ClXdpAttachInfoState `json:"links,omitempty"`
 }
 
 type ClXdpAttachInfoState struct {
@@ -71,9 +69,10 @@ type ClXdpAttachInfoState struct {
 	// interfaceName is the interface name to attach the xdp program to.
 	InterfaceName string `json:"interfaceName"`
 
-	// containerPid is an optional container pid to attach the xdp program in.
+	// netnsPath is an optional path for a network namespace to attach the xdp
+	// program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath string `json:"netnsPath,omitempty"`
 
 	// priority specifies the priority of the xdp program in relation to
 	// other programs of the same type with the same attach point. It is a value

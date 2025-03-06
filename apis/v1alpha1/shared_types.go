@@ -58,8 +58,7 @@ type InterfaceSelector struct {
 type ClContainerSelector struct {
 	// namespaces indicate the target namespaces.
 	// +optional
-	// +kubebuilder:default:=""
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 
 	// pods indicate the target pods. This field must be specified, to select all pods use
 	// standard metav1.LabelSelector semantics and make it empty.
@@ -68,7 +67,7 @@ type ClContainerSelector struct {
 	// containerNames indicate the Name(s) of container(s).  If none are specified, all containers in the
 	// pod are selected.
 	// +optional
-	ContainerNames *[]string `json:"containerNames,omitempty"`
+	ContainerNames []string `json:"containerNames,omitempty"`
 }
 
 // ContainerSelector identifies a set of containers. It is different from ContainerSelector
@@ -82,7 +81,27 @@ type ContainerSelector struct {
 	// containerNames indicate the name(s) of container(s).  If none are specified, all containers in the
 	// pod are selected.
 	// +optional
-	ContainerNames *[]string `json:"containerNames,omitempty"`
+	ContainerNames []string `json:"containerNames,omitempty"`
+}
+
+// ClNetworkNamespaceSelector identifies a network namespace for network-related
+// program types in the cluster-scoped ClusterBpfApplication object.
+type ClNetworkNamespaceSelector struct {
+	// Target namespace.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Target pods. This field must be specified, to select all pods use
+	// standard metav1.LabelSelector semantics and make it empty.
+	Pods metav1.LabelSelector `json:"pods"`
+}
+
+// NetworkNamespaceSelector identifies a network namespace for network-related
+// program types in the namespace-scoped BpfApplication object.
+type NetworkNamespaceSelector struct {
+	// Target pods. This field must be specified, to select all pods use
+	// standard metav1.LabelSelector semantics and make it empty.
+	Pods metav1.LabelSelector `json:"pods"`
 }
 
 // BpfAppCommon defines the common attributes for all BpfApp programs
@@ -107,7 +126,7 @@ type BpfAppCommon struct {
 	// mapOwnerSelector is used to select the loaded eBPF program this eBPF program
 	// will share a map with.
 	// +optional
-	MapOwnerSelector *metav1.LabelSelector `json:"mapOwnerSelector"`
+	MapOwnerSelector *metav1.LabelSelector `json:"mapOwnerSelector,omitempty"`
 }
 
 // BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState object
@@ -132,7 +151,8 @@ type AttachInfoStateCommon struct {
 	// linkId is an identifier for the link assigned by bpfman. This field is
 	// empty until the program is successfully attached and bpfman returns the
 	// id.
-	LinkId *uint32 `json:"linkId"`
+	// +optional
+	LinkId *uint32 `json:"linkId,omitempty"`
 	// linkStatus reflects whether the attachment has been reconciled
 	// successfully, and if not, why.
 	LinkStatus LinkStatus `json:"linkStatus"`
@@ -148,7 +168,7 @@ type BpfProgramStateCommon struct {
 	// programId is the id of the program in the kernel.  Not set until the
 	// program is loaded.
 	// +optional
-	ProgramId *uint32 `json:"programId"`
+	ProgramId *uint32 `json:"programId,omitempty"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image

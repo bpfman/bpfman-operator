@@ -254,13 +254,13 @@ func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNod
 			}
 			return true
 		})
-		if len(interfaces) != 0 {
+		if len(interfaces) > 0 {
 			return interfaces, nil
 		}
 		return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
 	}
 
-	if interfaceSelector.Interfaces != nil {
+	if len(interfaceSelector.Interfaces) > 0 {
 		return interfaceSelector.Interfaces, nil
 	}
 
@@ -538,4 +538,8 @@ func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
 		return "egress"
 	}
 	return ""
+}
+
+func netnsPathFromPID(pid int32) string {
+	return fmt.Sprintf("/host/proc/%d/ns/net", pid)
 }
