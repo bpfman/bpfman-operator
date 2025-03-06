@@ -154,28 +154,6 @@ func IsBpfmanDeployed() bool {
 	return false
 }
 
-func IsBpfApplicationConditionFailure(conditions *[]metav1.Condition) bool {
-	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
-		return true
-	}
-
-	numConditions := len(*conditions)
-
-	if numConditions > 1 {
-		// We should only ever have one condition so log a message, but
-		// still look at (*conditions)[0].
-		log.Info("more than one condition found", "numConditions", numConditions)
-	}
-
-	if (*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondPending) ||
-		(*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondError) ||
-		(*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondProgramListChangedError) {
-		return true
-	}
-
-	return false
-}
-
 func IsBpfAppStateConditionFailure(conditions *[]metav1.Condition) bool {
 	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
 		return true
@@ -189,9 +167,23 @@ func IsBpfAppStateConditionFailure(conditions *[]metav1.Condition) bool {
 		log.Info("more than one condition found", "numConditions", numConditions)
 	}
 
-	if (*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppCondSuccess) {
-		return false
-	} else {
+	return (*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondError) ||
+		(*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondProgramListChangedError) ||
+		(*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondDeleteError)
+}
+
+func IsBpfAppStateConditionPending(conditions *[]metav1.Condition) bool {
+	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
 		return true
 	}
+
+	numConditions := len(*conditions)
+
+	if numConditions > 1 {
+		// We should only ever have one condition so log a message, but
+		// still look at (*conditions)[0].
+		log.Info("more than one condition found", "numConditions", numConditions)
+	}
+
+	return (*conditions)[0].Type == string(bpfmaniov1alpha1.BpfAppCondPending)
 }
