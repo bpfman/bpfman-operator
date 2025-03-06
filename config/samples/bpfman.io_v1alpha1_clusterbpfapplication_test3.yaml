@@ -34,4 +34,4 @@ spec:
     #       - interfaceSelector:
     #           primaryNodeInterface: true
     #         priority: 500
-    #         direction: ingress
+    #         direction: Ingress

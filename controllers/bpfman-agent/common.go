@@ -425,6 +425,7 @@ func (r *ReconcilerCommon) reconcileBpfLink(ctx context.Context, rec ProgramReco
 			// The link should be attached, but it isn't.
 			r.Logger.V(1).Info("Program is not attached, calling getAttachRequest()")
 			attachRequest := rec.getAttachRequest()
+			r.Logger.Info("AttachRequest", "attachRequest", attachRequest)
 			r.Logger.V(1).Info("AttachRequest", "attachRequest", attachRequest)
 			r.Logger.Info("Calling bpfman to attach eBPF Program on node")
 			linkId, err := bpfmanagentinternal.AttachBpfmanProgram(ctx, r.BpfmanClient, attachRequest)
@@ -509,4 +510,8 @@ func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
 		return "egress"
 	}
 	return ""
+}
+
+func netnsPathFromPID(pid int32) string {
+	return fmt.Sprintf("/host/proc/%d/ns/net", pid)
 }

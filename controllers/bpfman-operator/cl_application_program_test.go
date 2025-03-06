@@ -70,7 +70,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 
 	attachInfo := bpfmaniov1alpha1.ClXdpAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        nil,
+		NetworkNamespaces: nil,
 		Priority:          int32(xdpPriority),
 		ProceedOn:         proceedOn,
 	}

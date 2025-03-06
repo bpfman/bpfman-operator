@@ -30,9 +30,9 @@ type TcxAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program.
-	Containers ContainerSelector `json:"containers"`
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program.
+	NetworkNamespaces NetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.
@@ -64,8 +64,9 @@ type TcxAttachInfoState struct {
 	// interfaceName is the Interface name to attach the tc program to.
 	InterfaceName string `json:"interfaceName"`
 
-	// containerPid is the container pid to attach the tcx program in.
-	ContainerPid int32 `json:"containerPid"`
+	// netnsPath is the path to the Network namespace to attach the tcx program
+	// in.
+	NetnsPath string `json:"netnsPath"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.

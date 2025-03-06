@@ -42,7 +42,7 @@ spec:
         #   - interfaceSelector:
         #       primaryNodeInterface: true
         #     priority: 55
-        #     direction: ingress
+        #     direction: Ingress
     - name: tcx_next_test
       type: TCX
       tcx:
@@ -50,19 +50,17 @@ spec:
         #   - interfaceSelector:
         #       primaryNodeInterface: true
         #     priority: 500
-        #     direction: ingress
+        #     direction: Ingress
         #   - interfaceSelector:
         #       interfaces:
         #         - eth0
         #     priority: 100
-        #     direction: egress
-        #     containers:
+        #     direction: Egress
+        #     networkNamespaces:
         #       namespace: bpfman
         #       pods:
         #         matchLabels:
         #           name: bpfman-daemon
-        #       containerNames:
-        #         - bpfman-agent
     - name: uprobe_test
       type: Uprobe
       uprobe:
@@ -102,13 +100,11 @@ spec:
         #       interfaces:
         #         - eth0
         #     priority: 100
-        #     containers:
+        #     networkNamespaces:
         #       namespace: bpfman
         #       pods:
         #         matchLabels:
         #           name: bpfman-daemon
-        #       containerNames:
-        #         - bpfman-agent
     - name: fentry_test
       type: Fentry
       fentry:

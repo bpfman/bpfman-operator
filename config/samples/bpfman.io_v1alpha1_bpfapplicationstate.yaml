@@ -31,7 +31,7 @@ items:
       tc:
         links:
         - containerPid: 3078
-          direction: ingress
+          direction: Ingress
           interfaceName: eth0
           linkId: 832290746
           linkStatus: Attached
@@ -42,7 +42,7 @@ items:
           shouldAttach: true
           uuid: 00168ad2-abcd-427c-96b8-7ec2b73b8460
         - containerPid: 2981
-          direction: ingress
+          direction: Ingress
           interfaceName: eth0
           linkId: 256466427
           linkStatus: Attached
@@ -59,7 +59,7 @@ items:
       tcx:
         links:
         - containerPid: 3078
-          direction: egress
+          direction: Egress
           interfaceName: eth0
           linkId: 533548322
           linkStatus: Attached
@@ -67,7 +67,7 @@ items:
           shouldAttach: true
           uuid: b299efd7-b0af-4ba7-8ed7-dfe067d80de2
         - containerPid: 2981
-          direction: egress
+          direction: Egress
           interfaceName: eth0
           linkId: 777895864
           linkStatus: Attached

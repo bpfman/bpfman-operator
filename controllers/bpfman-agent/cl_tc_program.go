@@ -131,11 +131,7 @@ func (r *ClTcProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 		Direction: directionToStr(r.currentLink.Direction),
 		ProceedOn: tcProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
-	}
-
-	if r.currentLink.ContainerPid != nil {
-		netns := fmt.Sprintf("/host/proc/%d/ns/net", *r.currentLink.ContainerPid)
-		attachInfo.Netns = &netns
+		Netns:     r.currentLink.NetnsPath,
 	}
 
 	return &gobpfman.AttachRequest{
@@ -199,7 +195,7 @@ func (r *ClTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcAt
 		// same: InterfaceName, ContainerPid, Priority, and ProceedOn.
 		if a.InterfaceName == attachInfoState.InterfaceName && a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
-			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
+			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
 			return &i
 		}
@@ -278,14 +274,15 @@ func (r *ClTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 
 	nodeLinks := []bpfmaniov1alpha1.ClTcAttachInfoState{}
 
-	if attachInfo.Containers != nil {
+	if attachInfo.NetworkNamespaces != nil {
 		// There is a container selector, so see if there are any matching
 		// containers on this node.
+		// If the pod selector is set, we use the pod selector.
 		containerInfo, err := r.Containers.GetContainers(
 			ctx,
-			attachInfo.Containers.Namespace,
-			attachInfo.Containers.Pods,
-			attachInfo.Containers.ContainerNames,
+			attachInfo.NetworkNamespaces.Namespace,
+			attachInfo.NetworkNamespaces.Pods,
+			nil,
 			r.Logger,
 		)
 		if err != nil {
@@ -293,11 +290,12 @@ func (r *ClTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 		}
 
 		if containerInfo != nil {
-			// Containers were found, so create links.
-			for i := range *containerInfo {
-				container := (*containerInfo)[i]
+			// Just use one container per pod to get the pod's network
+			// namespace.
+			containerInfo = GetOneContainerPerPod(containerInfo)
+			for _, container := range *containerInfo {
+				netnsPath := netnsPathFromPID(container.pid)
 				for _, iface := range interfaces {
-					containerPid := container.pid
 					link := bpfmaniov1alpha1.ClTcAttachInfoState{
 						AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
 							ShouldAttach: true,
@@ -306,7 +304,7 @@ func (r *ClTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 						},
 						InterfaceName: iface,
-						ContainerPid:  &containerPid,
+						NetnsPath:     &netnsPath,
 						Priority:      attachInfo.Priority,
 						Direction:     attachInfo.Direction,
 						ProceedOn:     attachInfo.ProceedOn,
@@ -314,6 +312,9 @@ func (r *ClTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 					nodeLinks = append(nodeLinks, link)
 				}
 			}
+		} else {
+			// This is an error -- either namespacePath or pods must be set.
+			r.Logger.Error(fmt.Errorf("neither namespacePath nor pods is set"), "internal error")
 		}
 	} else {
 		for _, iface := range interfaces {
@@ -325,7 +326,7 @@ func (r *ClTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 					LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 				},
 				InterfaceName: iface,
-				ContainerPid:  nil,
+				NetnsPath:     nil,
 				Priority:      attachInfo.Priority,
 				Direction:     attachInfo.Direction,
 				ProceedOn:     attachInfo.ProceedOn,

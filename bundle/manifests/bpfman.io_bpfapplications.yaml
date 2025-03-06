@@ -230,21 +230,42 @@ spec:
                             are optional and may be updated after the bpf program has been loaded
                           items:
                             properties:
-                              containers:
+                              direction:
                                 description: |-
-                                  containers identify the set of containers in which to attach the eBPF
-                                  program.
+                                  direction specifies the direction of traffic the tc program should
+                                  attach to for a given network device.
+                                enum:
+                                - Ingress
+                                - Egress
+                                type: string
+                              interfaceSelector:
+                                description: interfaceSelector to determine the network
+                                  interface (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
                                 properties:
-                                  containerNames:
+                                  interfaces:
                                     description: |-
-                                      containerNames indicate the name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
+                                      interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
                                     items:
                                       type: string
                                     type: array
+                                  primaryNodeInterface:
+                                    description: primaryNodeInterface to attach BPF
+                                      program to the primary interface on the node.
+                                      Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              networkNamespaces:
+                                description: |-
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program. If networkNamespaces is not specified, the BPF
+                                  program will be attached in the root network namespace.
+                                properties:
                                   pods:
                                     description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
+                                      Target pods. This field must be specified, to select all pods use
                                       standard metav1.LabelSelector semantics and make it empty.
                                     properties:
                                       matchExpressions:
@@ -293,33 +314,6 @@ spec:
                                     x-kubernetes-map-type: atomic
                                 required:
                                 - pods
-                                type: object
-                              direction:
-                                description: |-
-                                  direction specifies the direction of traffic the tc program should
-                                  attach to for a given network device.
-                                enum:
-                                - Ingress
-                                - Egress
-                                type: string
-                              interfaceSelector:
-                                description: interfaceSelector to determine the network
-                                  interface (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
-                                properties:
-                                  interfaces:
-                                    description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
-                                    items:
-                                      type: string
-                                    type: array
-                                  primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
-                                    type: boolean
                                 type: object
                               priority:
                                 description: |-
@@ -353,9 +347,9 @@ spec:
                                   type: string
                                 type: array
                             required:
-                            - containers
                             - direction
                             - interfaceSelector
+                            - networkNamespaces
                             - priority
                             type: object
                           type: array
@@ -371,21 +365,41 @@ spec:
                             are optional and may be updated after the bpf program has been loaded
                           items:
                             properties:
-                              containers:
+                              direction:
                                 description: |-
-                                  containers identify the set of containers in which to attach the eBPF
-                                  program.
+                                  direction specifies the direction of traffic the tcx program should
+                                  attach to for a given network device.
+                                enum:
+                                - Ingress
+                                - Egress
+                                type: string
+                              interfaceSelector:
+                                description: interfaceSelector to determine the network
+                                  interface (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
                                 properties:
-                                  containerNames:
+                                  interfaces:
                                     description: |-
-                                      containerNames indicate the name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
+                                      interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
                                     items:
                                       type: string
                                     type: array
+                                  primaryNodeInterface:
+                                    description: primaryNodeInterface to attach BPF
+                                      program to the primary interface on the node.
+                                      Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              networkNamespaces:
+                                description: |-
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program.
+                                properties:
                                   pods:
                                     description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
+                                      Target pods. This field must be specified, to select all pods use
                                       standard metav1.LabelSelector semantics and make it empty.
                                     properties:
                                       matchExpressions:
@@ -435,33 +449,6 @@ spec:
                                 required:
                                 - pods
                                 type: object
-                              direction:
-                                description: |-
-                                  direction specifies the direction of traffic the tcx program should
-                                  attach to for a given network device.
-                                enum:
-                                - Ingress
-                                - Egress
-                                type: string
-                              interfaceSelector:
-                                description: interfaceSelector to determine the network
-                                  interface (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
-                                properties:
-                                  interfaces:
-                                    description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
-                                    items:
-                                      type: string
-                                    type: array
-                                  primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
-                                    type: boolean
-                                type: object
                               priority:
                                 description: |-
                                   priority specifies the priority of the tcx program in relation to
@@ -472,9 +459,9 @@ spec:
                                 minimum: 0
                                 type: integer
                             required:
-                            - containers
                             - direction
                             - interfaceSelector
+                            - networkNamespaces
                             - priority
                             type: object
                           type: array
@@ -705,21 +692,33 @@ spec:
                             are optional and may be udated after the bpf program has been loaded
                           items:
                             properties:
-                              containers:
-                                description: |-
-                                  containers identify the set of containers in which to attach the eBPF
-                                  program.
+                              interfaceSelector:
+                                description: interfaceSelector to determine the network
+                                  interface (or interfaces)
+                                maxProperties: 1
+                                minProperties: 1
                                 properties:
-                                  containerNames:
+                                  interfaces:
                                     description: |-
-                                      containerNames indicate the name(s) of container(s).  If none are specified, all containers in the
-                                      pod are selected.
+                                      interfaces refers to a list of network interfaces to attach the BPF
+                                      program to.
                                     items:
                                       type: string
                                     type: array
+                                  primaryNodeInterface:
+                                    description: primaryNodeInterface to attach BPF
+                                      program to the primary interface on the node.
+                                      Only 'true' accepted.
+                                    type: boolean
+                                type: object
+                              networkNamespaces:
+                                description: |-
+                                  networkNamespaces identifies the set of network namespaces in which to
+                                  attach the eBPF program.
+                                properties:
                                   pods:
                                     description: |-
-                                      pods indicate the target pods. This field must be specified, to select all pods use
+                                      Target pods. This field must be specified, to select all pods use
                                       standard metav1.LabelSelector semantics and make it empty.
                                     properties:
                                       matchExpressions:
@@ -769,25 +768,6 @@ spec:
                                 required:
                                 - pods
                                 type: object
-                              interfaceSelector:
-                                description: interfaceSelector to determine the network
-                                  interface (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
-                                properties:
-                                  interfaces:
-                                    description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
-                                    items:
-                                      type: string
-                                    type: array
-                                  primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
-                                    type: boolean
-                                type: object
                               priority:
                                 description: |-
                                   priority specifies the priority of the bpf program in relation to
@@ -815,8 +795,8 @@ spec:
                                   type: string
                                 type: array
                             required:
-                            - containers
                             - interfaceSelector
+                            - networkNamespaces
                             - priority
                             type: object
                           type: array
