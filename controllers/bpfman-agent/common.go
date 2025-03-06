@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -65,6 +66,8 @@ type ReconcilerCommon struct {
 	recType      string
 	Containers   ContainerGetter
 	ourNode      *v1.Node
+	Context      context.Context
+	interfaces   sync.Map
 }
 
 // ApplicationReconciler is an interface that defines the methods needed to
@@ -228,8 +231,33 @@ func getClientset() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node) ([]string, error) {
+func interfaceInExcludeList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, intf string) bool {
+	for _, i := range interfaceSelector.ExcludeInterfaces {
+		if i == intf {
+			return true
+		}
+	}
+	return false
+}
+
+func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node, discoveredInterfaces sync.Map) ([]string, error) {
 	var interfaces []string
+
+	if interfaceSelector.InterfaceAutoDiscovery {
+		discoveredInterfaces.Range(func(key, value any) bool {
+			if value.(bool) {
+				intf := key.(string)
+				if !interfaceInExcludeList(interfaceSelector, intf) {
+					interfaces = append(interfaces, key.(string))
+				}
+			}
+			return true
+		})
+		if len(interfaces) != 0 {
+			return interfaces, nil
+		}
+		return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
+	}
 
 	if interfaceSelector.Interfaces != nil {
 		return *interfaceSelector.Interfaces, nil

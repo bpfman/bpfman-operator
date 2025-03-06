@@ -25,6 +25,18 @@ import (
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type InterfaceSelector struct {
+	// interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+	// automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+	//+kubebuilder:default:=false
+	// +optional
+	InterfaceAutoDiscovery bool `json:"interfaceAutoDiscovery"`
+
+	// excludeInterfaces contains the interface names that are excluded from interface discovery
+	// it is matched as a case-sensitive string.
+	//+kubebuilder:default:=lo;
+	//+optional
+	ExcludeInterfaces []string `json:"excludeInterfaces"`
+
 	// Interfaces refers to a list of network interfaces to attach the BPF
 	// program to.
 	// +optional
