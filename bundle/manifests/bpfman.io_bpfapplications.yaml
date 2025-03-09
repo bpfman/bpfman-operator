@@ -305,6 +305,21 @@ spec:
                                 maxProperties: 1
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
@@ -446,6 +461,21 @@ spec:
                                 maxProperties: 1
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
@@ -765,6 +795,21 @@ spec:
                                 maxProperties: 1
                                 minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
