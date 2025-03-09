@@ -67,9 +67,9 @@ type ClTcxAttachInfoState struct {
 	// Interface name to attach the tcx program to.
 	IfName string `json:"ifName"`
 
-	// Optional container pid to attach the tcx program in.
+	// Optional network namespace to attach the tcx program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// Direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.

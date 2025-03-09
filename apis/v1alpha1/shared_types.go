@@ -148,6 +148,7 @@ type AttachInfoStateCommon struct {
 	// An identifier for the link assigned by bpfman. This field is
 	// empty until the program is successfully attached and bpfman returns the
 	// id.
+	// +optional
 	LinkId *uint32 `json:"linkId"`
 	// LinkStatus reflects whether the attachment has been reconciled
 	// successfully, and if not, why.

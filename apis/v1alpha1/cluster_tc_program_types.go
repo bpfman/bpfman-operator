@@ -77,9 +77,9 @@ type ClTcAttachInfoState struct {
 	// Interface name to attach the tc program to.
 	IfName string `json:"ifName"`
 
-	// Optional container pid to attach the tc program in.
+	// Optional network namespace to attach the tc program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// Direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.

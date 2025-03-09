@@ -96,11 +96,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: Container pid to attach the tc program
-                                  in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   Direction specifies the direction of traffic the tc program should
@@ -124,6 +119,10 @@ spec:
                                 description: |-
                                   LinkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: Network namespace to attach the tc program
+                                  in.
                                 type: string
                               priority:
                                 description: |-
@@ -163,11 +162,10 @@ spec:
                                   assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - direction
                             - ifName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach
@@ -189,11 +187,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: Container pid to attach the tcx program
-                                  in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   Direction specifies the direction of traffic the tcx program should
@@ -218,6 +211,10 @@ spec:
                                   LinkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
                                 type: string
+                              netnsPath:
+                                description: Network namespace to attach the tcx program
+                                  in.
+                                type: string
                               priority:
                                 description: |-
                                   Priority specifies the priority of the tcx program in relation to
@@ -236,11 +233,10 @@ spec:
                                   assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - direction
                             - ifName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - shouldAttach
                             - uuid
@@ -315,7 +311,6 @@ spec:
                                   assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -382,7 +377,6 @@ spec:
                                   assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -404,11 +398,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: Container pid to attach the xdp program
-                                  in.
-                                format: int32
-                                type: integer
                               ifName:
                                 description: Interface name to attach the xdp program
                                   to.
@@ -424,6 +413,10 @@ spec:
                                 description: |-
                                   LinkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: Network namespace to attach the xdp program
+                                  in.
                                 type: string
                               priority:
                                 description: |-
@@ -458,10 +451,9 @@ spec:
                                   assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - ifName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach

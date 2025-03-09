@@ -77,7 +77,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return")}
 	xdpAttachInfo := bpfmaniov1alpha1.ClXdpAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        nil,
+		NetworkNamespaces: nil,
 		Priority:          int32(priority),
 		ProceedOn:         proceedOn,
 	}
@@ -193,7 +193,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 
 	tcAttachInfo := bpfmaniov1alpha1.ClTcAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        nil,
+		NetworkNamespaces: nil,
 		Direction:         direction,
 		Priority:          int32(priority),
 	}
@@ -208,7 +208,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 
 	tcxAttachInfo := bpfmaniov1alpha1.ClTcxAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        nil,
+		NetworkNamespaces: nil,
 		Direction:         "ingress",
 		Priority:          int32(priority),
 	}

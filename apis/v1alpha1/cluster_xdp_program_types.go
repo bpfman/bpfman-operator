@@ -72,9 +72,9 @@ type ClXdpAttachInfoState struct {
 	// Interface name to attach the xdp program to.
 	IfName string `json:"ifName"`
 
-	// Optional container pid to attach the xdp program in.
+	// Optional network namespace to attach the xdp program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// Priority specifies the priority of the xdp program in relation to
 	// other programs of the same type with the same attach point. It is a value

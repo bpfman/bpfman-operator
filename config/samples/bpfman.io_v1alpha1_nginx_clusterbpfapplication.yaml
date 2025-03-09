@@ -27,10 +27,11 @@ spec:
                 - eth0
             priority: 55
             direction: ingress
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx
     - name: tcx_next_test
       type: tcx
       tcxInfo:
@@ -40,10 +41,11 @@ spec:
                 - eth0
             priority: 100
             direction: egress
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx
     - name: uprobe_test
       type: uprobe
       uprobeInfo:
@@ -72,7 +74,8 @@ spec:
               interfaces:
                 - eth0
             priority: 100
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx

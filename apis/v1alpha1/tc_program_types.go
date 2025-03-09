@@ -34,8 +34,7 @@ type TcAttachInfo struct {
 	// NetworkNamespaces identifies the set of network namespaces in which to
 	// attach the eBPF program. If NetworkNamespaces is not specified, the BPF
 	// program will be attached in the root network namespace.
-	// +optional
-	NetworkNamespaces *NetworkNamespaceSelector `json:"networkNamespaces"`
+	NetworkNamespaces NetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// Direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.
@@ -74,8 +73,8 @@ type TcAttachInfoState struct {
 	// Interface name to attach the tc program to.
 	IfName string `json:"ifName"`
 
-	// Container pid to attach the tc program in.
-	ContainerPid int32 `json:"containerPid"`
+	// Network namespace to attach the tc program in.
+	NetnsPath string `json:"netnsPath"`
 
 	// Direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.
