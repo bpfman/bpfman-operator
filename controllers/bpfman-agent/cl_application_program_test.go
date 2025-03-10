@@ -70,7 +70,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	fakeInts := []string{fakeInt0}
 
 	interfaceSelector := bpfmaniov1alpha1.InterfaceSelector{
-		Interfaces: &fakeInts,
+		Interfaces: fakeInts,
 	}
 
 	proceedOn := []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),

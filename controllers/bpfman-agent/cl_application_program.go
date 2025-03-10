@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
@@ -27,6 +28,7 @@ import (
 	"github.com/bpfman/bpfman-operator/internal"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,6 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
+
+const buffersLength = 50
 
 //+kubebuilder:rbac:groups=bpfman.io,resources=clusterbpfapplications,verbs=get;list;watch
 //+kubebuilder:rbac:groups=bpfman.io,resources=clusterbpfapplicationstates,verbs=get;list;watch
@@ -100,6 +104,16 @@ func (r *ClBpfApplicationReconciler) updateLoadStatus(status bpfmaniov1alpha1.Ap
 // programs on the node via bpfman, and create or update a BpfApplicationState
 // object to reflect per node state information.
 func (r *ClBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Logger = ctrl.Log.WithName("cluster-app")
+	r.interfaces = &sync.Map{}
+	informer := ifaces.NewWatcher(buffersLength)
+	registerer := ifaces.NewRegisterer(informer, buffersLength)
+
+	ifaceEvents, err := registerer.Subscribe(r.Context)
+	if err != nil {
+		return fmt.Errorf("instantiating interfaces' informer err: %w", err)
+	}
+	go interfaceListener(r.Context, ifaceEvents, r.onInterfaceEvent)
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfmaniov1alpha1.ClusterBpfApplication{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1}).
@@ -123,10 +137,36 @@ func (r *ClBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event,
+	processEvent func(iface ifaces.Interface, add bool)) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case event := <-ifaceEvents:
+			switch event.Type {
+			case ifaces.EventAdded:
+				processEvent(event.Interface, true)
+			case ifaces.EventDeleted:
+				processEvent(event.Interface, false)
+			default:
+			}
+		}
+	}
+}
+
+func (r *ClBpfApplicationReconciler) onInterfaceEvent(iface ifaces.Interface, add bool) {
+	if add {
+		r.Logger.Info("interface created", "Name", iface.Name, "netns", iface.NetNS)
+	} else {
+		r.Logger.Info("interface deleted", "Name", iface.Name, "netns", iface.NetNS)
+	}
+	r.interfaces.Store(iface, add)
+}
+
 func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.ourNode = &v1.Node{}
-	r.Logger = ctrl.Log.WithName("cluster-app")
 	r.finalizer = internal.ClBpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
 

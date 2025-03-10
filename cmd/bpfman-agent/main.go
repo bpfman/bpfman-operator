@@ -21,10 +21,11 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os"
-
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagent "github.com/bpfman/bpfman-operator/controllers/bpfman-agent"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/bpfman/bpfman-operator/internal/conn"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
@@ -145,6 +146,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, canceler := context.WithCancel(context.Background())
+	// Subscribe to signals for terminating the program.
+	go func() {
+		stopper := make(chan os.Signal, 1)
+		signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
+		<-stopper
+		canceler()
+	}()
+
 	commonApp := bpfmanagent.ReconcilerCommon{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
@@ -152,6 +162,7 @@ func main() {
 		BpfmanClient: gobpfman.NewBpfmanClient(conn),
 		NodeName:     nodeName,
 		Containers:   containerGetter,
+		Context:      ctx,
 	}
 
 	if err = (&bpfmanagent.ClBpfApplicationReconciler{

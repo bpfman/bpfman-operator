@@ -22,13 +22,24 @@ import (
 )
 
 // InterfaceSelector defines interface to attach to.
-// +kubebuilder:validation:MaxProperties=1
-// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:XValidation:rule="has(self.interfaces) ? !has(self.interfaceAutoDiscovery) && !has(self.primaryNodeInterface) : (has(self.interfaceAutoDiscovery) != has(self.primaryNodeInterface))",message="interfaceSelector config is forbidden."
 type InterfaceSelector struct {
+	// interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+	// automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+	//+kubebuilder:default:=false
+	// +optional
+	InterfaceAutoDiscovery *bool `json:"interfaceAutoDiscovery,omitempty"`
+
+	// excludeInterfaces contains the interface names that are excluded from interface discovery
+	// it is matched as a case-sensitive string.
+	//+kubebuilder:default:={"lo"}
+	//+optional
+	ExcludeInterfaces []string `json:"excludeInterfaces,omitempty"`
+
 	// Interfaces refers to a list of network interfaces to attach the BPF
 	// program to.
 	// +optional
-	Interfaces *[]string `json:"interfaces,omitempty"`
+	Interfaces []string `json:"interfaces,omitempty"`
 
 	// Attach BPF program to the primary interface on the node. Only 'true' accepted.
 	// +optional

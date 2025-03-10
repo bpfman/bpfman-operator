@@ -423,9 +423,22 @@ spec:
                               interfaceSelector:
                                 description: Selector to determine the network interface
                                   (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
@@ -438,6 +451,11 @@ spec:
                                       interface on the node. Only 'true' accepted.
                                     type: boolean
                                 type: object
+                                x-kubernetes-validations:
+                                - message: interfaceSelector config is forbidden.
+                                  rule: 'has(self.interfaces) ? !has(self.interfaceAutoDiscovery)
+                                    && !has(self.primaryNodeInterface) : (has(self.interfaceAutoDiscovery)
+                                    != has(self.primaryNodeInterface))'
                               priority:
                                 description: |-
                                   Priority specifies the priority of the tc program in relation to
@@ -568,9 +586,22 @@ spec:
                               interfaceSelector:
                                 description: Selector to determine the network interface
                                   (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
@@ -583,6 +614,11 @@ spec:
                                       interface on the node. Only 'true' accepted.
                                     type: boolean
                                 type: object
+                                x-kubernetes-validations:
+                                - message: interfaceSelector config is forbidden.
+                                  rule: 'has(self.interfaces) ? !has(self.interfaceAutoDiscovery)
+                                    && !has(self.primaryNodeInterface) : (has(self.interfaceAutoDiscovery)
+                                    != has(self.primaryNodeInterface))'
                               priority:
                                 description: |-
                                   Priority specifies the priority of the tcx program in relation to
@@ -925,9 +961,22 @@ spec:
                               interfaceSelector:
                                 description: Selector to determine the network interface
                                   (or interfaces)
-                                maxProperties: 1
-                                minProperties: 1
                                 properties:
+                                  excludeInterfaces:
+                                    default:
+                                    - lo
+                                    description: |-
+                                      excludeInterfaces contains the interface names that are excluded from interface discovery
+                                      it is matched as a case-sensitive string.
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceAutoDiscovery:
+                                    default: false
+                                    description: |-
+                                      interfaceAutoDiscovery when enabled, the agent process monitors the creation and deletion of interfaces,
+                                      automatically attaching eBPF hooks to newly discovered interfaces in both directions.
+                                    type: boolean
                                   interfaces:
                                     description: |-
                                       Interfaces refers to a list of network interfaces to attach the BPF
@@ -940,6 +989,11 @@ spec:
                                       interface on the node. Only 'true' accepted.
                                     type: boolean
                                 type: object
+                                x-kubernetes-validations:
+                                - message: interfaceSelector config is forbidden.
+                                  rule: 'has(self.interfaces) ? !has(self.interfaceAutoDiscovery)
+                                    && !has(self.primaryNodeInterface) : (has(self.interfaceAutoDiscovery)
+                                    != has(self.primaryNodeInterface))'
                               priority:
                                 description: |-
                                   Priority specifies the priority of the bpf program in relation to
