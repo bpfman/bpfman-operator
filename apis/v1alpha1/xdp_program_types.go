@@ -31,9 +31,10 @@ type XdpAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// Containers identifies the set of containers in which to attach the eBPF
-	// program.
-	Containers ContainerSelector `json:"containers"`
+	// NetworkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If NetworkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
+	NetworkNamespaces NetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// Priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value
@@ -67,8 +68,8 @@ type XdpAttachInfoState struct {
 	// Interface name to attach the xdp program to.
 	IfName string `json:"ifName"`
 
-	// Container pid to attach the xdp program in.
-	ContainerPid int32 `json:"containerPid"`
+	// Network namespace to attach the xdp program in.
+	NetnsPath string `json:"netnsPath"`
 
 	// Priority specifies the priority of the xdp program in relation to
 	// other programs of the same type with the same attach point. It is a value

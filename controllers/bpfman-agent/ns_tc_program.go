@@ -89,6 +89,10 @@ func (r *NsTcProgramReconciler) getCurrentLinkStatus() bpfmaniov1alpha1.LinkStat
 	return r.currentLink.LinkStatus
 }
 
+func (r *NsTcProgramReconciler) getNamespace() string {
+	return r.namespace
+}
+
 func (r *NsTcProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCAttachInfo{
@@ -97,10 +101,8 @@ func (r *NsTcProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 		Direction: r.currentLink.Direction,
 		ProceedOn: tcProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
+		Netns:     &r.currentLink.NetnsPath,
 	}
-
-	netns := fmt.Sprintf("/host/proc/%d/ns/net", r.currentLink.ContainerPid)
-	attachInfo.Netns = &netns
 
 	return &gobpfman.AttachRequest{
 		Id: *r.currentProgramState.ProgramId,
@@ -163,7 +165,7 @@ func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAtta
 		// same: IfName, ContainerPid, Priority, and ProceedOn.
 		if a.IfName == attachInfoState.IfName && a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
-			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
+			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
 			return &i
 		}
@@ -246,9 +248,9 @@ func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 	// containers on this node.
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
-		r.namespace,
-		attachInfo.Containers.Pods,
-		attachInfo.Containers.ContainerNames,
+		r.getNamespace(),
+		attachInfo.NetworkNamespaces.Pods,
+		nil,
 		r.Logger,
 	)
 	if err != nil {
@@ -257,25 +259,22 @@ func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 
 	if containerInfo != nil && len(*containerInfo) != 0 {
 		// Containers were found, so create links.
-		for i := range *containerInfo {
-			container := (*containerInfo)[i]
-			for _, iface := range interfaces {
-				containerPid := container.pid
-				link := bpfmaniov1alpha1.TcAttachInfoState{
-					AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
-						ShouldAttach: true,
-						UUID:         uuid.New().String(),
-						LinkId:       nil,
-						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
-					},
-					IfName:       iface,
-					ContainerPid: containerPid,
-					Priority:     attachInfo.Priority,
-					Direction:    attachInfo.Direction,
-					ProceedOn:    attachInfo.ProceedOn,
-				}
-				nodeLinks = append(nodeLinks, link)
+		netnsPath := netnsPathFromPID((*containerInfo)[0].pid)
+		for _, iface := range interfaces {
+			link := bpfmaniov1alpha1.TcAttachInfoState{
+				AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
+					ShouldAttach: true,
+					UUID:         uuid.New().String(),
+					LinkId:       nil,
+					LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
+				},
+				IfName:    iface,
+				NetnsPath: netnsPath,
+				Priority:  attachInfo.Priority,
+				Direction: attachInfo.Direction,
+				ProceedOn: attachInfo.ProceedOn,
 			}
+			nodeLinks = append(nodeLinks, link)
 		}
 	}
 

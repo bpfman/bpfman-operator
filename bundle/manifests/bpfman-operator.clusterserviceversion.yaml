@@ -425,22 +425,21 @@ metadata:
                       "priority": 500
                     },
                     {
-                      "containers": {
-                        "containerNames": [
-                          "bpfman-agent"
-                        ],
-                        "namespace": "bpfman",
-                        "pods": {
-                          "matchLabels": {
-                            "name": "bpfman-daemon"
-                          }
-                        }
-                      },
                       "direction": "egress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
                         ]
+                      },
+                      "networkNamespaces": {
+                        "podSelector": {
+                          "namespace": "bpfman",
+                          "pods": {
+                            "matchLabels": {
+                              "name": "bpfman-daemon"
+                            }
+                          }
+                        }
                       },
                       "priority": 100
                     }
@@ -508,21 +507,20 @@ metadata:
                       "priority": 55
                     },
                     {
-                      "containers": {
-                        "containerNames": [
-                          "bpfman-agent"
-                        ],
-                        "namespace": "bpfman",
-                        "pods": {
-                          "matchLabels": {
-                            "name": "bpfman-daemon"
-                          }
-                        }
-                      },
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
                         ]
+                      },
+                      "networkNamespaces": {
+                        "podSelector": {
+                          "namespace": "bpfman",
+                          "pods": {
+                            "matchLabels": {
+                              "name": "bpfman-daemon"
+                            }
+                          }
+                        }
                       },
                       "priority": 100
                     }
@@ -820,7 +818,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-03-05T16:14:12Z"
+    createdAt: "2025-03-10T16:19:54Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

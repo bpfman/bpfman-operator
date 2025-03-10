@@ -29,7 +29,7 @@ spec:
                 - eth0
             priority: 55
             direction: ingress
-            containers:
+            networkNamespaces:
               pods:
                 matchLabels:
                   app: nginx
@@ -42,7 +42,7 @@ spec:
                 - eth0
             priority: 100
             direction: egress
-            containers:
+            networkNamespaces:
               pods:
                 matchLabels:
                   app: nginx
@@ -74,7 +74,7 @@ spec:
               interfaces:
                 - eth0
             priority: 100
-            containers:
+            networkNamespaces:
               pods:
                 matchLabels:
                   app: nginx

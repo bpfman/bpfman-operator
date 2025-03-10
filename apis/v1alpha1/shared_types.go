@@ -67,6 +67,40 @@ type ContainerSelector struct {
 	ContainerNames *[]string `json:"containerNames,omitempty"`
 }
 
+// NetworkNamespaceSelector identifies a network namespace for network-related
+// program types in the namespace-scoped BpfApplication object.
+type NetworkNamespaceSelector struct {
+	// Target pods. This field must be specified, to select all pods use
+	// standard metav1.LabelSelector semantics and make it empty.
+	Pods metav1.LabelSelector `json:"pods"`
+}
+
+type ClPodSelector struct {
+	// Target namespaces.
+	// +optional
+	// +kubebuilder:default:=""
+	Namespace string `json:"namespace"`
+
+	// Target pods. This field must be specified, to select all pods use
+	// standard metav1.LabelSelector semantics and make it empty.
+	Pods metav1.LabelSelector `json:"pods"`
+}
+
+// ClNetworkNamespaceSelector identifies a network namespace for network-related
+// program types in the cluster-scoped ClusterBpfApplication object.
+// +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
+type ClNetworkNamespaceSelector struct {
+	// Pods allows selecting the network namespace of a pod
+	// +optional
+	Pods *ClPodSelector `json:"podSelector,omitempty"`
+
+	// NamespacePath explicitly specifies a network namespace path (e.g.,
+	// /proc/<pid>/ns/net or /var/run/netns/<name>)
+	// +optional
+	NamespacePath *string `json:"namespacePath,omitempty"`
+}
+
 // BpfAppCommon defines the common attributes for all BpfApp programs
 type BpfAppCommon struct {
 	// NodeSelector allows the user to specify which nodes to deploy the
@@ -114,6 +148,7 @@ type AttachInfoStateCommon struct {
 	// An identifier for the link assigned by bpfman. This field is
 	// empty until the program is successfully attached and bpfman returns the
 	// id.
+	// +optional
 	LinkId *uint32 `json:"linkId"`
 	// LinkStatus reflects whether the attachment has been reconciled
 	// successfully, and if not, why.

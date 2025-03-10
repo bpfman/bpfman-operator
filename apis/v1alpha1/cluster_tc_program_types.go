@@ -34,11 +34,11 @@ type ClTcAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// Containers identifies the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// NetworkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If NetworkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	NetworkNamespaces *ClNetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// Direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.
@@ -77,9 +77,9 @@ type ClTcAttachInfoState struct {
 	// Interface name to attach the tc program to.
 	IfName string `json:"ifName"`
 
-	// Optional container pid to attach the tc program in.
+	// Optional network namespace to attach the tc program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// Direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.

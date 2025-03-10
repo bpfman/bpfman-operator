@@ -34,11 +34,11 @@ type ClXdpAttachInfo struct {
 	// Selector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// Containers identifies the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// NetworkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If NetworkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	NetworkNamespaces *ClNetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// Priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value
@@ -72,9 +72,9 @@ type ClXdpAttachInfoState struct {
 	// Interface name to attach the xdp program to.
 	IfName string `json:"ifName"`
 
-	// Optional container pid to attach the xdp program in.
+	// Optional network namespace to attach the xdp program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// Priority specifies the priority of the xdp program in relation to
 	// other programs of the same type with the same attach point. It is a value
