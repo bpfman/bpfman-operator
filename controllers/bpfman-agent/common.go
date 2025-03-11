@@ -500,3 +500,13 @@ func (r *ReconcilerCommon) doesLinkExist(ctx context.Context, programId uint32, 
 	}
 	return false
 }
+
+func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
+	switch direction {
+	case bpfmaniov1alpha1.TCIngress:
+		return "ingress"
+	case bpfmaniov1alpha1.TCEgress:
+		return "egress"
+	}
+	return ""
+}

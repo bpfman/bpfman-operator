@@ -97,7 +97,7 @@ func (r *NsXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.XDPAttachInfo{
 		Priority:  r.currentLink.Priority,
-		Iface:     r.currentLink.IfName,
+		Iface:     r.currentLink.InterfaceName,
 		ProceedOn: xdpProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
 	}
@@ -123,8 +123,8 @@ func (r *NsXdpProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.XDPInfo.Links {
-		r.currentProgramState.XDPInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.XDP.Links {
+		r.currentProgramState.XDP.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -132,8 +132,8 @@ func (r *NsXdpProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 		return nil
 	}
 
-	if r.currentProgram.XDPInfo != nil && r.currentProgram.XDPInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.XDPInfo.Links {
+	if r.currentProgram.XDP != nil && r.currentProgram.XDP.Links != nil {
+		for _, attachInfo := range r.currentProgram.XDP.Links {
 			expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -142,10 +142,10 @@ func (r *NsXdpProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.XDPInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.XDP.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
-					r.currentProgramState.XDPInfo.Links = append(r.currentProgramState.XDPInfo.Links, link)
+					r.currentProgramState.XDP.Links = append(r.currentProgramState.XDP.Links, link)
 				}
 			}
 		}
@@ -160,10 +160,10 @@ func (r *NsXdpProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 }
 
 func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAttachInfoState) *int {
-	for i, a := range r.currentProgramState.XDPInfo.Links {
+	for i, a := range r.currentProgramState.XDP.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and ProceedOn.
-		if a.IfName == attachInfoState.IfName && reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
+		// same: InterfaceName, ContainerPid, Priority, and ProceedOn.
+		if a.InterfaceName == attachInfoState.InterfaceName && reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
 			a.Priority == attachInfoState.Priority && reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
 			return &i
 		}
@@ -183,8 +183,8 @@ func (r *NsXdpProgramReconciler) processLinks(ctx context.Context) error {
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.XDPInfo.Links {
-		r.currentLink = &r.currentProgramState.XDPInfo.Links[i]
+	for i := range r.currentProgramState.XDP.Links {
+		r.currentLink = &r.currentProgramState.XDP.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -202,7 +202,7 @@ func (r *NsXdpProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.XDPInfo.Links = r.removeLinks(r.currentProgramState.XDPInfo.Links, linksToRemove)
+		r.currentProgramState.XDP.Links = r.removeLinks(r.currentProgramState.XDP.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -211,7 +211,7 @@ func (r *NsXdpProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *NsXdpProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.XDPInfo.Links {
+	for _, link := range r.currentProgramState.XDP.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
@@ -266,10 +266,10 @@ func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 						LinkId:       nil,
 						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 					},
-					IfName:       iface,
-					ContainerPid: containerPid,
-					Priority:     attachInfo.Priority,
-					ProceedOn:    attachInfo.ProceedOn,
+					InterfaceName: iface,
+					ContainerPid:  containerPid,
+					Priority:      attachInfo.Priority,
+					ProceedOn:     attachInfo.ProceedOn,
 				}
 				nodeLinks = append(nodeLinks, link)
 			}

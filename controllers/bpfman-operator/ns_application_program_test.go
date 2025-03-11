@@ -80,7 +80,7 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 	xdpProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: xdpBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
-		XDPInfo: &bpfmaniov1alpha1.XdpProgramInfo{
+		XDP: &bpfmaniov1alpha1.XdpProgramInfo{
 			Links: []bpfmaniov1alpha1.XdpAttachInfo{attachInfo},
 		},
 	}

@@ -16,8 +16,8 @@ spec:
       url: quay.io/bpfman-bytecode/xdp_pass_private:latest
   programs:
     - name: pass
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
           - interfaceSelector:
               primaryNodeInterface: true

@@ -110,8 +110,8 @@ func (r *ClTracepointProgramReconciler) updateLinks(ctx context.Context, isBeing
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.TracepointInfo.Links {
-		r.currentProgramState.TracepointInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.TracePoint.Links {
+		r.currentProgramState.TracePoint.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -119,8 +119,8 @@ func (r *ClTracepointProgramReconciler) updateLinks(ctx context.Context, isBeing
 		return nil
 	}
 
-	if r.currentProgram.TracepointInfo != nil && r.currentProgram.TracepointInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.TracepointInfo.Links {
+	if r.currentProgram.TracePoint != nil && r.currentProgram.TracePoint.Links != nil {
+		for _, attachInfo := range r.currentProgram.TracePoint.Links {
 			expectedLinks, error := r.getExpectedLinks(attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -129,11 +129,11 @@ func (r *ClTracepointProgramReconciler) updateLinks(ctx context.Context, isBeing
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.TracepointInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.TracePoint.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
 					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.TracepointInfo.Links = append(r.currentProgramState.TracepointInfo.Links, link)
+					r.currentProgramState.TracePoint.Links = append(r.currentProgramState.TracePoint.Links, link)
 				}
 			}
 		}
@@ -148,7 +148,7 @@ func (r *ClTracepointProgramReconciler) updateLinks(ctx context.Context, isBeing
 }
 
 func (r *ClTracepointProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTracepointAttachInfoState) *int {
-	for i, a := range r.currentProgramState.TracepointInfo.Links {
+	for i, a := range r.currentProgramState.TracePoint.Links {
 		// attachInfoState is the same as a if the the following fields are the
 		// same: IfName, ContainerPid, Priority, and Direction.
 		if a.Name == attachInfoState.Name {
@@ -170,8 +170,8 @@ func (r *ClTracepointProgramReconciler) processLinks(ctx context.Context) error 
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.TracepointInfo.Links {
-		r.currentLink = &r.currentProgramState.TracepointInfo.Links[i]
+	for i := range r.currentProgramState.TracePoint.Links {
+		r.currentLink = &r.currentProgramState.TracePoint.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -189,7 +189,7 @@ func (r *ClTracepointProgramReconciler) processLinks(ctx context.Context) error 
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.TracepointInfo.Links = r.removeLinks(r.currentProgramState.TracepointInfo.Links, linksToRemove)
+		r.currentProgramState.TracePoint.Links = r.removeLinks(r.currentProgramState.TracePoint.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -198,7 +198,7 @@ func (r *ClTracepointProgramReconciler) processLinks(ctx context.Context) error 
 }
 
 func (r *ClTracepointProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.TracepointInfo.Links {
+	for _, link := range r.currentProgramState.TracePoint.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return

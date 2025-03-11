@@ -93,8 +93,8 @@ func (r *NsTcProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCAttachInfo{
 		Priority:  r.currentLink.Priority,
-		Iface:     r.currentLink.IfName,
-		Direction: r.currentLink.Direction,
+		Iface:     r.currentLink.InterfaceName,
+		Direction: directionToStr(r.currentLink.Direction),
 		ProceedOn: tcProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
 	}
@@ -120,8 +120,8 @@ func (r *NsTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.TCInfo.Links {
-		r.currentProgramState.TCInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.TC.Links {
+		r.currentProgramState.TC.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -129,8 +129,8 @@ func (r *NsTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 		return nil
 	}
 
-	if r.currentProgram.TCInfo != nil && r.currentProgram.TCInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.TCInfo.Links {
+	if r.currentProgram.TC != nil && r.currentProgram.TC.Links != nil {
+		for _, attachInfo := range r.currentProgram.TC.Links {
 			expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -139,11 +139,11 @@ func (r *NsTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.TCInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.TC.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
 					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.TCInfo.Links = append(r.currentProgramState.TCInfo.Links, link)
+					r.currentProgramState.TC.Links = append(r.currentProgramState.TC.Links, link)
 				}
 			}
 		}
@@ -158,10 +158,10 @@ func (r *NsTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 }
 
 func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAttachInfoState) *int {
-	for i, a := range r.currentProgramState.TCInfo.Links {
+	for i, a := range r.currentProgramState.TC.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and ProceedOn.
-		if a.IfName == attachInfoState.IfName && a.Direction == attachInfoState.Direction &&
+		// same: InterfaceName, ContainerPid, Priority, and ProceedOn.
+		if a.InterfaceName == attachInfoState.InterfaceName && a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
@@ -183,8 +183,8 @@ func (r *NsTcProgramReconciler) processLinks(ctx context.Context) error {
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.TCInfo.Links {
-		r.currentLink = &r.currentProgramState.TCInfo.Links[i]
+	for i := range r.currentProgramState.TC.Links {
+		r.currentLink = &r.currentProgramState.TC.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -202,7 +202,7 @@ func (r *NsTcProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.TCInfo.Links = r.removeLinks(r.currentProgramState.TCInfo.Links, linksToRemove)
+		r.currentProgramState.TC.Links = r.removeLinks(r.currentProgramState.TC.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -211,7 +211,7 @@ func (r *NsTcProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *NsTcProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.TCInfo.Links {
+	for _, link := range r.currentProgramState.TC.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
@@ -268,11 +268,11 @@ func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 						LinkId:       nil,
 						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 					},
-					IfName:       iface,
-					ContainerPid: containerPid,
-					Priority:     attachInfo.Priority,
-					Direction:    attachInfo.Direction,
-					ProceedOn:    attachInfo.ProceedOn,
+					InterfaceName: iface,
+					ContainerPid:  containerPid,
+					Priority:      attachInfo.Priority,
+					Direction:     attachInfo.Direction,
+					ProceedOn:     attachInfo.ProceedOn,
 				}
 				nodeLinks = append(nodeLinks, link)
 			}

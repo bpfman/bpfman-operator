@@ -25,114 +25,124 @@ type EBPFProgType string
 
 const (
 	// ProgTypeXDP refers to the XDP program type.
-	ProgTypeXDP EBPFProgType = "xdp"
+	ProgTypeXDP EBPFProgType = "XDP"
 
 	// ProgTypeTC refers to the TC program type.
-	ProgTypeTC EBPFProgType = "tc"
+	ProgTypeTC EBPFProgType = "TC"
 
 	// ProgTypeTCX refers to the TCX program type.
-	ProgTypeTCX EBPFProgType = "tcx"
+	ProgTypeTCX EBPFProgType = "TCX"
 
 	// ProgTypeFentry refers to the Fentry program type.
-	ProgTypeFentry EBPFProgType = "fentry"
+	ProgTypeFentry EBPFProgType = "FEntry"
 
 	// ProgTypeFexit refers to the Fexit program type.
-	ProgTypeFexit EBPFProgType = "fexit"
+	ProgTypeFexit EBPFProgType = "FExit"
 
 	// ProgTypeKprobe refers to the Kprobe program type.
-	ProgTypeKprobe EBPFProgType = "kprobe"
+	ProgTypeKprobe EBPFProgType = "KProbe"
 
 	// ProgTypeKretprobe refers to the Kretprobe program type.
-	ProgTypeKretprobe EBPFProgType = "kretprobe"
+	ProgTypeKretprobe EBPFProgType = "KRetProbe"
 
 	// ProgTypeUprobe refers to the Uprobe program type.
-	ProgTypeUprobe EBPFProgType = "uprobe"
+	ProgTypeUprobe EBPFProgType = "UProbe"
 
 	// ProgTypeUretprobe refers to the Uretprobe program type.
-	ProgTypeUretprobe EBPFProgType = "uretprobe"
+	ProgTypeUretprobe EBPFProgType = "URetProbe"
 
 	// ProgTypeTracepoint refers to the Tracepoint program type.
-	ProgTypeTracepoint EBPFProgType = "tracepoint"
+	ProgTypeTracepoint EBPFProgType = "TracePoint"
+)
+
+type TCDirectionType string
+
+const (
+	TCIngress TCDirectionType = "Ingress"
+	TCEgress  TCDirectionType = "Egress"
 )
 
 // ClBpfApplicationProgram defines the desired state of BpfApplication
 // +union
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'xdp' ?  has(self.xdpInfo) : !has(self.xdpInfo)",message="xdpInfo configuration is required when type is xdp, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tc' ?  has(self.tcInfo) : !has(self.tcInfo)",message="tcInfo configuration is required when type is tc, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tcx' ?  has(self.tcxInfo) : !has(self.tcxInfo)",message="tcxInfo configuration is required when type is tcx, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fentry' ?  has(self.fentryInfo) : !has(self.fentryInfo)",message="fentryInfo configuration is required when type is fentry, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fexit' ?  has(self.fexitInfo) : !has(self.fexitInfo)",message="fexitInfo configuration is required when type is fexit, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kprobe' ?  has(self.kprobeInfo) : !has(self.kprobeInfo)",message="kprobeInfo configuration is required when type is kprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kretprobe' ?  has(self.kretprobeInfo) : !has(self.kretprobeInfo)",message="kretprobeInfo configuration is required when type is kretprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uprobe' ?  has(self.uprobeInfo) : !has(self.uprobeInfo)",message="uprobeInfo configuration is required when type is uprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uretprobe' ?  has(self.uretprobeInfo) : !has(self.uretprobeInfo)",message="uretprobeInfo configuration is required when type is uretprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tracepoint' ?  has(self.tracepointInfo) : !has(self.tracepointInfo)",message="tracepointInfo configuration is required when type is tracepoint, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'XDP' ?  has(self.xdp) : !has(self.xdp)",message="xdp configuration is required when type is xdp, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TC' ?  has(self.tc) : !has(self.tc)",message="tc configuration is required when type is tc, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TCX' ?  has(self.tcx) : !has(self.tcx)",message="tcx configuration is required when type is tcx, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'FEntry' ?  has(self.fentry) : !has(self.fentry)",message="fentry configuration is required when type is fentry, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'FExit' ?  has(self.fexit) : !has(self.fexit)",message="fexit configuration is required when type is fexit, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'KProbe' ?  has(self.kprobe) : !has(self.kprobe)",message="kprobe configuration is required when type is kprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'KRetProbe' ?  has(self.kretprobe) : !has(self.kretprobe)",message="kretprobe configuration is required when type is kretprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'UProbe' ?  has(self.uprobe) : !has(self.uprobe)",message="uprobe configuration is required when type is uprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'URetProbe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is uretprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TracePoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is tracepoint, and forbidden otherwise"
 type ClBpfApplicationProgram struct {
-	// Name is the name of the function that is the entry point for the BPF
+	// name is the name of the function that is the entry point for the BPF
 	// program
+	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
 	Name string `json:"name"`
 
-	// Type specifies the bpf program type
+	// type specifies the bpf program type
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"kretprobe";"uprobe";"uretprobe";"tracepoint"
-	Type EBPFProgType `json:"type,omitempty"`
+	// +required
+	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"FEntry";"FExit";"KProbe";"KRetProbe";"UProbe";"URetProbe";"TracePoint"
+	Type EBPFProgType `json:"type"`
 
 	// xdp defines the desired state of the application's XdpPrograms.
 	// +unionMember
 	// +optional
-	XDPInfo *ClXdpProgramInfo `json:"xdpInfo,omitempty"`
+	XDP *ClXdpProgramInfo `json:"xdp,omitempty"`
 
 	// tc defines the desired state of the application's TcPrograms.
 	// +unionMember
 	// +optional
-	TCInfo *ClTcProgramInfo `json:"tcInfo,omitempty"`
+	TC *ClTcProgramInfo `json:"tc,omitempty"`
 
 	// tcx defines the desired state of the application's TcxPrograms.
 	// +unionMember
 	// +optional
-	TCXInfo *ClTcxProgramInfo `json:"tcxInfo,omitempty"`
+	TCX *ClTcxProgramInfo `json:"tcx,omitempty"`
 
 	// fentry defines the desired state of the application's FentryPrograms.
 	// +unionMember
 	// +optional
-	FentryInfo *ClFentryProgramInfo `json:"fentryInfo,omitempty"`
+	FEntry *ClFentryProgramInfo `json:"fentry,omitempty"`
 
 	// fexit defines the desired state of the application's FexitPrograms.
 	// +unionMember
 	// +optional
-	FexitInfo *ClFexitProgramInfo `json:"fexitInfo,omitempty"`
+	FExit *ClFexitProgramInfo `json:"fexit,omitempty"`
 
 	// kprobe defines the desired state of the application's KprobePrograms.
 	// +unionMember
 	// +optional
-	KprobeInfo *ClKprobeProgramInfo `json:"kprobeInfo,omitempty"`
+	KProbe *ClKprobeProgramInfo `json:"kprobe,omitempty"`
 
 	// kretprobe defines the desired state of the application's KretprobePrograms.
 	// +unionMember
 	// +optional
-	KretprobeInfo *ClKprobeProgramInfo `json:"kretprobeInfo,omitempty"`
+	KRetProbe *ClKretprobeProgramInfo `json:"kretprobe,omitempty"`
 
 	// uprobe defines the desired state of the application's UprobePrograms.
 	// +unionMember
 	// +optional
-	UprobeInfo *ClUprobeProgramInfo `json:"uprobeInfo,omitempty"`
+	UProbe *ClUprobeProgramInfo `json:"uprobe,omitempty"`
 
-	// uretprobe defines the desired state of the application's UretprobePrograms.
+	// uretprobeInfo defines the desired state of the application's UretprobePrograms.
 	// +unionMember
 	// +optional
-	UretprobeInfo *ClUprobeProgramInfo `json:"uretprobeInfo,omitempty"`
+	URetProbe *ClUprobeProgramInfo `json:"uretprobe,omitempty"`
 
-	// tracepoint defines the desired state of the application's TracepointPrograms.
+	// tracepointInfo defines the desired state of the application's TracepointPrograms.
 	// +unionMember
 	// +optional
-	TracepointInfo *ClTracepointProgramInfo `json:"tracepointInfo,omitempty"`
+	TracePoint *ClTracepointProgramInfo `json:"tracepoint,omitempty"`
 }
 
 // ClBpfApplicationSpec defines the desired state of BpfApplication
 type ClBpfApplicationSpec struct {
 	BpfAppCommon `json:",inline"`
-	// Programs is the list of bpf programs in the BpfApplication that should be
+	// programs is the list of bpf programs in the BpfApplication that should be
 	// loaded. The application can selectively choose which program(s) to run
 	// from this list based on the optional attach points provided.
 	// +kubebuilder:validation:MinItems:=1

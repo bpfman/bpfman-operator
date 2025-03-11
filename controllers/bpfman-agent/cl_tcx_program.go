@@ -93,8 +93,8 @@ func (r *ClTcxProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCXAttachInfo{
 		Priority:  r.currentLink.Priority,
-		Iface:     r.currentLink.IfName,
-		Direction: r.currentLink.Direction,
+		Iface:     r.currentLink.InterfaceName,
+		Direction: directionToStr(r.currentLink.Direction),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
 	}
 
@@ -121,8 +121,8 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.TCXInfo.Links {
-		r.currentProgramState.TCXInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.TCX.Links {
+		r.currentProgramState.TCX.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -130,8 +130,8 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 		return nil
 	}
 
-	if r.currentProgram.TCXInfo != nil && r.currentProgram.TCXInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.TCXInfo.Links {
+	if r.currentProgram.TCX != nil && r.currentProgram.TCX.Links != nil {
+		for _, attachInfo := range r.currentProgram.TCX.Links {
 			expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -140,11 +140,11 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.TCXInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.TCX.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
 					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.TCXInfo.Links = append(r.currentProgramState.TCXInfo.Links, link)
+					r.currentProgramState.TCX.Links = append(r.currentProgramState.TCX.Links, link)
 				}
 			}
 		}
@@ -159,10 +159,10 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 }
 
 func (r *ClTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcxAttachInfoState) *int {
-	for i, a := range r.currentProgramState.TCXInfo.Links {
+	for i, a := range r.currentProgramState.TCX.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and Direction.
-		if a.IfName == attachInfoState.IfName && a.Priority == attachInfoState.Priority &&
+		// same: InterfaceName, ContainerPid, Priority, and Direction.
+		if a.InterfaceName == attachInfoState.InterfaceName && a.Priority == attachInfoState.Priority &&
 			a.Direction == attachInfoState.Direction &&
 			reflect.DeepEqual(a.ContainerPid, attachInfoState.ContainerPid) {
 			return &i
@@ -183,8 +183,8 @@ func (r *ClTcxProgramReconciler) processLinks(ctx context.Context) error {
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.TCXInfo.Links {
-		r.currentLink = &r.currentProgramState.TCXInfo.Links[i]
+	for i := range r.currentProgramState.TCX.Links {
+		r.currentLink = &r.currentProgramState.TCX.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -202,7 +202,7 @@ func (r *ClTcxProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.TCXInfo.Links = r.removeLinks(r.currentProgramState.TCXInfo.Links, linksToRemove)
+		r.currentProgramState.TCX.Links = r.removeLinks(r.currentProgramState.TCX.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -211,7 +211,7 @@ func (r *ClTcxProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *ClTcxProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.TCXInfo.Links {
+	for _, link := range r.currentProgramState.TCX.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
@@ -269,10 +269,10 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 							LinkId:       nil,
 							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 						},
-						IfName:       iface,
-						ContainerPid: &containerPid,
-						Priority:     attachInfo.Priority,
-						Direction:    attachInfo.Direction,
+						InterfaceName: iface,
+						ContainerPid:  &containerPid,
+						Priority:      attachInfo.Priority,
+						Direction:     attachInfo.Direction,
 					}
 					nodeLinks = append(nodeLinks, link)
 				}
@@ -287,10 +287,10 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					LinkId:       nil,
 					LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 				},
-				IfName:       iface,
-				ContainerPid: nil,
-				Priority:     attachInfo.Priority,
-				Direction:    attachInfo.Direction,
+				InterfaceName: iface,
+				ContainerPid:  nil,
+				Priority:      attachInfo.Priority,
+				Direction:     attachInfo.Direction,
 			}
 			nodeLinks = append(nodeLinks, link)
 		}

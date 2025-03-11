@@ -326,8 +326,17 @@ func (r *ClBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 			},
 		}
 
-	case bpfmaniov1alpha1.ProgTypeKprobe, bpfmaniov1alpha1.ProgTypeKretprobe:
+	case bpfmaniov1alpha1.ProgTypeKprobe:
 		rec = &ClKprobeProgramReconciler{
+			ReconcilerCommon: r.ReconcilerCommon,
+			ClProgramReconcilerCommon: ClProgramReconcilerCommon{
+				currentProgram:      prog,
+				currentProgramState: progState,
+			},
+		}
+
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		rec = &ClKretprobeProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			ClProgramReconcilerCommon: ClProgramReconcilerCommon{
 				currentProgram:      prog,
@@ -404,11 +413,11 @@ func (r *ClBpfApplicationReconciler) getProgState(prog *bpfmaniov1alpha1.ClBpfAp
 		if progState.Type == prog.Type && progState.Name == prog.Name {
 			switch prog.Type {
 			case bpfmaniov1alpha1.ProgTypeFentry:
-				if progState.FentryInfo.Function == prog.FentryInfo.Function {
+				if progState.FEntry.Function == prog.FEntry.Function {
 					return progState, nil
 				}
 			case bpfmaniov1alpha1.ProgTypeFexit:
-				if progState.FexitInfo.Function == prog.FexitInfo.Function {
+				if progState.FExit.Function == prog.FExit.Function {
 					return progState, nil
 				}
 			default:
@@ -612,54 +621,54 @@ func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 		}
 		switch prog.Type {
 		case bpfmaniov1alpha1.ProgTypeFentry:
-			progState.FentryInfo = &bpfmaniov1alpha1.ClFentryProgramInfoState{
-				ClFentryLoadInfo: prog.FentryInfo.ClFentryLoadInfo,
+			progState.FEntry = &bpfmaniov1alpha1.ClFentryProgramInfoState{
+				ClFentryLoadInfo: prog.FEntry.ClFentryLoadInfo,
 				Links:            []bpfmaniov1alpha1.ClFentryAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeFexit:
-			progState.FexitInfo = &bpfmaniov1alpha1.ClFexitProgramInfoState{
-				ClFexitLoadInfo: prog.FexitInfo.ClFexitLoadInfo,
+			progState.FExit = &bpfmaniov1alpha1.ClFexitProgramInfoState{
+				ClFexitLoadInfo: prog.FExit.ClFexitLoadInfo,
 				Links:           []bpfmaniov1alpha1.ClFexitAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeKprobe:
-			progState.KprobeInfo = &bpfmaniov1alpha1.ClKprobeProgramInfoState{
+			progState.KProbe = &bpfmaniov1alpha1.ClKprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClKprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeKretprobe:
-			progState.KretprobeInfo = &bpfmaniov1alpha1.ClKprobeProgramInfoState{
-				Links: []bpfmaniov1alpha1.ClKprobeAttachInfoState{},
+			progState.KRetProbe = &bpfmaniov1alpha1.ClKretprobeProgramInfoState{
+				Links: []bpfmaniov1alpha1.ClKretprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeTC:
-			progState.TCInfo = &bpfmaniov1alpha1.ClTcProgramInfoState{
+			progState.TC = &bpfmaniov1alpha1.ClTcProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClTcAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeTCX:
-			progState.TCXInfo = &bpfmaniov1alpha1.ClTcxProgramInfoState{
+			progState.TCX = &bpfmaniov1alpha1.ClTcxProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClTcxAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeTracepoint:
-			progState.TracepointInfo = &bpfmaniov1alpha1.ClTracepointProgramInfoState{
+			progState.TracePoint = &bpfmaniov1alpha1.ClTracepointProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClTracepointAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeUprobe:
-			progState.UprobeInfo = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
+			progState.UProbe = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClUprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeUretprobe:
-			progState.UretprobeInfo = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
+			progState.URetProbe = &bpfmaniov1alpha1.ClUprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClUprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeXDP:
-			progState.XDPInfo = &bpfmaniov1alpha1.ClXdpProgramInfoState{
+			progState.XDP = &bpfmaniov1alpha1.ClXdpProgramInfoState{
 				Links: []bpfmaniov1alpha1.ClXdpAttachInfoState{},
 			}
 
@@ -780,25 +789,25 @@ func (r *ClBpfApplicationReconciler) unload(ctx context.Context) {
 func (r *ClBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.ClBpfApplicationProgramState) {
 	switch program.Type {
 	case bpfmaniov1alpha1.ProgTypeFentry:
-		program.FentryInfo.Links = []bpfmaniov1alpha1.ClFentryAttachInfoState{}
+		program.FEntry.Links = []bpfmaniov1alpha1.ClFentryAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeFexit:
-		program.FexitInfo.Links = []bpfmaniov1alpha1.ClFexitAttachInfoState{}
+		program.FExit.Links = []bpfmaniov1alpha1.ClFexitAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeKprobe:
-		program.KprobeInfo.Links = []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+		program.KProbe.Links = []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeKretprobe:
-		program.KretprobeInfo.Links = []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+		program.KRetProbe.Links = []bpfmaniov1alpha1.ClKretprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTC:
-		program.TCInfo.Links = []bpfmaniov1alpha1.ClTcAttachInfoState{}
+		program.TC.Links = []bpfmaniov1alpha1.ClTcAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTCX:
-		program.TCXInfo.Links = []bpfmaniov1alpha1.ClTcxAttachInfoState{}
+		program.TCX.Links = []bpfmaniov1alpha1.ClTcxAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTracepoint:
-		program.TracepointInfo.Links = []bpfmaniov1alpha1.ClTracepointAttachInfoState{}
+		program.TracePoint.Links = []bpfmaniov1alpha1.ClTracepointAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUprobe:
-		program.UprobeInfo.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
+		program.UProbe.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUretprobe:
-		program.UretprobeInfo.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
+		program.URetProbe.Links = []bpfmaniov1alpha1.ClUprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeXDP:
-		program.XDPInfo.Links = []bpfmaniov1alpha1.ClXdpAttachInfoState{}
+		program.XDP.Links = []bpfmaniov1alpha1.ClXdpAttachInfoState{}
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected EBPFProgType"), "unexpected EBPFProgType", "Type", program.Type)
 	}

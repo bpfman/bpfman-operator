@@ -55,7 +55,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		tcxBpfFunctionName        = "TcxTest"
 		xdpBpfFunctionName        = "XdpTest"
 
-		direction  = "ingress"
+		direction  = bpfmaniov1alpha1.TCIngress
 		AttachName = "AttachNameTest"
 		priority   = 50
 		fakeNode   = testutils.NewNode("fake-control-plane")
@@ -84,7 +84,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	xdpProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: xdpBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
-		XDPInfo: &bpfmaniov1alpha1.ClXdpProgramInfo{
+		XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
 			Links: []bpfmaniov1alpha1.ClXdpAttachInfo{xdpAttachInfo},
 		},
 	}
@@ -93,7 +93,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	fentryProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: fentryBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeFentry,
-		FentryInfo: &bpfmaniov1alpha1.ClFentryProgramInfo{
+		FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
 			ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
 				Function: AttachName,
 			},
@@ -107,12 +107,12 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	fexitProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: fexitBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeFexit,
-		FexitInfo: &bpfmaniov1alpha1.ClFexitProgramInfo{
+		FExit: &bpfmaniov1alpha1.ClFexitProgramInfo{
 			ClFexitLoadInfo: bpfmaniov1alpha1.ClFexitLoadInfo{
 				Function: AttachName,
 			},
 			Links: []bpfmaniov1alpha1.ClFexitAttachInfo{
-				{Attach: true},
+				{Mode: bpfmaniov1alpha1.Attach},
 			},
 		},
 	}
@@ -121,7 +121,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	kprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: kprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeKprobe,
-		KprobeInfo: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+		KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
 				{
 					Function: AttachName,
@@ -135,11 +135,10 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	kretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: kretprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeKretprobe,
-		KretprobeInfo: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+		KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
+			Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
 				{
 					Function: AttachName,
-					Offset:   0,
 				},
 			},
 		},
@@ -149,7 +148,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	uprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: uprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeUprobe,
-		UprobeInfo: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+		UProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
 				{
 					Function: AttachName,
@@ -165,7 +164,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	uretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: uretprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeUretprobe,
-		UretprobeInfo: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+		URetProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
 				{
 					Function: AttachName,
@@ -181,7 +180,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	tracepointProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tracepointBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-		TracepointInfo: &bpfmaniov1alpha1.ClTracepointProgramInfo{
+		TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
 			Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
 				{
 					Name: AttachName,
@@ -200,7 +199,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	tcProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tcBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTC,
-		TCInfo: &bpfmaniov1alpha1.ClTcProgramInfo{
+		TC: &bpfmaniov1alpha1.ClTcProgramInfo{
 			Links: []bpfmaniov1alpha1.ClTcAttachInfo{tcAttachInfo},
 		},
 	}
@@ -215,7 +214,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	tcxProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tcxBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTCX,
-		TCXInfo: &bpfmaniov1alpha1.ClTcxProgramInfo{
+		TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
 			Links: []bpfmaniov1alpha1.ClTcxAttachInfo{tcxAttachInfo},
 		},
 	}

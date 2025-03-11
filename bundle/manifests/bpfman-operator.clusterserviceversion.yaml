@@ -35,7 +35,7 @@ metadata:
             "programs": [
               {
                 "name": "tc_pass_test",
-                "tcInfo": {
+                "tc": {
                   "links": [
                     {
                       "containers": {
@@ -45,7 +45,7 @@ metadata:
                           }
                         }
                       },
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
@@ -55,11 +55,11 @@ metadata:
                     }
                   ]
                 },
-                "type": "tc"
+                "type": "TC"
               },
               {
                 "name": "tcx_next_test",
-                "tcxInfo": {
+                "tcx": {
                   "links": [
                     {
                       "containers": {
@@ -69,7 +69,7 @@ metadata:
                           }
                         }
                       },
-                      "direction": "egress",
+                      "direction": "Egress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
@@ -79,12 +79,12 @@ metadata:
                     }
                   ]
                 },
-                "type": "tcx"
+                "type": "TCX"
               },
               {
                 "name": "uprobe_test",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "UProbe",
+                "uprobe": {
                   "links": [
                     {
                       "containers": {
@@ -102,8 +102,8 @@ metadata:
               },
               {
                 "name": "uretprobe_test",
-                "type": "uretprobe",
-                "uretprobeInfo": {
+                "type": "URetProbe",
+                "uretprobe": {
                   "links": [
                     {
                       "containers": {
@@ -121,8 +121,8 @@ metadata:
               },
               {
                 "name": "xdp_pass_test",
-                "type": "xdp",
-                "xdpInfo": {
+                "type": "XDP",
+                "xdp": {
                   "links": [
                     {
                       "containers": {
@@ -181,12 +181,12 @@ metadata:
                 "name": "tc_pass_test",
                 "programId": 4125,
                 "programLinkStatus": "Success",
-                "tcInfo": {
+                "tc": {
                   "links": [
                     {
                       "containerPid": 3078,
                       "direction": "ingress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 832290746,
                       "linkStatus": "Attached",
                       "priority": 55,
@@ -200,7 +200,7 @@ metadata:
                     {
                       "containerPid": 2981,
                       "direction": "ingress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 256466427,
                       "linkStatus": "Attached",
                       "priority": 55,
@@ -213,18 +213,18 @@ metadata:
                     }
                   ]
                 },
-                "type": "tc"
+                "type": "TC"
               },
               {
                 "name": "tcx_next_test",
                 "programId": 4126,
                 "programLinkStatus": "Success",
-                "tcxInfo": {
+                "tcx": {
                   "links": [
                     {
                       "containerPid": 3078,
                       "direction": "egress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 533548322,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -234,7 +234,7 @@ metadata:
                     {
                       "containerPid": 2981,
                       "direction": "egress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 777895864,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -243,14 +243,14 @@ metadata:
                     }
                   ]
                 },
-                "type": "tcx"
+                "type": "TCX"
               },
               {
                 "name": "uprobe_test",
                 "programId": 4127,
                 "programLinkStatus": "Success",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "UProbe",
+                "uprobe": {
                   "links": [
                     {
                       "containerPid": 3078,
@@ -269,8 +269,8 @@ metadata:
                 "name": "uretprobe_test",
                 "programId": 4128,
                 "programLinkStatus": "Success",
-                "type": "uretprobe",
-                "uretprobeInfo": {
+                "type": "URetProbe",
+                "uretprobe": {
                   "links": [
                     {
                       "containerPid": 3078,
@@ -289,12 +289,12 @@ metadata:
                 "name": "xdp_pass_test",
                 "programId": 4129,
                 "programLinkStatus": "Success",
-                "type": "xdp",
-                "xdpInfo": {
+                "type": "XDP",
+                "xdp": {
                   "links": [
                     {
                       "containerPid": 3078,
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 1368615850,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -307,7 +307,7 @@ metadata:
                     },
                     {
                       "containerPid": 2981,
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 3080543731,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -365,7 +365,7 @@ metadata:
             "nodeSelector": {},
             "programs": [
               {
-                "kprobeInfo": {
+                "kprobe": {
                   "links": [
                     {
                       "function": "try_to_wake_up",
@@ -374,10 +374,10 @@ metadata:
                   ]
                 },
                 "name": "kprobe_test",
-                "type": "kprobe"
+                "type": "KProbe"
               },
               {
-                "kretprobeInfo": {
+                "kretprobe": {
                   "links": [
                     {
                       "function": "try_to_wake_up"
@@ -385,25 +385,25 @@ metadata:
                   ]
                 },
                 "name": "kretprobe_test",
-                "type": "kretprobe"
+                "type": "KRetProbe"
               },
               {
                 "name": "tracepoint_test",
-                "tracepointInfo": {
+                "tracepoint": {
                   "links": [
                     {
                       "name": "syscalls/sys_enter_openat"
                     }
                   ]
                 },
-                "type": "tracepoint"
+                "type": "TracePoint"
               },
               {
                 "name": "tc_pass_test",
-                "tcInfo": {
+                "tc": {
                   "links": [
                     {
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceSelector": {
                         "primaryNodeInterface": true
                       },
@@ -411,14 +411,14 @@ metadata:
                     }
                   ]
                 },
-                "type": "tc"
+                "type": "TC"
               },
               {
                 "name": "tcx_next_test",
-                "tcxInfo": {
+                "tcx": {
                   "links": [
                     {
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceSelector": {
                         "primaryNodeInterface": true
                       },
@@ -436,7 +436,7 @@ metadata:
                           }
                         }
                       },
-                      "direction": "egress",
+                      "direction": "Egress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
@@ -446,12 +446,12 @@ metadata:
                     }
                   ]
                 },
-                "type": "tcx"
+                "type": "TCX"
               },
               {
                 "name": "uprobe_test",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "UProbe",
+                "uprobe": {
                   "links": [
                     {
                       "containers": {
@@ -474,8 +474,8 @@ metadata:
               },
               {
                 "name": "uretprobe_test",
-                "type": "uretprobe",
-                "uretprobeInfo": {
+                "type": "URetProbe",
+                "uretprobe": {
                   "links": [
                     {
                       "containers": {
@@ -498,8 +498,8 @@ metadata:
               },
               {
                 "name": "xdp_pass_test",
-                "type": "xdp",
-                "xdpInfo": {
+                "type": "XDP",
+                "xdp": {
                   "links": [
                     {
                       "interfaceSelector": {
@@ -530,28 +530,28 @@ metadata:
                 }
               },
               {
-                "fentryInfo": {
+                "fentry": {
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "attach": true
+                      "mode": "Attach"
                     }
                   ]
                 },
                 "name": "fentry_test",
-                "type": "fentry"
+                "type": "FEntry"
               },
               {
-                "fexitInfo": {
+                "fexit": {
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "attach": true
+                      "mode": "Attach"
                     }
                   ]
                 },
                 "name": "fexit_test",
-                "type": "fexit"
+                "type": "FExit"
               }
             ]
           }
@@ -588,7 +588,7 @@ metadata:
             "node": "bpfman-deployment-control-plane",
             "programs": [
               {
-                "kprobeInfo": {
+                "kprobe": {
                   "links": [
                     {
                       "function": "try_to_wake_up",
@@ -603,10 +603,10 @@ metadata:
                 "name": "kprobe_test",
                 "programId": 4044,
                 "programLinkStatus": "Success",
-                "type": "kprobe"
+                "type": "Kprobe"
               },
               {
-                "kretprobeInfo": {
+                "kretprobe": {
                   "links": [
                     {
                       "function": "try_to_wake_up",
@@ -621,13 +621,13 @@ metadata:
                 "name": "kretprobe_test",
                 "programId": 4045,
                 "programLinkStatus": "Success",
-                "type": "kretprobe"
+                "type": "KretProbe"
               },
               {
                 "name": "tracepoint_test",
                 "programId": 4046,
                 "programLinkStatus": "Success",
-                "tracepointInfo": {
+                "tracepoint": {
                   "links": [
                     {
                       "linkId": 1360955591,
@@ -638,17 +638,17 @@ metadata:
                     }
                   ]
                 },
-                "type": "tracepoint"
+                "type": "TracePoint"
               },
               {
                 "name": "tc_pass_test",
                 "programId": 4048,
                 "programLinkStatus": "Success",
-                "tcInfo": {
+                "tc": {
                   "links": [
                     {
                       "direction": "ingress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 2071011696,
                       "linkStatus": "Attached",
                       "priority": 55,
@@ -661,17 +661,17 @@ metadata:
                     }
                   ]
                 },
-                "type": "tc"
+                "type": "TC"
               },
               {
                 "name": "tcx_next_test",
                 "programId": 4049,
                 "programLinkStatus": "Success",
-                "tcxInfo": {
+                "tcx": {
                   "links": [
                     {
                       "direction": "ingress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 1065661122,
                       "linkStatus": "Attached",
                       "priority": 500,
@@ -681,7 +681,7 @@ metadata:
                     {
                       "containerPid": 2044,
                       "direction": "egress",
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 890204004,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -690,14 +690,14 @@ metadata:
                     }
                   ]
                 },
-                "type": "tcx"
+                "type": "TCX"
               },
               {
                 "name": "uprobe_test",
                 "programId": 4050,
                 "programLinkStatus": "Success",
-                "type": "uprobe",
-                "uprobeInfo": {
+                "type": "Uprobe",
+                "uprobe": {
                   "links": [
                     {
                       "containerPid": 2044,
@@ -716,8 +716,8 @@ metadata:
                 "name": "uretprobe_test",
                 "programId": 4051,
                 "programLinkStatus": "Success",
-                "type": "uretprobe",
-                "uretprobeInfo": {
+                "type": "UretProbe",
+                "uretprobe": {
                   "links": [
                     {
                       "containerPid": 2044,
@@ -736,11 +736,11 @@ metadata:
                 "name": "xdp_pass_test",
                 "programId": 4053,
                 "programLinkStatus": "Success",
-                "type": "xdp",
-                "xdpInfo": {
+                "type": "XDP",
+                "xdp": {
                   "links": [
                     {
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 775398736,
                       "linkStatus": "Attached",
                       "priority": 55,
@@ -753,7 +753,7 @@ metadata:
                     },
                     {
                       "containerPid": 2044,
-                      "ifName": "eth0",
+                      "interfaceName": "eth0",
                       "linkId": 1232024606,
                       "linkStatus": "Attached",
                       "priority": 100,
@@ -768,7 +768,7 @@ metadata:
                 }
               },
               {
-                "fentryInfo": {
+                "fentry": {
                   "function": "do_unlinkat",
                   "links": [
                     {
@@ -782,10 +782,10 @@ metadata:
                 "name": "fentry_test",
                 "programId": 4054,
                 "programLinkStatus": "Success",
-                "type": "fentry"
+                "type": "Fentry"
               },
               {
-                "fexitInfo": {
+                "fexit": {
                   "function": "do_unlinkat",
                   "links": [
                     {
@@ -799,7 +799,7 @@ metadata:
                 "name": "fexit_test",
                 "programId": 4055,
                 "programLinkStatus": "Success",
-                "type": "fexit"
+                "type": "Fexit"
               }
             ],
             "updateCount": 2
@@ -820,7 +820,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-03-05T16:14:12Z"
+    createdAt: "2025-03-14T12:23:39Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

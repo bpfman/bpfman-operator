@@ -80,7 +80,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	xdpProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: xdpBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
-		XDPInfo: &bpfmaniov1alpha1.ClXdpProgramInfo{
+		XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
 			Links: []bpfmaniov1alpha1.ClXdpAttachInfo{attachInfo},
 		},
 	}
@@ -90,7 +90,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	fentryProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: bpfFentryFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeFentry,
-		FentryInfo: &bpfmaniov1alpha1.ClFentryProgramInfo{
+		FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
 			ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
 				Function: functionFentryName,
 			},
@@ -105,7 +105,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	kprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: bpfKprobeFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeKprobe,
-		KprobeInfo: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+		KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
 				{
 					Function: functionKprobeName,
@@ -120,7 +120,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	tracepointProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: bpfTracepointFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-		TracepointInfo: &bpfmaniov1alpha1.ClTracepointProgramInfo{
+		TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
 			Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
 				{
 					Name: tracepointName,

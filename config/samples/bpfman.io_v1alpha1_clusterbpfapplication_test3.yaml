@@ -11,25 +11,25 @@ spec:
       url: quay.io/bpfman-bytecode/app-test:latest
   programs:
     - name: kprobe_test
-      type: kprobe
-      kprobeInfo:
+      type: Kprobe
+      kprobe:
         links:
           - function: try_to_wake_up
             offset: 0
     - name: tracepoint_test
-      type: tracepoint
-      tracepointInfo:
+      type: TracePoint
+      tracepoint:
         links:
           - name: syscalls/sys_enter_openat
     - name: fentry_test
-      type: fentry
-      fentryInfo:
+      type: Fentry
+      fentry:
         function: do_unlinkat
         links:
-          - attach: true
+          - mode: "Attach"
     # - name: tcx_next_test
-    #   type: tcx
-    #   tcxInfo:
+    #   type: TCX
+    #   tcx:
     #     links:
     #       - interfaceSelector:
     #           primaryNodeInterface: true

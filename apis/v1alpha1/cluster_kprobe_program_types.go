@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // All fields are required unless explicitly marked optional
-// +kubebuilder:validation:Required
 package v1alpha1
 
 // ClKprobeProgramInfo contains the information for the kprobe program
@@ -28,10 +27,13 @@ type ClKprobeProgramInfo struct {
 }
 
 type ClKprobeAttachInfo struct {
-	// Function to attach the kprobe to.
+	// function to attach the kprobe to.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
 	Function string `json:"function"`
 
-	// Offset added to the address of the function for kprobe.
+	// offset added to the address of the function for kprobe.
 	// The offset must be zero for kretprobes.
 	// TODO: Add a webhook to enforce kretprobe offset=0.
 	// See: https://github.com/bpfman/bpfman-operator/issues/403

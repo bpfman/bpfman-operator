@@ -28,11 +28,11 @@ items:
     - name: tc_pass_test
       programId: 4125
       programLinkStatus: Success
-      tcInfo:
+      tc:
         links:
         - containerPid: 3078
           direction: ingress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 832290746
           linkStatus: Attached
           priority: 55
@@ -43,7 +43,7 @@ items:
           uuid: 00168ad2-abcd-427c-96b8-7ec2b73b8460
         - containerPid: 2981
           direction: ingress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 256466427
           linkStatus: Attached
           priority: 55
@@ -52,15 +52,15 @@ items:
           - dispatcher_return
           shouldAttach: true
           uuid: 3d99959a-6690-4de9-a8b5-26ade29525d2
-      type: tc
+      type: TC
     - name: tcx_next_test
       programId: 4126
       programLinkStatus: Success
-      tcxInfo:
+      tcx:
         links:
         - containerPid: 3078
           direction: egress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 533548322
           linkStatus: Attached
           priority: 100
@@ -68,18 +68,18 @@ items:
           uuid: b299efd7-b0af-4ba7-8ed7-dfe067d80de2
         - containerPid: 2981
           direction: egress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 777895864
           linkStatus: Attached
           priority: 100
           shouldAttach: true
           uuid: 5918b228-4724-43dc-8462-28d69a5cdcde
-      type: tcx
+      type: TCX
     - name: uprobe_test
       programId: 4127
       programLinkStatus: Success
-      type: uprobe
-      uprobeInfo:
+      type: UProbe
+      uprobe:
         links:
         - containerPid: 3078
           function: malloc
@@ -92,8 +92,8 @@ items:
     - name: uretprobe_test
       programId: 4128
       programLinkStatus: Success
-      type: uretprobe
-      uretprobeInfo:
+      type: URetProbe
+      uretprobe:
         links:
         - containerPid: 3078
           function: malloc
@@ -106,11 +106,11 @@ items:
     - name: xdp_pass_test
       programId: 4129
       programLinkStatus: Success
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
         - containerPid: 3078
-          ifName: eth0
+          interfaceName: eth0
           linkId: 1368615850
           linkStatus: Attached
           priority: 100
@@ -120,7 +120,7 @@ items:
           shouldAttach: true
           uuid: 6f8ad067-99c7-4ba3-a61d-a4f3f4fc56b9
         - containerPid: 2981
-          ifName: eth0
+          interfaceName: eth0
           linkId: 3080543731
           linkStatus: Attached
           priority: 100

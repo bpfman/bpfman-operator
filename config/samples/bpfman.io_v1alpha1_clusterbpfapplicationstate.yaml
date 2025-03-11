@@ -24,7 +24,7 @@ items:
     appLoadStatus: LoadSuccess
     node: bpfman-deployment-control-plane
     programs:
-    - kprobeInfo:
+    - kprobe:
         links:
         - function: try_to_wake_up
           linkId: 4211340334
@@ -35,8 +35,8 @@ items:
       name: kprobe_test
       programId: 4044
       programLinkStatus: Success
-      type: kprobe
-    - kretprobeInfo:
+      type: Kprobe
+    - kretprobe:
         links:
         - function: try_to_wake_up
           linkId: 1254903747
@@ -47,25 +47,25 @@ items:
       name: kretprobe_test
       programId: 4045
       programLinkStatus: Success
-      type: kretprobe
+      type: KretProbe
     - name: tracepoint_test
       programId: 4046
       programLinkStatus: Success
-      tracepointInfo:
+      tracepoint:
         links:
         - linkId: 1360955591
           linkStatus: Attached
           name: syscalls/sys_enter_openat
           shouldAttach: true
           uuid: 554408d0-19fe-43c9-81b5-21c685c18631
-      type: tracepoint
+      type: TracePoint
     - name: tc_pass_test
       programId: 4048
       programLinkStatus: Success
-      tcInfo:
+      tc:
         links:
         - direction: ingress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 2071011696
           linkStatus: Attached
           priority: 55
@@ -74,14 +74,14 @@ items:
           - dispatcher_return
           shouldAttach: true
           uuid: b11abbd5-abe3-48ea-be76-51fcebb1e29e
-      type: tc
+      type: TC
     - name: tcx_next_test
       programId: 4049
       programLinkStatus: Success
-      tcxInfo:
+      tcx:
         links:
         - direction: ingress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 1065661122
           linkStatus: Attached
           priority: 500
@@ -89,18 +89,18 @@ items:
           uuid: 1c568cad-0ff9-44e5-973b-24599844e48a
         - containerPid: 2044
           direction: egress
-          ifName: eth0
+          interfaceName: eth0
           linkId: 890204004
           linkStatus: Attached
           priority: 100
           shouldAttach: true
           uuid: ef125fe7-f05c-4c8a-a5a7-540828d63d82
-      type: tcx
+      type: TCX
     - name: uprobe_test
       programId: 4050
       programLinkStatus: Success
-      type: uprobe
-      uprobeInfo:
+      type: Uprobe
+      uprobe:
         links:
         - containerPid: 2044
           function: malloc
@@ -113,8 +113,8 @@ items:
     - name: uretprobe_test
       programId: 4051
       programLinkStatus: Success
-      type: uretprobe
-      uretprobeInfo:
+      type: UretProbe
+      uretprobe:
         links:
         - containerPid: 2044
           function: malloc
@@ -127,10 +127,10 @@ items:
     - name: xdp_pass_test
       programId: 4053
       programLinkStatus: Success
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
-        - ifName: eth0
+        - interfaceName: eth0
           linkId: 775398736
           linkStatus: Attached
           priority: 55
@@ -140,7 +140,7 @@ items:
           shouldAttach: true
           uuid: f4ed47ee-0bea-4d0e-8603-861cb1827d51
         - containerPid: 2044
-          ifName: eth0
+          interfaceName: eth0
           linkId: 1232024606
           linkStatus: Attached
           priority: 100
@@ -149,7 +149,7 @@ items:
           - dispatcher_return
           shouldAttach: true
           uuid: c3fe1930-1d70-4ade-9f20-a43a6cb49e68
-    - fentryInfo:
+    - fentry:
         function: do_unlinkat
         links:
         - linkId: 3721740425
@@ -159,8 +159,8 @@ items:
       name: fentry_test
       programId: 4054
       programLinkStatus: Success
-      type: fentry
-    - fexitInfo:
+      type: Fentry
+    - fexit:
         function: do_unlinkat
         links:
         - linkId: 3161417735
@@ -170,7 +170,7 @@ items:
       name: fexit_test
       programId: 4055
       programLinkStatus: Success
-      type: fexit
+      type: Fexit
     updateCount: 2
   status:
     conditions:

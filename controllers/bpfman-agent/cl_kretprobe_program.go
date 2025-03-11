@@ -26,76 +26,75 @@ import (
 	"github.com/google/uuid"
 )
 
-// ClKprobeProgramReconciler contains the info required to reconcile a KprobeProgram
-type ClKprobeProgramReconciler struct {
+// ClKretprobeProgramReconciler contains the info required to reconcile a KretprobeProgram
+type ClKretprobeProgramReconciler struct {
 	ReconcilerCommon
 	ClProgramReconcilerCommon
-	currentLink *bpfmaniov1alpha1.ClKprobeAttachInfoState
+	currentLink *bpfmaniov1alpha1.ClKretprobeAttachInfoState
 }
 
-func (r *ClKprobeProgramReconciler) getProgId() *uint32 {
+func (r *ClKretprobeProgramReconciler) getProgId() *uint32 {
 	return r.currentProgramState.ProgramId
 }
 
-func (r *ClKprobeProgramReconciler) getProgType() internal.ProgramType {
+func (r *ClKretprobeProgramReconciler) getProgType() internal.ProgramType {
 	return internal.Kprobe
 }
 
-func (r *ClKprobeProgramReconciler) getBpfmanProgType() gobpfman.BpfmanProgramType {
+func (r *ClKretprobeProgramReconciler) getBpfmanProgType() gobpfman.BpfmanProgramType {
 	return gobpfman.BpfmanProgramType_KPROBE
 }
 
-func (r *ClKprobeProgramReconciler) getProgName() string {
+func (r *ClKretprobeProgramReconciler) getProgName() string {
 	return r.currentProgram.Name
 }
 
-func (r *ClKprobeProgramReconciler) shouldAttach() bool {
+func (r *ClKretprobeProgramReconciler) shouldAttach() bool {
 	return r.currentLink.ShouldAttach
 }
 
-func (r *ClKprobeProgramReconciler) isAttached(ctx context.Context) bool {
+func (r *ClKretprobeProgramReconciler) isAttached(ctx context.Context) bool {
 	if r.currentProgramState.ProgramId == nil || r.currentLink.LinkId == nil {
 		return false
 	}
 	return r.doesLinkExist(ctx, *r.currentProgramState.ProgramId, *r.currentLink.LinkId)
 }
 
-func (r *ClKprobeProgramReconciler) getUUID() string {
+func (r *ClKretprobeProgramReconciler) getUUID() string {
 	return r.currentLink.UUID
 }
 
-func (r *ClKprobeProgramReconciler) getLinkId() *uint32 {
+func (r *ClKretprobeProgramReconciler) getLinkId() *uint32 {
 	return r.currentLink.LinkId
 }
 
-func (r *ClKprobeProgramReconciler) setLinkId(id *uint32) {
+func (r *ClKretprobeProgramReconciler) setLinkId(id *uint32) {
 	r.currentLink.LinkId = id
 }
 
-func (r *ClKprobeProgramReconciler) setProgramLinkStatus(status bpfmaniov1alpha1.ProgramLinkStatus) {
+func (r *ClKretprobeProgramReconciler) setProgramLinkStatus(status bpfmaniov1alpha1.ProgramLinkStatus) {
 	r.currentProgramState.ProgramLinkStatus = status
 }
 
-func (r *ClKprobeProgramReconciler) getProgramLinkStatus() bpfmaniov1alpha1.ProgramLinkStatus {
+func (r *ClKretprobeProgramReconciler) getProgramLinkStatus() bpfmaniov1alpha1.ProgramLinkStatus {
 	return r.currentProgramState.ProgramLinkStatus
 }
 
-func (r *ClKprobeProgramReconciler) setCurrentLinkStatus(status bpfmaniov1alpha1.LinkStatus) {
+func (r *ClKretprobeProgramReconciler) setCurrentLinkStatus(status bpfmaniov1alpha1.LinkStatus) {
 	r.currentLink.LinkStatus = status
 }
 
-func (r *ClKprobeProgramReconciler) getCurrentLinkStatus() bpfmaniov1alpha1.LinkStatus {
+func (r *ClKretprobeProgramReconciler) getCurrentLinkStatus() bpfmaniov1alpha1.LinkStatus {
 	return r.currentLink.LinkStatus
 }
 
-func (r *ClKprobeProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
+func (r *ClKretprobeProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 	return &gobpfman.AttachRequest{
 		Id: *r.currentProgramState.ProgramId,
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
 				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
 					FnName:   r.currentLink.Function,
-					Offset:   r.currentLink.Offset,
 					Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
 				},
 			},
@@ -105,8 +104,8 @@ func (r *ClKprobeProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 // updateLinks processes the *ProgramInfo and updates the list of links
 // contained in *AttachInfoState.
-func (r *ClKprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted bool) error {
-	r.Logger.Info("Kprobe updateAttachInfo()", "isBeingDeleted", isBeingDeleted)
+func (r *ClKretprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted bool) error {
+	r.Logger.Info("Kretprobe updateAttachInfo()", "isBeingDeleted", isBeingDeleted)
 
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
@@ -149,12 +148,12 @@ func (r *ClKprobeProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	return nil
 }
 
-func (r *ClKprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClKprobeAttachInfoState,
-	links *[]bpfmaniov1alpha1.ClKprobeAttachInfoState) *int {
+func (r *ClKretprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClKretprobeAttachInfoState,
+	links *[]bpfmaniov1alpha1.ClKretprobeAttachInfoState) *int {
 	for i, a := range *links {
 		// attachInfoState is the same as a if the the following fields are the
 		// same: IfName, ContainerPid, Priority, and Direction.
-		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset {
+		if a.Function == attachInfoState.Function {
 			return &i
 		}
 	}
@@ -164,7 +163,7 @@ func (r *ClKprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.Cl
 // processLinks calls reconcileBpfLink() for each link. It
 // then updates the ProgramAttachStatus based on the updated status of each
 // link.
-func (r *ClKprobeProgramReconciler) processLinks(ctx context.Context) error {
+func (r *ClKretprobeProgramReconciler) processLinks(ctx context.Context) error {
 	r.Logger.Info("Processing attach info", "bpfFunctionName", r.currentProgram.Name)
 
 	// The following map is used to keep track of links that need to be
@@ -201,7 +200,7 @@ func (r *ClKprobeProgramReconciler) processLinks(ctx context.Context) error {
 	return lastReconcileLinkError
 }
 
-func (r *ClKprobeProgramReconciler) updateProgramAttachStatus() {
+func (r *ClKretprobeProgramReconciler) updateProgramAttachStatus() {
 	appStateLinks := r.getAppStateLinks()
 	for _, link := range *appStateLinks {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
@@ -212,24 +211,24 @@ func (r *ClKprobeProgramReconciler) updateProgramAttachStatus() {
 	r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachSuccess)
 }
 
-func (r *ClKprobeProgramReconciler) getAppStateLinks() *[]bpfmaniov1alpha1.ClKprobeAttachInfoState {
-	var appStateLinks *[]bpfmaniov1alpha1.ClKprobeAttachInfoState
+func (r *ClKretprobeProgramReconciler) getAppStateLinks() *[]bpfmaniov1alpha1.ClKretprobeAttachInfoState {
+	var appStateLinks *[]bpfmaniov1alpha1.ClKretprobeAttachInfoState
 	switch r.currentProgramState.Type {
-	case bpfmaniov1alpha1.ProgTypeKprobe:
-		appStateLinks = &r.currentProgramState.KProbe.Links
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		appStateLinks = &r.currentProgramState.KRetProbe.Links
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected programState type: %v", r.currentProgramState.Type), "")
-		appStateLinks = &[]bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+		appStateLinks = &[]bpfmaniov1alpha1.ClKretprobeAttachInfoState{}
 	}
 	return appStateLinks
 }
 
-func (r *ClKprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.ClKprobeAttachInfo {
-	appLinks := &[]bpfmaniov1alpha1.ClKprobeAttachInfo{}
+func (r *ClKretprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.ClKretprobeAttachInfo {
+	appLinks := &[]bpfmaniov1alpha1.ClKretprobeAttachInfo{}
 	switch r.currentProgram.Type {
-	case bpfmaniov1alpha1.ProgTypeKprobe:
-		if r.currentProgram.KProbe != nil && r.currentProgram.KProbe.Links != nil {
-			appLinks = &r.currentProgram.KProbe.Links
+	case bpfmaniov1alpha1.ProgTypeKretprobe:
+		if r.currentProgram.KRetProbe != nil && r.currentProgram.KRetProbe.Links != nil {
+			appLinks = &r.currentProgram.KRetProbe.Links
 		}
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected program type: %v", r.currentProgram.Type), "")
@@ -238,8 +237,8 @@ func (r *ClKprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.ClKprobeAt
 }
 
 // removeLinks removes links from a slice of links based on the keys in the map.
-func (r *ClKprobeProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClKprobeAttachInfoState, linksToRemove map[int]bool) []bpfmaniov1alpha1.ClKprobeAttachInfoState {
-	var remainingLinks []bpfmaniov1alpha1.ClKprobeAttachInfoState
+func (r *ClKretprobeProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClKretprobeAttachInfoState, linksToRemove map[int]bool) []bpfmaniov1alpha1.ClKretprobeAttachInfoState {
+	var remainingLinks []bpfmaniov1alpha1.ClKretprobeAttachInfoState
 	for i, a := range links {
 		if _, ok := linksToRemove[i]; !ok {
 			remainingLinks = append(remainingLinks, a)
@@ -250,11 +249,11 @@ func (r *ClKprobeProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClKprob
 
 // getExpectedLinks expands *AttachInfo into a list of specific attach
 // points.
-func (r *ClKprobeProgramReconciler) getExpectedLinks(attachInfo bpfmaniov1alpha1.ClKprobeAttachInfo,
-) ([]bpfmaniov1alpha1.ClKprobeAttachInfoState, error) {
-	nodeLinks := []bpfmaniov1alpha1.ClKprobeAttachInfoState{}
+func (r *ClKretprobeProgramReconciler) getExpectedLinks(attachInfo bpfmaniov1alpha1.ClKretprobeAttachInfo,
+) ([]bpfmaniov1alpha1.ClKretprobeAttachInfoState, error) {
+	nodeLinks := []bpfmaniov1alpha1.ClKretprobeAttachInfoState{}
 
-	link := bpfmaniov1alpha1.ClKprobeAttachInfoState{
+	link := bpfmaniov1alpha1.ClKretprobeAttachInfoState{
 		AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
 			ShouldAttach: true,
 			UUID:         uuid.New().String(),
@@ -262,14 +261,13 @@ func (r *ClKprobeProgramReconciler) getExpectedLinks(attachInfo bpfmaniov1alpha1
 			LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
 		},
 		Function: attachInfo.Function,
-		Offset:   attachInfo.Offset,
 	}
 	nodeLinks = append(nodeLinks, link)
 
 	return nodeLinks, nil
 }
 
-func (r *ClKprobeProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
+func (r *ClKretprobeProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
 	return &gobpfman.LoadInfo{
 		Name:        r.currentProgram.Name,
 		ProgramType: r.getBpfmanProgType(),
