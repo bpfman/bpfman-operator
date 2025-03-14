@@ -71,7 +71,7 @@ jobs:
       - name: Check disk space
         run: df -h
 
-      ## Upload diagnostics if integration test step failed.
+      # Upload diagnostics if integration test step failed.
       - name: Upload diagnostics
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
@@ -79,3 +79,13 @@ jobs:
           name: kubernetes-integration-test-diag
           path: /tmp/ktf-diag*
           if-no-files-found: ignore
+
+      # Push Notifications to Slack if integration test step failed 
+      - name: Notify Slack on Test Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            "Nightly Kubernetes bpfman Operator integration tests failed! Go version: ${{ matrix.go }} and OCI runtime: ${{ matrix.oci_bin }}"
