@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2023 The bpfman Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,38 +17,37 @@ limitations under the License.
 // All fields are required unless explicitly marked optional
 package v1alpha1
 
-// ClTracepointProgramInfo contains the Tracepoint program details
-type ClTracepointProgramInfo struct {
-	// links is the list of points to which the program should be attached.  The list items
-	// are optional and may be updated after the bpf program has been loaded
+// ClKprobeProgramInfo contains the information for the kprobe program
+type ClKretprobeProgramInfo struct {
+	// The list of points to which the program should be attached.  The list items
+	// are optional and may be udated after the bpf program has been loaded
 	// +optional
 	// +kubebuilder:default:={}
-	Links []ClTracepointAttachInfo `json:"links"`
+	Links []ClKretprobeAttachInfo `json:"links"`
 }
 
-type ClTracepointAttachInfo struct {
-	// name refers to the name of a kernel tracepoint to attach the
-	// bpf program to.
+type ClKretprobeAttachInfo struct {
+	// function to attach the kprobe to.
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
-	Name string `json:"name"`
+	Function string `json:"function"`
 }
 
-type ClTracepointProgramInfoState struct {
-	// links is the list of attach points for the BPF program on the given node. Each entry
+type ClKretprobeProgramInfoState struct {
+	// List of attach points for the BPF program on the given node. Each entry
 	// in *AttachInfoState represents a specific, unique attach point that is
 	// derived from *AttachInfo by fully expanding any selectors.  Each entry
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
 	// +kubebuilder:default:={}
-	Links []ClTracepointAttachInfoState `json:"links"`
+	Links []ClKretprobeAttachInfoState `json:"links"`
 }
 
-type ClTracepointAttachInfoState struct {
+type ClKretprobeAttachInfoState struct {
 	AttachInfoStateCommon `json:",inline"`
 
-	// The name of a kernel tracepoint to attach the bpf program to.
-	Name string `json:"name"`
+	// Function to attach the kprobe to.
+	Function string `json:"function"`
 }

@@ -109,8 +109,8 @@ func (r *ClFexitProgramReconciler) updateLinks(ctx context.Context, isBeingDelet
 	// Set ShouldAttach for all links in the node CRD to false.  We'll
 	// update this in the next step for all links that are still
 	// present.
-	for i := range r.currentProgramState.FexitInfo.Links {
-		r.currentProgramState.FexitInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.FExit.Links {
+		r.currentProgramState.FExit.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -118,8 +118,8 @@ func (r *ClFexitProgramReconciler) updateLinks(ctx context.Context, isBeingDelet
 		return nil
 	}
 
-	if r.currentProgram.FexitInfo != nil && r.currentProgram.FexitInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.FexitInfo.Links {
+	if r.currentProgram.FExit != nil && r.currentProgram.FExit.Links != nil {
+		for _, attachInfo := range r.currentProgram.FExit.Links {
 			expectedLinks, error := r.getExpectedLinks(attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -128,26 +128,26 @@ func (r *ClFexitProgramReconciler) updateLinks(ctx context.Context, isBeingDelet
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.FexitInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.FExit.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
 					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.FexitInfo.Links = append(r.currentProgramState.FexitInfo.Links, link)
+					r.currentProgramState.FExit.Links = append(r.currentProgramState.FExit.Links, link)
 				}
 			}
 		}
 	}
 
 	// If any existing link is no longer on a list of expected links
-	// ShouldAttach will remain set to false and it will get detached in a
+	// ShouldAttach will remain set to false, and it will get detached in the
 	// following step.
-	// a following step.
+	// A following step.
 
 	return nil
 }
 
 func (r *ClFexitProgramReconciler) findLink(_ bpfmaniov1alpha1.ClFexitAttachInfoState) *int {
-	for i := range r.currentProgramState.FexitInfo.Links {
+	for i := range r.currentProgramState.FExit.Links {
 		return &i
 	}
 	return nil
@@ -165,8 +165,8 @@ func (r *ClFexitProgramReconciler) processLinks(ctx context.Context) error {
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.FexitInfo.Links {
-		r.currentLink = &r.currentProgramState.FexitInfo.Links[i]
+	for i := range r.currentProgramState.FExit.Links {
+		r.currentLink = &r.currentProgramState.FExit.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf attachment", "index", i)
@@ -184,7 +184,7 @@ func (r *ClFexitProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.FexitInfo.Links = r.removeLinks(r.currentProgramState.FexitInfo.Links, linksToRemove)
+		r.currentProgramState.FExit.Links = r.removeLinks(r.currentProgramState.FExit.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -193,7 +193,7 @@ func (r *ClFexitProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *ClFexitProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.FexitInfo.Links {
+	for _, link := range r.currentProgramState.FExit.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
@@ -239,7 +239,7 @@ func (r *ClFexitProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
 		Info: &gobpfman.ProgSpecificInfo{
 			Info: &gobpfman.ProgSpecificInfo_FexitLoadInfo{
 				FexitLoadInfo: &gobpfman.FexitLoadInfo{
-					FnName: r.currentProgram.FexitInfo.Function,
+					FnName: r.currentProgram.FExit.Function,
 				},
 			},
 		},

@@ -224,9 +224,9 @@ func (r *NsUprobeProgramReconciler) getAppStateLinks() *[]bpfmaniov1alpha1.Uprob
 	var appStateLinks *[]bpfmaniov1alpha1.UprobeAttachInfoState
 	switch r.currentProgramState.Type {
 	case bpfmaniov1alpha1.ProgTypeUprobe:
-		appStateLinks = &r.currentProgramState.UprobeInfo.Links
+		appStateLinks = &r.currentProgramState.UProbe.Links
 	case bpfmaniov1alpha1.ProgTypeUretprobe:
-		appStateLinks = &r.currentProgramState.UretprobeInfo.Links
+		appStateLinks = &r.currentProgramState.URetProbe.Links
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected programState type: %v", r.currentProgramState.Type), "")
 		appStateLinks = &[]bpfmaniov1alpha1.UprobeAttachInfoState{}
@@ -238,12 +238,12 @@ func (r *NsUprobeProgramReconciler) getAppLinks() *[]bpfmaniov1alpha1.UprobeAtta
 	appLinks := &[]bpfmaniov1alpha1.UprobeAttachInfo{}
 	switch r.currentProgram.Type {
 	case bpfmaniov1alpha1.ProgTypeUprobe:
-		if r.currentProgram.UprobeInfo != nil && r.currentProgram.UprobeInfo.Links != nil {
-			appLinks = &r.currentProgram.UprobeInfo.Links
+		if r.currentProgram.UProbe != nil && r.currentProgram.UProbe.Links != nil {
+			appLinks = &r.currentProgram.UProbe.Links
 		}
 	case bpfmaniov1alpha1.ProgTypeUretprobe:
-		if r.currentProgram.UretprobeInfo != nil && r.currentProgram.UretprobeInfo.Links != nil {
-			appLinks = &r.currentProgram.UretprobeInfo.Links
+		if r.currentProgram.URetProbe != nil && r.currentProgram.URetProbe.Links != nil {
+			appLinks = &r.currentProgram.URetProbe.Links
 		}
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected program type: %v", r.currentProgram.Type), "")

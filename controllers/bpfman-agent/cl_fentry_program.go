@@ -110,8 +110,8 @@ func (r *ClFentryProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 	// update this in the next step for all links that are still
 	// present.
 
-	for i := range r.currentProgramState.FentryInfo.Links {
-		r.currentProgramState.FentryInfo.Links[i].ShouldAttach = false
+	for i := range r.currentProgramState.FEntry.Links {
+		r.currentProgramState.FEntry.Links[i].ShouldAttach = false
 	}
 
 	if isBeingDeleted {
@@ -119,8 +119,8 @@ func (r *ClFentryProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 		return nil
 	}
 
-	if r.currentProgram.FentryInfo != nil && r.currentProgram.FentryInfo.Links != nil {
-		for _, attachInfo := range r.currentProgram.FentryInfo.Links {
+	if r.currentProgram.FEntry != nil && r.currentProgram.FEntry.Links != nil {
+		for _, attachInfo := range r.currentProgram.FEntry.Links {
 			expectedLinks, error := r.getExpectedLinks(attachInfo)
 			if error != nil {
 				return fmt.Errorf("failed to get node links: %v", error)
@@ -129,11 +129,11 @@ func (r *ClFentryProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 				index := r.findLink(link)
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
-					r.currentProgramState.FentryInfo.Links[*index].AttachInfoStateCommon.ShouldAttach = true
+					r.currentProgramState.FEntry.Links[*index].AttachInfoStateCommon.ShouldAttach = true
 				} else {
 					// Link doesn't exist, so add it.
 					r.Logger.Info("Link doesn't exist.  Adding it.")
-					r.currentProgramState.FentryInfo.Links = append(r.currentProgramState.FentryInfo.Links, link)
+					r.currentProgramState.FEntry.Links = append(r.currentProgramState.FEntry.Links, link)
 				}
 			}
 		}
@@ -147,7 +147,7 @@ func (r *ClFentryProgramReconciler) updateLinks(ctx context.Context, isBeingDele
 }
 
 func (r *ClFentryProgramReconciler) findLink(_ bpfmaniov1alpha1.ClFentryAttachInfoState) *int {
-	for i := range r.currentProgramState.FentryInfo.Links {
+	for i := range r.currentProgramState.FEntry.Links {
 		return &i
 	}
 	return nil
@@ -165,8 +165,8 @@ func (r *ClFentryProgramReconciler) processLinks(ctx context.Context) error {
 	linksToRemove := make(map[int]bool)
 
 	var lastReconcileLinkError error = nil
-	for i := range r.currentProgramState.FentryInfo.Links {
-		r.currentLink = &r.currentProgramState.FentryInfo.Links[i]
+	for i := range r.currentProgramState.FEntry.Links {
+		r.currentLink = &r.currentProgramState.FEntry.Links[i]
 		remove, err := r.reconcileBpfLink(ctx, r)
 		if err != nil {
 			r.Logger.Error(err, "failed to reconcile bpf link", "index", i)
@@ -184,7 +184,7 @@ func (r *ClFentryProgramReconciler) processLinks(ctx context.Context) error {
 
 	if len(linksToRemove) > 0 {
 		r.Logger.Info("Removing links", "linksToRemove", linksToRemove)
-		r.currentProgramState.FentryInfo.Links = r.removeLinks(r.currentProgramState.FentryInfo.Links, linksToRemove)
+		r.currentProgramState.FEntry.Links = r.removeLinks(r.currentProgramState.FEntry.Links, linksToRemove)
 	}
 
 	r.updateProgramAttachStatus()
@@ -193,7 +193,7 @@ func (r *ClFentryProgramReconciler) processLinks(ctx context.Context) error {
 }
 
 func (r *ClFentryProgramReconciler) updateProgramAttachStatus() {
-	for _, link := range r.currentProgramState.FentryInfo.Links {
+	for _, link := range r.currentProgramState.FEntry.Links {
 		if !isAttachSuccess(link.ShouldAttach, link.LinkStatus) {
 			r.setProgramLinkStatus(bpfmaniov1alpha1.ProgAttachError)
 			return
@@ -239,7 +239,7 @@ func (r *ClFentryProgramReconciler) getProgramLoadInfo() *gobpfman.LoadInfo {
 		Info: &gobpfman.ProgSpecificInfo{
 			Info: &gobpfman.ProgSpecificInfo_FentryLoadInfo{
 				FentryLoadInfo: &gobpfman.FentryLoadInfo{
-					FnName: r.currentProgram.FentryInfo.Function,
+					FnName: r.currentProgram.FEntry.Function,
 				},
 			},
 		},

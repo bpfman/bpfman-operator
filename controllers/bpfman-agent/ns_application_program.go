@@ -570,27 +570,27 @@ func (r *NsBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 		}
 		switch prog.Type {
 		case bpfmaniov1alpha1.ProgTypeTC:
-			progState.TCInfo = &bpfmaniov1alpha1.TcProgramInfoState{
+			progState.TC = &bpfmaniov1alpha1.TcProgramInfoState{
 				Links: []bpfmaniov1alpha1.TcAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeTCX:
-			progState.TCXInfo = &bpfmaniov1alpha1.TcxProgramInfoState{
+			progState.TCX = &bpfmaniov1alpha1.TcxProgramInfoState{
 				Links: []bpfmaniov1alpha1.TcxAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeUprobe:
-			progState.UprobeInfo = &bpfmaniov1alpha1.UprobeProgramInfoState{
+			progState.UProbe = &bpfmaniov1alpha1.UprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.UprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeUretprobe:
-			progState.UretprobeInfo = &bpfmaniov1alpha1.UprobeProgramInfoState{
+			progState.URetProbe = &bpfmaniov1alpha1.UprobeProgramInfoState{
 				Links: []bpfmaniov1alpha1.UprobeAttachInfoState{},
 			}
 
 		case bpfmaniov1alpha1.ProgTypeXDP:
-			progState.XDPInfo = &bpfmaniov1alpha1.XdpProgramInfoState{
+			progState.XDP = &bpfmaniov1alpha1.XdpProgramInfoState{
 				Links: []bpfmaniov1alpha1.XdpAttachInfoState{},
 			}
 
@@ -711,15 +711,15 @@ func (r *NsBpfApplicationReconciler) unload(ctx context.Context) {
 func (r *NsBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.BpfApplicationProgramState) {
 	switch program.Type {
 	case bpfmaniov1alpha1.ProgTypeTC:
-		program.TCInfo.Links = []bpfmaniov1alpha1.TcAttachInfoState{}
+		program.TC.Links = []bpfmaniov1alpha1.TcAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeTCX:
-		program.TCXInfo.Links = []bpfmaniov1alpha1.TcxAttachInfoState{}
+		program.TCX.Links = []bpfmaniov1alpha1.TcxAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUprobe:
-		program.UprobeInfo.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
+		program.UProbe.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeUretprobe:
-		program.UretprobeInfo.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
+		program.URetProbe.Links = []bpfmaniov1alpha1.UprobeAttachInfoState{}
 	case bpfmaniov1alpha1.ProgTypeXDP:
-		program.XDPInfo.Links = []bpfmaniov1alpha1.XdpAttachInfoState{}
+		program.XDP.Links = []bpfmaniov1alpha1.XdpAttachInfoState{}
 	default:
 		r.Logger.Error(fmt.Errorf("unexpected EBPFProgType"), "unexpected EBPFProgType", "Type", program.Type)
 	}

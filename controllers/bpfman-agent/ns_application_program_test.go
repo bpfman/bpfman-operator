@@ -50,7 +50,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 		uretprobeBpfFunctionName = "UretprobeTest"
 		tcBpfFunctionName        = "TcTest"
 
-		direction  = "ingress"
+		direction  = bpfmaniov1alpha1.TCIngress
 		AttachName = "AttachNameTest"
 		priority   = 50
 		fakeNode   = testutils.NewNode("fake-control-plane")
@@ -92,7 +92,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 	xdpProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: xdpBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeXDP,
-		XDPInfo: &bpfmaniov1alpha1.XdpProgramInfo{
+		XDP: &bpfmaniov1alpha1.XdpProgramInfo{
 			Links: []bpfmaniov1alpha1.XdpAttachInfo{xdpAttachInfo},
 		},
 	}
@@ -108,7 +108,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 	tcxProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: tcxBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTCX,
-		TCXInfo: &bpfmaniov1alpha1.TcxProgramInfo{
+		TCX: &bpfmaniov1alpha1.TcxProgramInfo{
 			Links: []bpfmaniov1alpha1.TcxAttachInfo{tcxAttachInfo},
 		},
 	}
@@ -117,7 +117,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 	uprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: uprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeUprobe,
-		UprobeInfo: &bpfmaniov1alpha1.UprobeProgramInfo{
+		UProbe: &bpfmaniov1alpha1.UprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.UprobeAttachInfo{
 				{
 					Function:   AttachName,
@@ -134,7 +134,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 	uretprobeProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: uretprobeBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeUretprobe,
-		UretprobeInfo: &bpfmaniov1alpha1.UprobeProgramInfo{
+		URetProbe: &bpfmaniov1alpha1.UprobeProgramInfo{
 			Links: []bpfmaniov1alpha1.UprobeAttachInfo{
 				{
 					Function:   AttachName,
@@ -161,7 +161,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 	tcProgram := bpfmaniov1alpha1.BpfApplicationProgram{
 		Name: tcBpfFunctionName,
 		Type: bpfmaniov1alpha1.ProgTypeTC,
-		TCInfo: &bpfmaniov1alpha1.TcProgramInfo{
+		TC: &bpfmaniov1alpha1.TcProgramInfo{
 			Links: []bpfmaniov1alpha1.TcAttachInfo{tcAttachInfo},
 		},
 	}

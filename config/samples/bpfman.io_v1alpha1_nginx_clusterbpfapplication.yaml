@@ -19,34 +19,34 @@ spec:
       - 0x0A
   programs:
     - name: tc_pass_test
-      type: tc
-      tcInfo:
+      type: TC
+      tc:
         links:
           - interfaceSelector:
               interfaces:
                 - eth0
             priority: 55
-            direction: ingress
+            direction: Ingress
             containers:
               pods:
                 matchLabels:
                   app: nginx
     - name: tcx_next_test
-      type: tcx
-      tcxInfo:
+      type: TCX
+      tcx:
         links:
           - interfaceSelector:
               interfaces:
                 - eth0
             priority: 100
-            direction: egress
+            direction: Egress
             containers:
               pods:
                 matchLabels:
                   app: nginx
     - name: uprobe_test
-      type: uprobe
-      uprobeInfo:
+      type: Uprobe
+      uprobe:
         links:
           - function: malloc
             target: libc
@@ -55,8 +55,8 @@ spec:
                 matchLabels:
                   app: nginx
     - name: uretprobe_test
-      type: uretprobe
-      uretprobeInfo:
+      type: UretProbe
+      uretprobe:
         links:
           - function: malloc
             target: libc
@@ -65,8 +65,8 @@ spec:
                 matchLabels:
                   app: nginx
     - name: xdp_pass_test
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
           - interfaceSelector:
               interfaces:

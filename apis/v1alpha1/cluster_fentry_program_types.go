@@ -15,7 +15,6 @@ limitations under the License.
 */
 
 // All fields are required unless explicitly marked optional
-// +kubebuilder:validation:Required
 package v1alpha1
 
 // ClFentryProgramInfo defines the Fentry program details
@@ -31,16 +30,26 @@ type ClFentryProgramInfo struct {
 // ClFentryLoadInfo contains the program-specific load information for Fentry
 // programs
 type ClFentryLoadInfo struct {
-	// Function is the name of the function to attach the Fentry program to.
+	// function is the name of the function to attach the Fentry program to.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
 	Function string `json:"function"`
 }
+
+type AttachTypeAttach string
+
+const (
+	Attach  AttachTypeAttach = "Attach"
+	Dettach AttachTypeAttach = "Detach"
+)
 
 // ClFentryAttachInfo indicates that the Fentry program should be attached to
 // the function identified in ClFentryLoadInfo. The only valid value for Attach
 // is true.
 type ClFentryAttachInfo struct {
-	// +kubebuilder:validation:Enum=true
-	Attach bool `json:"attach"`
+	// +kubebuilder:validation:Enum=Attach;Dettach;
+	Mode AttachTypeAttach `json:"mode"`
 }
 
 type ClFentryProgramInfoState struct {

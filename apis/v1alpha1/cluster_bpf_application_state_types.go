@@ -24,89 +24,88 @@ import (
 
 // ClBpfApplicationProgramState defines the desired state of BpfApplication
 // +union
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'xdp' ?  has(self.xdpInfo) : !has(self.xdpInfo)",message="xdpInfo configuration is required when type is xdp, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tc' ?  has(self.tcInfo) : !has(self.tcInfo)",message="tcInfo configuration is required when type is tc, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tcx' ?  has(self.tcxInfo) : !has(self.tcxInfo)",message="tcxInfo configuration is required when type is tcx, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fentry' ?  has(self.fentryInfo) : !has(self.fentryInfo)",message="fentryInfo configuration is required when type is fentry, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'fexit' ?  has(self.fexitInfo) : !has(self.fexitInfo)",message="fexitInfo configuration is required when type is fexit, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kprobe' ?  has(self.kprobeInfo) : !has(self.kprobeInfo)",message="kprobeInfo configuration is required when type is kprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'kretprobe' ?  has(self.kretprobeInfo) : !has(self.kretprobeInfo)",message="kretprobeInfo configuration is required when type is kretprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uprobe' ?  has(self.uprobeInfo) : !has(self.uprobeInfo)",message="uprobeInfo configuration is required when type is uprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'uretprobe' ?  has(self.uretprobeInfo) : !has(self.uretprobeInfo)",message="uretprobeInfo configuration is required when type is uretprobe, and forbidden otherwise"
-// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'tracepoint' ?  has(self.tracepointInfo) : !has(self.tracepointInfo)",message="tracepointInfo configuration is required when type is tracepoint, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'XDP' ?  has(self.xdp) : !has(self.xdp)",message="xdp configuration is required when type is xdp, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TC' ?  has(self.tc) : !has(self.tc)",message="tc configuration is required when type is tc, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TCX' ?  has(self.tcx) : !has(self.tcx)",message="tcx configuration is required when type is tcx, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'FEntry' ?  has(self.fentry) : !has(self.fentry)",message="fentry configuration is required when type is fentry, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'FExit' ?  has(self.fexit) : !has(self.fexit)",message="fexit configuration is required when type is fexit, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'KProbe' ?  has(self.kprobe) : !has(self.kprobe)",message="kprobe configuration is required when type is kprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'KRetProbe' ?  has(self.kretprobe) : !has(self.kretprobe)",message="kretprobe configuration is required when type is kretprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'UProbe' ?  has(self.uprobe) : !has(self.uprobe)",message="uprobe configuration is required when type is uprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'URetProbe' ?  has(self.uretprobe) : !has(self.uretprobe)",message="uretprobe configuration is required when type is uretprobe, and forbidden otherwise"
+// +kubebuilder:validation:XValidation:rule="has(self.type) && self.type == 'TracePoint' ?  has(self.tracepoint) : !has(self.tracepoint)",message="tracepoint configuration is required when type is tracepoint, and forbidden otherwise"
 type ClBpfApplicationProgramState struct {
 	BpfProgramStateCommon `json:",inline"`
-	// Type specifies the bpf program type
+	// type specifies the bpf program type
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum:="xdp";"tc";"tcx";"fentry";"fexit";"kprobe";"kretprobe";"uprobe";"uretprobe";"tracepoint"
-
-	Type EBPFProgType `json:"type,omitempty"`
+	// +required
+	// +kubebuilder:validation:Enum:="XDP";"TC";"TCX";"FEntry";"FExit";"KProbe";"KRetProbe";"UProbe";"URetProbe";"TracePoint"
+	Type EBPFProgType `json:"type"`
 
 	// xdp defines the desired state of the application's XdpPrograms.
 	// +unionMember
 	// +optional
-	XDPInfo *ClXdpProgramInfoState `json:"xdpInfo,omitempty"`
+	XDP *ClXdpProgramInfoState `json:"xdp,omitempty"`
 
 	// tc defines the desired state of the application's TcPrograms.
 	// +unionMember
 	// +optional
-	TCInfo *ClTcProgramInfoState `json:"tcInfo,omitempty"`
+	TC *ClTcProgramInfoState `json:"tc,omitempty"`
 
 	// tcx defines the desired state of the application's TcxPrograms.
 	// +unionMember
 	// +optional
-	TCXInfo *ClTcxProgramInfoState `json:"tcxInfo,omitempty"`
+	TCX *ClTcxProgramInfoState `json:"tcx,omitempty"`
 
 	// fentry defines the desired state of the application's FentryPrograms.
 	// +unionMember
 	// +optional
-	FentryInfo *ClFentryProgramInfoState `json:"fentryInfo,omitempty"`
+	FEntry *ClFentryProgramInfoState `json:"fentry,omitempty"`
 
 	// fexit defines the desired state of the application's FexitPrograms.
 	// +unionMember
 	// +optional
-	FexitInfo *ClFexitProgramInfoState `json:"fexitInfo,omitempty"`
+	FExit *ClFexitProgramInfoState `json:"fexit,omitempty"`
 
 	// kprobe defines the desired state of the application's KprobePrograms.
 	// +unionMember
 	// +optional
-	KprobeInfo *ClKprobeProgramInfoState `json:"kprobeInfo,omitempty"`
+	KProbe *ClKprobeProgramInfoState `json:"kprobe,omitempty"`
 
-	// kprobe defines the desired state of the application's KprobePrograms.
+	// kretprobe defines the desired state of the application's KprobePrograms.
 	// +unionMember
 	// +optional
-	KretprobeInfo *ClKprobeProgramInfoState `json:"kretprobeInfo,omitempty"`
+	KRetProbe *ClKretprobeProgramInfoState `json:"kretprobe,omitempty"`
 
 	// uprobe defines the desired state of the application's UprobePrograms.
 	// +unionMember
 	// +optional
-	UprobeInfo *ClUprobeProgramInfoState `json:"uprobeInfo,omitempty"`
+	UProbe *ClUprobeProgramInfoState `json:"uprobe,omitempty"`
 
 	// uretprobe defines the desired state of the application's UretprobePrograms.
 	// +unionMember
 	// +optional
-	UretprobeInfo *ClUprobeProgramInfoState `json:"uretprobeInfo,omitempty"`
+	URetProbe *ClUprobeProgramInfoState `json:"uretprobe,omitempty"`
 
 	// tracepoint defines the desired state of the application's TracepointPrograms.
 	// +unionMember
 	// +optional
-	TracepointInfo *ClTracepointProgramInfoState `json:"tracepointInfo,omitempty"`
+	TracePoint *ClTracepointProgramInfoState `json:"tracepoint,omitempty"`
 }
 
 // BpfApplicationSpec defines the desired state of BpfApplication
 type ClBpfApplicationStateSpec struct {
-	// Node is the name of the node for this BpfApplicationStateSpec.
+	// node is the name of the node for this BpfApplicationStateSpec.
 	Node string `json:"node"`
-	// The number of times the BpfApplicationState has been updated.  Set to 1
+	// updateCount is the number of times the BpfApplicationState has been updated. Set to 1
 	// when the object is created, then it is incremented prior to each update.
 	// This allows us to verify that the API server has the updated object prior
 	// to starting a new Reconcile operation.
 	UpdateCount int64 `json:"updateCount"`
-	// AppLoadStatus reflects the status of loading the bpf application on the
+	// appLoadStatus reflects the status of loading the bpf application on the
 	// given node.
 	AppLoadStatus AppLoadStatus `json:"appLoadStatus"`
-	// Programs is a list of bpf programs contained in the parent application.
+	// programs is a list of bpf programs contained in the parent application.
 	// It is a map from the bpf program name to BpfApplicationProgramState
 	// elements.
 	Programs []ClBpfApplicationProgramState `json:"programs,omitempty"`
