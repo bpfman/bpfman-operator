@@ -37,25 +37,27 @@ type ClTcAttachInfo struct {
 	// program. If Containers is not specified, the BPF program will be attached
 	// in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	Containers *ClContainerSelector `json:"containers,omitempty"`
 
 	// direction specifies the direction of traffic the tc program should
 	// attach to for a given network device.
+	// +optional
 	// +kubebuilder:validation:Enum=Ingress;Egress
-	Direction TCDirectionType `json:"direction"`
+	Direction TCDirectionType `json:"direction,omitempty"`
 
 	// priority specifies the priority of the tc program in relation to
 	// other programs of the same type with the same attach point. It is a value
 	// from 0 to 1000 where lower values have higher precedence.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
-	Priority int32 `json:"priority"`
+	// +optional
+	Priority int32 `json:"priority,omitempty"`
 
 	// proceedOn allows the user to call other tc programs in chain on this exit code.
 	// Multiple values are supported by repeating the parameter.
 	// +optional
 	// +kubebuilder:default:={Pipe,DispatcherReturn}
-	ProceedOn []TcProceedOnValue `json:"proceedOn"`
+	ProceedOn []TcProceedOnValue `json:"proceedOn,omitempty"`
 }
 
 type ClTcProgramInfoState struct {

@@ -37,20 +37,21 @@ type ClXdpAttachInfo struct {
 	// program. If Containers is not specified, the BPF program will be attached
 	// in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	Containers *ClContainerSelector `json:"containers,omitempty"`
 
 	// priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value
 	// from 0 to 1000 where lower values have higher precedence.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
-	Priority int32 `json:"priority"`
+	// +optional
+	Priority int32 `json:"priority,omitempty"`
 
 	// proceedOn allows the user to call other xdp programs in chain on this exit code.
 	// Multiple values are supported by repeating the parameter.
 	// +optional
 	// +kubebuilder:default:={Pass,DispatcherReturn}
-	ProceedOn []XdpProceedOnValue `json:"proceedOn"`
+	ProceedOn []XdpProceedOnValue `json:"proceedOn,omitempty"`
 }
 
 type ClXdpProgramInfoState struct {

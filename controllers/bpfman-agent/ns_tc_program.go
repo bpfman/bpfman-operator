@@ -235,7 +235,7 @@ func (r *NsTcProgramReconciler) removeLinks(links []bpfmaniov1alpha1.TcAttachInf
 // points.
 func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.TcAttachInfo,
 ) ([]bpfmaniov1alpha1.TcAttachInfoState, error) {
-	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
+	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode, r.interfaces)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get interfaces for TcProgram: %v", err)
 	}
@@ -274,7 +274,16 @@ func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 					Direction:     attachInfo.Direction,
 					ProceedOn:     attachInfo.ProceedOn,
 				}
-				nodeLinks = append(nodeLinks, link)
+				if attachInfo.InterfaceSelector.InterfaceAutoDiscovery != nil && *attachInfo.InterfaceSelector.InterfaceAutoDiscovery {
+					link.Direction = bpfmaniov1alpha1.TCIngress
+					nodeLinks = append(nodeLinks, link)
+					link = *link.DeepCopy()
+					link.UUID = uuid.New().String()
+					link.Direction = bpfmaniov1alpha1.TCEgress
+					nodeLinks = append(nodeLinks, link)
+				} else {
+					nodeLinks = append(nodeLinks, link)
+				}
 			}
 		}
 	}
