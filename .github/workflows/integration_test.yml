@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        go: ["1.24"]
+        go: ["1.23"]
         oci_bin: ["docker", "podman"]
     env:
       BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
