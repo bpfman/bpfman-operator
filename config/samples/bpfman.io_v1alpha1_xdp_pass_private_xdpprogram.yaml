@@ -13,7 +13,7 @@ spec:
       imagePullSecret:
         name: regcred
         namespace: bpfman
-      url: quay.io/bpfman-bytecode/xdp_pass_private:latest
+      url: https://quay.io/bpfman-bytecode/xdp_pass_private:latest
   programs:
     - name: pass
       type: XDP

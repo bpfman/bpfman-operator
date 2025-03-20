@@ -8,7 +8,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/kprobe_globals:latest
+      url: https://quay.io/bpfman-bytecode/kprobe_globals:latest
   globalData:
     sampling:
       - 0x01

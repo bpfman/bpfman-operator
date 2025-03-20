@@ -86,12 +86,17 @@ spec:
                       url:
                         description: url is a valid container image URL used to reference
                           a remote bytecode image.
+                        maxLength: 525
                         type: string
+                        x-kubernetes-validations:
+                        - message: must be a valid URL
+                          rule: isURL(self)
                     required:
                     - url
                     type: object
                   path:
                     description: path is used to specify a bytecode object via filepath.
+                    pattern: ^(/[^/\0]+)+/?$
                     type: string
                 type: object
               globalData:

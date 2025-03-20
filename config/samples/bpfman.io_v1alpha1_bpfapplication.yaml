@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/app-test:latest
+      url: https://quay.io/bpfman-bytecode/app-test:latest
   globalData:
     GLOBAL_u8:
       - 0x01
