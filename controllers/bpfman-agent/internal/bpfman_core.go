@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
@@ -31,6 +32,8 @@ import (
 )
 
 var log = ctrl.Log.WithName("agent-intern")
+
+const httpsPrefix = "https://"
 
 func imagePullPolicyConversion(policy bpfmaniov1alpha1.PullPolicy) int32 {
 	switch policy {
@@ -48,12 +51,20 @@ func imagePullPolicyConversion(policy bpfmaniov1alpha1.PullPolicy) int32 {
 func GetBytecode(c client.Client, b *bpfmaniov1alpha1.ByteCodeSelector) (*gobpfman.BytecodeLocation, error) {
 	if b.Image != nil {
 		bytecodeImage := b.Image
-
-		ref, err := reference.ParseNamed(bytecodeImage.Url)
-		if err != nil {
-			return nil, err
+		if bytecodeImage == nil {
+			return nil, fmt.Errorf("invalid bytecode image")
 		}
-
+		url := bytecodeImage.Url
+		var ref reference.Named
+		var err error
+		if img, found := strings.CutPrefix(url, httpsPrefix); found {
+			ref, err = reference.ParseNamed(img)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse bytecode image url: %s, err: %w", img, err)
+			}
+		} else {
+			return nil, fmt.Errorf("missing https:// prefix in the  bytecode image string")
+		}
 		var username, password string
 		if bytecodeImage.ImagePullSecret != nil {
 			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret.Name, bytecodeImage.ImagePullSecret.Namespace)
