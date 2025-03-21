@@ -34,7 +34,7 @@ spec:
       - 0x0D
   programs:
     - name: kprobe_globals
-      type: Kprobe
+      type: KProbe
       kprobe:
         links:
           - function: try_to_wake_up

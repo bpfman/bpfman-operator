@@ -27,10 +27,11 @@ spec:
                 - eth0
             priority: 55
             direction: Ingress
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx
     - name: tcx_next_test
       type: TCX
       tcx:
@@ -40,12 +41,13 @@ spec:
                 - eth0
             priority: 100
             direction: Egress
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx
     - name: uprobe_test
-      type: Uprobe
+      type: UProbe
       uprobe:
         links:
           - function: malloc
@@ -55,7 +57,7 @@ spec:
                 matchLabels:
                   app: nginx
     - name: uretprobe_test
-      type: UretProbe
+      type: URetProbe
       uretprobe:
         links:
           - function: malloc
@@ -72,7 +74,8 @@ spec:
               interfaces:
                 - eth0
             priority: 100
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+            networkNamespaces:
+              podSelector:
+                pods:
+                  matchLabels:
+                    app: nginx

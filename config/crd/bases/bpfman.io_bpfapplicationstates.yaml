@@ -96,11 +96,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid is the Container pid to
-                                  attach the tc program in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tc program should
@@ -124,6 +119,10 @@ spec:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: netnsPath is a path to a Network namespace
+                                  to attach the tc program in.
                                 type: string
                               priority:
                                 description: |-
@@ -162,11 +161,10 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - direction
                             - interfaceName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach
@@ -188,11 +186,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid is the container pid to
-                                  attach the tcx program in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tcx program should
@@ -217,6 +210,11 @@ spec:
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
                                 type: string
+                              netnsPath:
+                                description: |-
+                                  netnsPath is the path to the Network namespace to attach the tcx program
+                                  in.
+                                type: string
                               priority:
                                 description: |-
                                   priority specifies the priority of the tcx program in relation to
@@ -235,11 +233,10 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - direction
                             - interfaceName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - shouldAttach
                             - uuid
@@ -314,7 +311,6 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -381,7 +377,6 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -403,11 +398,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid Container pid to attach
-                                  the xdp program in.
-                                format: int32
-                                type: integer
                               interfaceName:
                                 description: interfaceName is the interface name to
                                   attach the xdp program to.
@@ -423,6 +413,11 @@ spec:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: |-
+                                  netnsPath is the path to the Network namespace to attach the xdp program
+                                  in.
                                 type: string
                               priority:
                                 description: |-
@@ -456,10 +451,9 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - interfaceName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach

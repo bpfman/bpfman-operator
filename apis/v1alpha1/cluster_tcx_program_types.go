@@ -30,11 +30,11 @@ type ClTcxAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program. If networkNamespaces is not specified, the BPF
+	// program will be attached in the root network namespace.
 	// +optional
-	Containers *ClContainerSelector `json:"containers"`
+	NetworkNamespaces *ClNetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.
@@ -66,9 +66,9 @@ type ClTcxAttachInfoState struct {
 	// interfaceName is the Interface name to attach the tc program to.
 	InterfaceName string `json:"interfaceName"`
 
-	// containerPid is the container pid to attach the tcx program in.
+	// netnsPath is the network namespace to attach the tcx program in.
 	// +optional
-	ContainerPid *int32 `json:"containerPid"`
+	NetnsPath *string `json:"netnsPath"`
 
 	// direction specifies the direction of traffic the tcx program should
 	// attach to for a given network device.
