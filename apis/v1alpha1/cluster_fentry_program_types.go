@@ -17,20 +17,28 @@ limitations under the License.
 // All fields are required unless explicitly marked optional
 package v1alpha1
 
-// ClFentryProgramInfo defines the Fentry program details
 type ClFentryProgramInfo struct {
 	ClFentryLoadInfo `json:",inline"`
-	// Whether the program should be attached to the function.
+	// The hook point for a FEntry program is a Linux kernel function. Unlike a
+	// KProbe program, the FEntry function name is required at load time instead
+	// of attach time. Therefore, the FEntry function is not part of links.
+	//
+	// links is optional, but instead of being a list of hook points like other
+	// eBPF program types, links for FEntry is a list of one, which indicates
+	// whether the FEntry program should be attached or not. The FEntry program is
+	// loaded in kernel memory when the BPF Application CRD is created and the
+	// selected Kubernetes nodes are active. The FEntry program will not be
+	// triggered until the program has also been attached. To attach, add an entry
+	// to links with mode set to Attach. To detach, remove the link entry.
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
 	// +kubebuilder:default:={}
 	Links []ClFentryAttachInfo `json:"links"`
 }
 
-// ClFentryLoadInfo contains the program-specific load information for Fentry
-// programs
 type ClFentryLoadInfo struct {
-	// function is the name of the function to attach the Fentry program to.
+	// function is required and specifies the name of the Linux kernel function to
+	// attach the FEntry program.
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
@@ -44,11 +52,11 @@ const (
 	Dettach AttachTypeAttach = "Detach"
 )
 
-// ClFentryAttachInfo indicates that the Fentry program should be attached to
-// the function identified in ClFentryLoadInfo. The only valid value for Attach
-// is true.
 type ClFentryAttachInfo struct {
-	// +kubebuilder:validation:Enum=Attach;Dettach;
+	// mode is required and its presence indicates that the FEntry program should
+	// be attached. mode should be set to Attach. To detach the FEntry program,
+	// remove the link entry.
+	// +kubebuilder:validation:Enum=Attach;Detach;
 	Mode AttachTypeAttach `json:"mode"`
 }
 

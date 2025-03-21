@@ -17,18 +17,25 @@ limitations under the License.
 // All fields are required unless explicitly marked optional
 package v1alpha1
 
-// ClTracepointProgramInfo contains the Tracepoint program details
 type ClTracepointProgramInfo struct {
-	// links is the list of points to which the program should be attached.  The list items
-	// are optional and may be updated after the bpf program has been loaded
+	// links is optional and is the list of hook points to which the Tracepoint
+	// program should be attached. The Tracepoint program is loaded in kernel
+	// memory when the BPF Application CRD is created and the selected Kubernetes
+	// nodes are active. The Tracepoint program will not be triggered until the
+	// program has also been attached to an attachment point described in this
+	// list. Items may be added or removed from the list at any point, causing the
+	// Tracepoint program to be attached or detached.
+	//
+	// The hook point for a Tracepoint program is a one of a predefined set of
+	// Linux kernel functions.
 	// +optional
 	// +kubebuilder:default:={}
 	Links []ClTracepointAttachInfo `json:"links"`
 }
 
 type ClTracepointAttachInfo struct {
-	// name refers to the name of a kernel tracepoint to attach the
-	// bpf program to.
+	// name is required and refers to the name of a Linux kernel Tracepoint to
+	// attach the eBPF program.
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
