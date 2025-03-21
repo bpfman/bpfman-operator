@@ -416,7 +416,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: setup-kind
 setup-kind: ## Setup Kind cluster
-	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
+	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --image "kindest/node:v1.32.2" --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
 .PHONY: destroy-kind
 destroy-kind: ## Destroy Kind cluster

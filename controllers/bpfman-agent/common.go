@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -39,6 +40,7 @@ import (
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/go-logr/logr"
 	"github.com/google/uuid"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
 	"google.golang.org/grpc"
 )
 
@@ -65,6 +67,8 @@ type ReconcilerCommon struct {
 	recType      string
 	Containers   ContainerGetter
 	ourNode      *v1.Node
+	Context      context.Context
+	interfaces   *sync.Map
 }
 
 // ApplicationReconciler is an interface that defines the methods needed to
@@ -228,11 +232,36 @@ func getClientset() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node) ([]string, error) {
+func interfaceInExcludeList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, intf string) bool {
+	for _, i := range interfaceSelector.ExcludeInterfaces {
+		if i == intf {
+			return true
+		}
+	}
+	return false
+}
+
+func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node, discoveredInterfaces *sync.Map) ([]string, error) {
 	var interfaces []string
 
+	if interfaceSelector.InterfaceAutoDiscovery != nil && *interfaceSelector.InterfaceAutoDiscovery {
+		discoveredInterfaces.Range(func(key, value any) bool {
+			if value.(bool) {
+				intf := key.(ifaces.Interface)
+				if !interfaceInExcludeList(interfaceSelector, intf.Name) {
+					interfaces = append(interfaces, intf.Name)
+				}
+			}
+			return true
+		})
+		if len(interfaces) != 0 {
+			return interfaces, nil
+		}
+		return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
+	}
+
 	if interfaceSelector.Interfaces != nil {
-		return *interfaceSelector.Interfaces, nil
+		return interfaceSelector.Interfaces, nil
 	}
 
 	if interfaceSelector.PrimaryNodeInterface != nil {
