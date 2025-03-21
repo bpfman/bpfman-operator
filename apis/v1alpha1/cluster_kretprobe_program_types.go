@@ -19,15 +19,23 @@ package v1alpha1
 
 // ClKprobeProgramInfo contains the information for the kprobe program
 type ClKretprobeProgramInfo struct {
-	// The list of points to which the program should be attached.  The list items
-	// are optional and may be udated after the bpf program has been loaded
+	// links is optional and is the list of hook points to which the KRetProbe
+	// program should be attached. The eBPF program is loaded in kernel memory when
+	// the BPF Application CRD is created and the selected Kubernetes nodes are
+	// active. The eBPF program will not be triggered until the program has also
+	// been attached to a hook point described in this list. Items may be added or
+	// removed from the list at any point, causing the eBPF program to be attached
+	// or detached.
+	//
+	// The hook point for a KRetProbe program is a Linux kernel function.
 	// +optional
 	// +kubebuilder:default:={}
 	Links []ClKretprobeAttachInfo `json:"links"`
 }
 
 type ClKretprobeAttachInfo struct {
-	// function to attach the kprobe to.
+	// function is required and specifies the name of the Linux kernel function to
+	// attach the KRetProbe program.
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64

@@ -17,39 +17,54 @@ limitations under the License.
 // All fields are required unless explicitly marked optional
 package v1alpha1
 
-// ClUprobeProgramInfo contains the information for the uprobe program
 type ClUprobeProgramInfo struct {
-	// links in the list of points to which the program should be attached.  The list items
-	// are optional and may be udated after the bpf program has been loaded
+	// links is optional and is the list of hook points to which the UProbe
+	// or URetProbe program should be attached. The eBPF program is loaded in
+	// kernel memory when the BPF Application CRD is created and the selected
+	// Kubernetes nodes are active. The eBPF program will not be triggered until
+	// the program has also been attached to a hook point described in this list.
+	// Items may be added or removed from the list at any point, causing the eBPF
+	// program to be attached or detached.
+	//
+	// The hook point for a UProbe and URetProbe program is a user-space binary,
+	// library or function. By default, the eBPF program is triggered at the entry
+	// of the hook point, but the hook point can be adjusted using an optional
+	// offset. Optionally, the eBPF program can be installed in a set of containers
+	// or limited to a specified PID.
 	// +optional
 	// +kubebuilder:default:={}
 	Links []ClUprobeAttachInfo `json:"links"`
 }
 
 type ClUprobeAttachInfo struct {
-	// function to attach the uprobe to.
+	// function is optional and specifies the name of user-space function to attach
+	// the UProbe or URetProbe program. If not provided, the eBPF program will be
+	// triggered on the entry of the target.
 	// +optional
 	// +kubebuilder:validation:Pattern="^[a-zA-Z][a-zA-Z0-9_]+."
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=64
 	Function string `json:"function"`
 
-	// offset added to the address of the function for uprobe.
+	// offset is optional and the value is added to the address of the hook point
+	// function.
 	// +optional
 	// +kubebuilder:default:=0
 	Offset uint64 `json:"offset"`
 
-	// target is the Library name or the absolute path to a binary or library.
+	// target is required and is the user-space library name or the absolute path
+	// to a binary or library.
 	Target string `json:"target"`
 
-	// pid only execute uprobe for given process identification number (PID). If PID
-	// is not provided, uprobe executes for all PIDs.
+	// pid is optional and if provided, limits the execution of the  UProbe or
+	// URetProbe to the provided process identification number (PID). If pid is not
+	// provided, the UProbe or URetProbe executes for all PIDs.
 	// +optional
 	Pid *int32 `json:"pid"`
 
-	// containers identify the set of containers in which to attach the
-	// uprobe. If Containers is not specified, the uprobe will be attached in
-	// the bpfman-agent container.
+	// containers is an optional field that identifies the set of containers in
+	// which to attach the UProbe or URetProbe program. If containers is not
+	// specified, the eBPF program will be attached in the bpfman-agent container.
 	// +optional
 	Containers *ClContainerSelector `json:"containers"`
 }

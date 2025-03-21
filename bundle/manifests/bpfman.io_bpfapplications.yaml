@@ -51,8 +51,9 @@ spec:
             properties:
               byteCode:
                 description: |-
-                  bytecode configures where the bpf program's bytecode should be loaded
-                  from.
+                  bytecode is a required field and configures where the eBPF program's
+                  bytecode should be loaded from. The image must contain one or more
+                  eBPF programs.
                 properties:
                   image:
                     description: image used to specify a bytecode container image.
@@ -99,16 +100,22 @@ spec:
                   format: byte
                   type: string
                 description: |-
-                  globalData allows the user to set global variables when the program is loaded
-                  with an array of raw bytes. This is a very low level primitive. The caller
-                  is responsible for formatting the byte string appropriately considering
-                  such things as size, endianness, alignment and packing of data structures.
+                  globalData is an optional field that allows the user to set global variables
+                  when the program is loaded. This allows the same compiled bytecode to be
+                  deployed by different BPF Applications to behave differently based on
+                  globalData configuration values.  It uses an array of raw bytes. This is a
+                  very low level primitive. The caller is responsible for formatting the byte
+                  string appropriately considering such things as size, endianness, alignment
+                  and packing of data structures.
                 type: object
               mapOwnerSelector:
                 description: |-
-                  TODO: need to work out how MapOwnerSelector will work after load-attach-split
-                  mapOwnerSelector is used to select the loaded eBPF program this eBPF program
-                  will share a map with.
+                  mapOwnerSelector is an optional field used to share maps across
+                  applications. eBPF programs loaded with the same ClusterBpfApplication or
+                  BpfApplication instance do not need to use this field. This label selector
+                  allows maps from a different ClusterBpfApplication or BpfApplication
+                  instance to be used by this instance.
+                  TBD: mapOwnerSelector is currently not supported due to recent code rework.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -155,9 +162,9 @@ spec:
                 x-kubernetes-map-type: atomic
               nodeSelector:
                 description: |-
-                  nodeSelector allows the user to specify which nodes to deploy the
-                  bpf program to. This field must be specified, to select all nodes
-                  use standard metav1.LabelSelector semantics and make it empty.
+                  nodeSelector is a required field and allows the user to specify which
+                  Kubernetes nodes to deploy the eBPF programs to. To select all nodes use
+                  standard metav1.LabelSelector semantics and make it empty.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -310,15 +317,15 @@ spec:
                                 properties:
                                   interfaces:
                                     description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
+                                      interfaces is optional and is a list of network interface names to attach
+                                      the eBPF program.
                                     items:
                                       type: string
                                     type: array
                                   primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
+                                    description: |-
+                                      primaryNodeInterface is optional and indicates to attach the eBPF program to
+                                      the primary interface on the Kubernetes node. Only 'true' is accepted.
                                     type: boolean
                                 type: object
                               priority:
@@ -451,15 +458,15 @@ spec:
                                 properties:
                                   interfaces:
                                     description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
+                                      interfaces is optional and is a list of network interface names to attach
+                                      the eBPF program.
                                     items:
                                       type: string
                                     type: array
                                   primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
+                                    description: |-
+                                      primaryNodeInterface is optional and indicates to attach the eBPF program to
+                                      the primary interface on the Kubernetes node. Only 'true' is accepted.
                                     type: boolean
                                 type: object
                               priority:
@@ -777,15 +784,15 @@ spec:
                                 properties:
                                   interfaces:
                                     description: |-
-                                      interfaces refers to a list of network interfaces to attach the BPF
-                                      program to.
+                                      interfaces is optional and is a list of network interface names to attach
+                                      the eBPF program.
                                     items:
                                       type: string
                                     type: array
                                   primaryNodeInterface:
-                                    description: primaryNodeInterface to attach BPF
-                                      program to the primary interface on the node.
-                                      Only 'true' accepted.
+                                    description: |-
+                                      primaryNodeInterface is optional and indicates to attach the eBPF program to
+                                      the primary interface on the Kubernetes node. Only 'true' is accepted.
                                     type: boolean
                                 type: object
                               priority:
@@ -853,14 +860,20 @@ spec:
             - nodeSelector
             type: object
           status:
-            description: BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState
-              object
+            description: |-
+              status reflects the status of a BPF Application and indicates if all the
+              eBPF programs for a given instance loaded successfully or not.
             properties:
               conditions:
                 description: |-
-                  For a BpfApplication object, Conditions contains the global cluster state
-                  for the object. For a BpfApplicationState object, Conditions contains the
-                  state of the BpfApplication object on the given node.
+                  For a ClusterBpfApplication instance or a BpfApplication instance,
+                  conditions contains the summary state for all eBPF programs defined in the
+                  instance for all the Kubernetes nodes in the cluster.
+
+
+                  For a ClusterBpfApplicationState instance or a BpfApplicationState instance,
+                  conditions contains the summary state for all eBPF programs defined in the
+                  instance for a given Kubernetes nodes.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for

@@ -21,34 +21,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// InterfaceSelector defines interface to attach to.
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type InterfaceSelector struct {
-	// interfaces refers to a list of network interfaces to attach the BPF
-	// program to.
+	// interfaces is optional and is a list of network interface names to attach
+	// the eBPF program.
 	// +optional
 	Interfaces *[]string `json:"interfaces,omitempty"`
 
-	// primaryNodeInterface to attach BPF program to the primary interface on the node. Only 'true' accepted.
+	// primaryNodeInterface is optional and indicates to attach the eBPF program to
+	// the primary interface on the Kubernetes node. Only 'true' is accepted.
 	// +optional
 	PrimaryNodeInterface *bool `json:"primaryNodeInterface,omitempty"`
 }
 
-// ClContainerSelector identifies a set of containers. For example, this can be
-// used to identify a set of containers in which to attach uprobes.
 type ClContainerSelector struct {
-	// namespaces indicate the target namespaces.
+	// namespace is optional and indicates the target namespaces. If not provided,
+	// the default Kubernetes namespace is used.
 	// +optional
 	// +kubebuilder:default:=""
 	Namespace string `json:"namespace"`
 
-	// pods indicate the target pods. This field must be specified, to select all pods use
+	// pods is required and indicate the target pods. To select all pods use the
 	// standard metav1.LabelSelector semantics and make it empty.
 	Pods metav1.LabelSelector `json:"pods"`
 
-	// containerNames indicate the Name(s) of container(s).  If none are specified, all containers in the
-	// pod are selected.
+	// containerNames is optional and indicate the name(s) of container(s).  If
+	// none are specified, all containers in the pod are selected.
 	// +optional
 	ContainerNames *[]string `json:"containerNames,omitempty"`
 }
@@ -69,34 +68,46 @@ type ContainerSelector struct {
 
 // BpfAppCommon defines the common attributes for all BpfApp programs
 type BpfAppCommon struct {
-	// nodeSelector allows the user to specify which nodes to deploy the
-	// bpf program to. This field must be specified, to select all nodes
-	// use standard metav1.LabelSelector semantics and make it empty.
+	// nodeSelector is a required field and allows the user to specify which
+	// Kubernetes nodes to deploy the eBPF programs to. To select all nodes use
+	// standard metav1.LabelSelector semantics and make it empty.
 	NodeSelector metav1.LabelSelector `json:"nodeSelector"`
 
-	// globalData allows the user to set global variables when the program is loaded
-	// with an array of raw bytes. This is a very low level primitive. The caller
-	// is responsible for formatting the byte string appropriately considering
-	// such things as size, endianness, alignment and packing of data structures.
+	// globalData is an optional field that allows the user to set global variables
+	// when the program is loaded. This allows the same compiled bytecode to be
+	// deployed by different BPF Applications to behave differently based on
+	// globalData configuration values.  It uses an array of raw bytes. This is a
+	// very low level primitive. The caller is responsible for formatting the byte
+	// string appropriately considering such things as size, endianness, alignment
+	// and packing of data structures.
 	// +optional
 	GlobalData map[string][]byte `json:"globalData,omitempty"`
 
-	// bytecode configures where the bpf program's bytecode should be loaded
-	// from.
+	// bytecode is a required field and configures where the eBPF program's
+	// bytecode should be loaded from. The image must contain one or more
+	// eBPF programs.
 	ByteCode ByteCodeSelector `json:"byteCode"`
 
-	// TODO: need to work out how MapOwnerSelector will work after load-attach-split
-	// mapOwnerSelector is used to select the loaded eBPF program this eBPF program
-	// will share a map with.
+	// mapOwnerSelector is an optional field used to share maps across
+	// applications. eBPF programs loaded with the same ClusterBpfApplication or
+	// BpfApplication instance do not need to use this field. This label selector
+	// allows maps from a different ClusterBpfApplication or BpfApplication
+	// instance to be used by this instance.
+	// TBD: mapOwnerSelector is currently not supported due to recent code rework.
 	// +optional
 	MapOwnerSelector *metav1.LabelSelector `json:"mapOwnerSelector"`
 }
 
-// BpfAppStatus reflects the status of a BpfApplication or BpfApplicationState object
+// status reflects the status of a BPF Application and indicates if all the
+// eBPF programs for a given instance loaded successfully or not.
 type BpfAppStatus struct {
-	// For a BpfApplication object, Conditions contains the global cluster state
-	// for the object. For a BpfApplicationState object, Conditions contains the
-	// state of the BpfApplication object on the given node.
+	// For a ClusterBpfApplication instance or a BpfApplication instance,
+	// conditions contains the summary state for all eBPF programs defined in the
+	// instance for all the Kubernetes nodes in the cluster.
+	//
+	// For a ClusterBpfApplicationState instance or a BpfApplicationState instance,
+	// conditions contains the summary state for all eBPF programs defined in the
+	// instance for a given Kubernetes nodes.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +listType=map

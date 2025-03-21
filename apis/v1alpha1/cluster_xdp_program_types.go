@@ -20,34 +20,53 @@ package v1alpha1
 // +kubebuilder:validation:Enum:=Aborted;Drop;Pass;TX;ReDirect;DispatcherReturn;
 type XdpProceedOnValue string
 
-// ClXdpProgramInfo contains the xdp program details
 type ClXdpProgramInfo struct {
-	// links is the list of points to which the program should be attached.  The list items
-	// are optional and may be updated after the bpf program has been loaded
+	// links is optional and is the list of hook points to which the XDP program
+	// should be attached. The XDP program is loaded in kernel memory when the BPF
+	// Application CRD is created and the selected Kubernetes nodes are active.
+	// The XDP program will not be triggered until the program has also been
+	// attached to an attachment point described in this list. Items may be added
+	// or removed from the list at any point, causing the XDP program to be
+	// attached or detached.
+	//
+	// The hook point for an XDP program is an interface (or network device). An
+	// interface can be specified by name, or using the primaryNodeInterface flag,
+	// which indicates to use the primary interface of a Kubernetes node or
+	// container. Optionally, the XDP program can be installed in a set of
+	// containers.
 	// +optional
 	// +kubebuilder:default:={}
 	Links []ClXdpAttachInfo `json:"links"`
 }
 
 type ClXdpAttachInfo struct {
-	// interfaceSelector to determine the network interface (or interfaces)
+	// interfaceSelector is required and is used to determine the network interface
+	// (or interfaces) the XDP program is attached. Either a list of interface
+	// names (which can be a list of one name) or primaryNodeInterface flag must be
+	// provided, but not both.
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program. If Containers is not specified, the BPF program will be attached
-	// in the root network namespace.
+	// containers is an optional field that identifies the set of containers in
+	// which to attach the XDP program. If containers is not specified, the XDP
+	// program will be attached in the root network namespace.
 	// +optional
 	Containers *ClContainerSelector `json:"containers"`
 
-	// priority specifies the priority of the bpf program in relation to
-	// other programs of the same type with the same attach point. It is a value
-	// from 0 to 1000 where lower values have higher precedence.
+	// priority is required and specifies the order of the XDP program is executed
+	// in relation to other XDP programs with the same hook point. It is a value
+	// from 0 to 1000, where lower values have higher precedence.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
 	Priority int32 `json:"priority"`
 
-	// proceedOn allows the user to call other xdp programs in chain on this exit code.
-	// Multiple values are supported by repeating the parameter.
+	// proceedOn is optional and allows the user to call other XDP programs in a
+	// chain, or not call the next program in a chain based on the exit code of
+	// an XDP program. Allowed values are:
+	//   Aborted, Drop, Pass, TX, ReDirect and DispatcherReturn
+	// Multiple values are supported. Default is Pass and DispatcherReturn. So
+	// using the default values, if an XDP program returns Pass, the next XDP
+	// program in the chain will be called. If an XDP program returns Drop, the
+	// next XDP program in the chain will NOT be called.
 	// +optional
 	// +kubebuilder:default:={Pass,DispatcherReturn}
 	ProceedOn []XdpProceedOnValue `json:"proceedOn"`
