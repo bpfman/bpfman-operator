@@ -485,8 +485,8 @@ spec:
                       - XDP
                       - TC
                       - TCX
-                      - Uprobe
-                      - UretProbe
+                      - UProbe
+                      - URetProbe
                       type: string
                     uprobe:
                       description: uprobe defines the desired state of the application's
