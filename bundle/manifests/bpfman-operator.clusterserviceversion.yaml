@@ -17,7 +17,7 @@ metadata:
           "spec": {
             "byteCode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/app-test:latest"
+                "url": "https://quay.io/bpfman-bytecode/app-test:latest"
               }
             },
             "globalData": {
@@ -348,7 +348,7 @@ metadata:
           "spec": {
             "byteCode": {
               "image": {
-                "url": "quay.io/bpfman-bytecode/app-test:latest"
+                "url": "https://quay.io/bpfman-bytecode/app-test:latest"
               }
             },
             "globalData": {
@@ -820,7 +820,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-03-21T19:22:04Z"
+    createdAt: "2025-03-21T21:44:33Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
