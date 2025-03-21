@@ -40,14 +40,14 @@ This operator was built using some great tooling provided by the
 
 Here are some links to help in your bpfman journey (all links are from the bpfman website <https://bpfman.io/>):
 
-- [Welcome to bpfman](https://bpfman.io/) for overview of bpfman.
+- [Welcome to bpfman](https://bpfman.io/main/) for overview of bpfman.
 - [Deploying Example eBPF Programs On Kubernetes](https://bpfman.io/main/getting-started/example-bpf-k8s/)
   for some examples of deploying eBPF programs through `bpfman` in a Kubernetes deployment.
 - [Setup and Building bpfman](https://bpfman.io/main/getting-started/building-bpfman/) for instructions
   on setting up your development environment and building bpfman.
 - [Example eBPF Programs](https://bpfman.io/main/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfman`.
-- [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/develop-operator/) for details on launching
+- [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/operator-quick-start/) for details on launching
   bpfman in a Kubernetes cluster.
 - [Developing the bpfman-operator](https://bpfman.io/main/developer-guide/develop-operator/) for more architecture
   details about `bpfman-operator` and details on developing bpfman-operator.
