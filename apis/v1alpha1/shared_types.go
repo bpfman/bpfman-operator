@@ -33,6 +33,13 @@ type InterfaceDiscovery struct {
 	//+kubebuilder:default:={"lo"}
 	//+optional
 	ExcludeInterfaces []string `json:"excludeInterfaces,omitempty"`
+
+	// allowedInterfaces contains the interface names. If empty, the agent
+	// fetches all the interfaces in the system, excepting the ones listed in `excludeInterfaces`.
+	// An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
+	// Otherwise, it is matched as a case-sensitive string.
+	//+optional
+	AllowedInterfaces []string `json:"allowedInterfaces,omitempty"`
 }
 
 // InterfaceSelector defines interface to attach to.
