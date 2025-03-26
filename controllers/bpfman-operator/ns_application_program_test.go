@@ -64,7 +64,7 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 
 	attachInfo := bpfmaniov1alpha1.XdpAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers: bpfmaniov1alpha1.ContainerSelector{
+		NetworkNamespaces: bpfmaniov1alpha1.NetworkNamespaceSelector{
 			Pods: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "test",

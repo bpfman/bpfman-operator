@@ -1,0 +1,62 @@
+apiVersion: bpfman.io/v1alpha1
+kind: ClusterBpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterbpfapplication
+  name: clusterbpfapplication-sample
+spec:
+  nodeSelector: {}
+  byteCode:
+    image:
+      url: quay.io/bpfman-bytecode/app-test:latest
+  globalData:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
+  programs:
+    - name: kprobe_test
+      type: KProbe
+      kprobe:
+        links:
+    - name: kretprobe_test
+      type: KRetProbe
+      kretprobe:
+        links:
+    - name: tracepoint_test
+      type: TracePoint
+      tracepoint:
+        links:
+    - name: tc_pass_test
+      type: TC
+      tc:
+        links:
+    - name: tcx_next_test
+      type: TCX
+      tcx:
+        links:
+    - name: uprobe_test
+      type: UProbe
+      uprobe:
+        links:
+    - name: uretprobe_test
+      type: URetProbe
+      uretprobe:
+        links:
+    - name: xdp_pass_test
+      type: XDP
+      xdp:
+        links:
+    - name: fentry_test
+      type: FEntry
+      fentry:
+        function: do_unlinkat
+        links:
+    - name: fexit_test
+      type: FExit
+      fexit:
+        function: do_unlinkat
+        links:

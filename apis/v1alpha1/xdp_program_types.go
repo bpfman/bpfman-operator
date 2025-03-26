@@ -22,18 +22,16 @@ type XdpProgramInfo struct {
 	// links is the list of points to which the program should be attached.  The list items
 	// are optional and may be udated after the bpf program has been loaded
 	// +optional
-	// +kubebuilder:default:={}
-	Links []XdpAttachInfo `json:"links"`
+	Links []XdpAttachInfo `json:"links,omitempty"`
 }
 
 type XdpAttachInfo struct {
 	// interfaceSelector to determine the network interface (or interfaces)
 	InterfaceSelector InterfaceSelector `json:"interfaceSelector"`
 
-	// containers identify the set of containers in which to attach the eBPF
-	// program.
-	// +optional
-	Containers ContainerSelector `json:"containers,omitempty"`
+	// networkNamespaces identifies the set of network namespaces in which to
+	// attach the eBPF program.
+	NetworkNamespaces NetworkNamespaceSelector `json:"networkNamespaces"`
 
 	// priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value
@@ -57,8 +55,7 @@ type XdpProgramInfoState struct {
 	// also contains information about the attach point required by the
 	// reconciler
 	// +optional
-	// +kubebuilder:default:={}
-	Links []XdpAttachInfoState `json:"links"`
+	Links []XdpAttachInfoState `json:"links,omitempty"`
 }
 
 type XdpAttachInfoState struct {
@@ -67,8 +64,9 @@ type XdpAttachInfoState struct {
 	// interfaceName is the interface name to attach the xdp program to.
 	InterfaceName string `json:"interfaceName"`
 
-	// containerPid Container pid to attach the xdp program in.
-	ContainerPid int32 `json:"containerPid"`
+	// netnsPath is the path to the Network namespace to attach the xdp program
+	// in.
+	NetnsPath string `json:"netnsPath"`
 
 	// priority specifies the priority of the xdp program in relation to
 	// other programs of the same type with the same attach point. It is a value

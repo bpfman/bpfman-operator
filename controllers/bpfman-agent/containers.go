@@ -237,3 +237,16 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 
 	return &containers, nil
 }
+
+func GetOneContainerPerPod(containers *[]ContainerInfo) *[]ContainerInfo {
+	uniquePods := make(map[string]bool)
+	uniqueContainers := []ContainerInfo{}
+	for _, container := range *containers {
+		if _, ok := uniquePods[container.podName]; !ok {
+			uniquePods[container.podName] = true
+			uniqueContainers = append(uniqueContainers, container)
+		}
+	}
+
+	return &uniqueContainers
+}

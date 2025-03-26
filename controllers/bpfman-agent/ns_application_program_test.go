@@ -73,6 +73,14 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 		},
 	}
 
+	fakeNetNamespaces := bpfmaniov1alpha1.NetworkNamespaceSelector{
+		Pods: metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "test",
+			},
+		},
+	}
+
 	fakeInts := []string{fakeInt0}
 
 	interfaceSelector := bpfmaniov1alpha1.InterfaceSelector{
@@ -84,7 +92,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 
 	xdpAttachInfo := bpfmaniov1alpha1.XdpAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        fakeContainers,
+		NetworkNamespaces: fakeNetNamespaces,
 		Priority:          int32(priority),
 		ProceedOn:         proceedOn,
 	}
@@ -101,7 +109,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 
 	tcxAttachInfo := bpfmaniov1alpha1.TcxAttachInfo{
 		InterfaceSelector: interfaceSelector,
-		Containers:        fakeContainers,
+		NetworkNamespaces: fakeNetNamespaces,
 		Direction:         "ingress",
 		Priority:          int32(priority),
 	}
@@ -155,7 +163,7 @@ func TestNsBpfApplicationControllerCreate(t *testing.T) {
 		InterfaceSelector: interfaceSelector,
 		Direction:         direction,
 		Priority:          int32(priority),
-		Containers:        fakeContainers,
+		NetworkNamespaces: fakeNetNamespaces,
 		ProceedOn:         tcProceedOn,
 	}
 	tcProgram := bpfmaniov1alpha1.BpfApplicationProgram{

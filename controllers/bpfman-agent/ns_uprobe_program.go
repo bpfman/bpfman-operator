@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
@@ -161,8 +162,11 @@ func (r *NsUprobeProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.Up
 	links *[]bpfmaniov1alpha1.UprobeAttachInfoState) *int {
 	for i, a := range *links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and Direction.
-		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset {
+		// same: Function, Offset, Target, Pid, and ContainerPid.
+		if a.Function == attachInfoState.Function && a.Offset == attachInfoState.Offset &&
+			a.Target == attachInfoState.Target &&
+			reflect.DeepEqual(a.Pid, attachInfoState.Pid) &&
+			a.ContainerPid == attachInfoState.ContainerPid {
 			return &i
 		}
 	}
@@ -273,7 +277,7 @@ func (r *NsUprobeProgramReconciler) getExpectedLinks(ctx context.Context, attach
 		ctx,
 		r.namespace,
 		attachInfo.Containers.Pods,
-		attachInfo.Containers.ContainerNames,
+		&attachInfo.Containers.ContainerNames,
 		r.Logger,
 	)
 	if err != nil {

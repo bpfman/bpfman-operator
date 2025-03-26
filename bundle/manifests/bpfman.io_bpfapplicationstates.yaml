@@ -87,7 +87,6 @@ spec:
                         TcPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links is the List of attach points for the BPF program on the given node. Each entry
                             in *AttachInfoState represents a specific, unique attach point that is
@@ -96,11 +95,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid is the Container pid to
-                                  attach the tc program in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tc program should
@@ -124,6 +118,10 @@ spec:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: netnsPath is a path to a Network namespace
+                                  to attach the tc program in.
                                 type: string
                               priority:
                                 description: |-
@@ -162,11 +160,10 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - direction
                             - interfaceName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach
@@ -179,7 +176,6 @@ spec:
                         TcxPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links is the List of attach points for the BPF program on the given node. Each entry
                             in *AttachInfoState represents a specific, unique attach point that is
@@ -188,11 +184,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid is the container pid to
-                                  attach the tcx program in.
-                                format: int32
-                                type: integer
                               direction:
                                 description: |-
                                   direction specifies the direction of traffic the tcx program should
@@ -217,6 +208,11 @@ spec:
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
                                 type: string
+                              netnsPath:
+                                description: |-
+                                  netnsPath is the path to the Network namespace to attach the tcx program
+                                  in.
+                                type: string
                               priority:
                                 description: |-
                                   priority specifies the priority of the tcx program in relation to
@@ -235,8 +231,8 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - shouldAttach
                             - uuid
                             type: object
@@ -256,7 +252,6 @@ spec:
                         UprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             List of attach points for the BPF program on the given node. Each entry
                             in *AttachInfoState represents a specific, unique attach point that is
@@ -310,7 +305,6 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -323,7 +317,6 @@ spec:
                         UretprobePrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             List of attach points for the BPF program on the given node. Each entry
                             in *AttachInfoState represents a specific, unique attach point that is
@@ -377,7 +370,6 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - linkId
                             - linkStatus
                             - shouldAttach
                             - target
@@ -390,7 +382,6 @@ spec:
                         XdpPrograms.
                       properties:
                         links:
-                          default: []
                           description: |-
                             links is the list of attach points for the BPF program on the given node. Each entry
                             in *AttachInfoState represents a specific, unique attach point that is
@@ -399,11 +390,6 @@ spec:
                             reconciler
                           items:
                             properties:
-                              containerPid:
-                                description: containerPid Container pid to attach
-                                  the xdp program in.
-                                format: int32
-                                type: integer
                               interfaceName:
                                 description: interfaceName is the interface name to
                                   attach the xdp program to.
@@ -419,6 +405,11 @@ spec:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
                                   successfully, and if not, why.
+                                type: string
+                              netnsPath:
+                                description: |-
+                                  netnsPath is the path to the Network namespace to attach the xdp program
+                                  in.
                                 type: string
                               priority:
                                 description: |-
@@ -452,10 +443,9 @@ spec:
                                   attach point assigned by bpfman agent.
                                 type: string
                             required:
-                            - containerPid
                             - interfaceName
-                            - linkId
                             - linkStatus
+                            - netnsPath
                             - priority
                             - proceedOn
                             - shouldAttach

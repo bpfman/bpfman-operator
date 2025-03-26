@@ -150,7 +150,7 @@ func (r *ClTracepointProgramReconciler) updateLinks(ctx context.Context, isBeing
 func (r *ClTracepointProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTracepointAttachInfoState) *int {
 	for i, a := range r.currentProgramState.TracePoint.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: IfName, ContainerPid, Priority, and Direction.
+		// same: Name.
 		if a.Name == attachInfoState.Name {
 			return &i
 		}

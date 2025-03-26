@@ -1,24 +1,17 @@
+# To use this sample, you need to deploy the test-target application using the
+# following command:
+# kubectl apply -f hack/test-deployment.yaml
 apiVersion: bpfman.io/v1alpha1
-kind: BpfApplication
+kind: ClusterBpfApplication
 metadata:
   labels:
-    app.kubernetes.io/name: bpfapplication
-  name: bpfapplication-sample
-  namespace: acme
+    app.kubernetes.io/name: clusterbpfapplication
+  name: clusterbpfapplication-sample-netns
 spec:
-  # Select all nodes
   nodeSelector: {}
   byteCode:
     image:
       url: quay.io/bpfman-bytecode/app-test:latest
-  globalData:
-    GLOBAL_u8:
-      - 0x01
-    GLOBAL_u32:
-      - 0x0D
-      - 0x0C
-      - 0x0B
-      - 0x0A
   programs:
     - name: tc_pass_test
       type: TC
@@ -27,12 +20,12 @@ spec:
           - interfaceSelector:
               interfaces:
                 - eth0
-            priority: 55
-            direction: Ingress
+            priority: 100
+            direction: Egress
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target
     - name: tcx_next_test
       type: TCX
       tcx:
@@ -45,27 +38,7 @@ spec:
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
-    - name: uprobe_test
-      type: UProbe
-      uprobe:
-        links:
-          - function: malloc
-            target: libc
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
-    - name: uretprobe_test
-      type: URetProbe
-      uretprobe:
-        links:
-          - function: malloc
-            target: libc
-            containers:
-              pods:
-                matchLabels:
-                  app: nginx
+                  app: test-target
     - name: xdp_pass_test
       type: XDP
       xdp:
@@ -77,4 +50,4 @@ spec:
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target

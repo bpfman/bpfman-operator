@@ -23,8 +23,7 @@ type ClFentryProgramInfo struct {
 	// Whether the program should be attached to the function.
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
-	// +kubebuilder:default:={}
-	Links []ClFentryAttachInfo `json:"links"`
+	Links []ClFentryAttachInfo `json:"links,omitempty"`
 }
 
 // ClFentryLoadInfo contains the program-specific load information for Fentry
@@ -56,8 +55,7 @@ type ClFentryProgramInfoState struct {
 	ClFentryLoadInfo `json:",inline"`
 	// +optional
 	// +kubebuilder:validation:MaxItems=1
-	// +kubebuilder:default:={}
-	Links []ClFentryAttachInfoState `json:"links"`
+	Links []ClFentryAttachInfoState `json:"links,omitempty"`
 }
 
 type ClFentryAttachInfoState struct {

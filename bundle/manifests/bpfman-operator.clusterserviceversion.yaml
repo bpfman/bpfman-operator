@@ -38,18 +38,18 @@ metadata:
                 "tc": {
                   "links": [
                     {
-                      "containers": {
-                        "pods": {
-                          "matchLabels": {
-                            "app": "nginx"
-                          }
-                        }
-                      },
                       "direction": "Ingress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
                         ]
+                      },
+                      "networkNamespaces": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
                       },
                       "priority": 55
                     }
@@ -62,18 +62,18 @@ metadata:
                 "tcx": {
                   "links": [
                     {
-                      "containers": {
-                        "pods": {
-                          "matchLabels": {
-                            "app": "nginx"
-                          }
-                        }
-                      },
                       "direction": "Egress",
                       "interfaceSelector": {
                         "interfaces": [
                           "eth0"
                         ]
+                      },
+                      "networkNamespaces": {
+                        "pods": {
+                          "matchLabels": {
+                            "app": "nginx"
+                          }
+                        }
                       },
                       "priority": 100
                     }
@@ -125,17 +125,17 @@ metadata:
                 "xdp": {
                   "links": [
                     {
-                      "containers": {
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "networkNamespaces": {
                         "pods": {
                           "matchLabels": {
                             "app": "nginx"
                           }
                         }
-                      },
-                      "interfaceSelector": {
-                        "interfaces": [
-                          "eth0"
-                        ]
                       },
                       "priority": 100
                     }
@@ -185,7 +185,7 @@ metadata:
                   "links": [
                     {
                       "containerPid": 3078,
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceName": "eth0",
                       "linkId": 832290746,
                       "linkStatus": "Attached",
@@ -199,7 +199,7 @@ metadata:
                     },
                     {
                       "containerPid": 2981,
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceName": "eth0",
                       "linkId": 256466427,
                       "linkStatus": "Attached",
@@ -223,7 +223,7 @@ metadata:
                   "links": [
                     {
                       "containerPid": 3078,
-                      "direction": "egress",
+                      "direction": "Egress",
                       "interfaceName": "eth0",
                       "linkId": 533548322,
                       "linkStatus": "Attached",
@@ -233,7 +233,7 @@ metadata:
                     },
                     {
                       "containerPid": 2981,
-                      "direction": "egress",
+                      "direction": "Egress",
                       "interfaceName": "eth0",
                       "linkId": 777895864,
                       "linkStatus": "Attached",
@@ -408,6 +408,23 @@ metadata:
                         "primaryNodeInterface": true
                       },
                       "priority": 55
+                    },
+                    {
+                      "direction": "Egress",
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "networkNamespaces": {
+                        "namespace": "bpfman",
+                        "pods": {
+                          "matchLabels": {
+                            "name": "bpfman-daemon"
+                          }
+                        }
+                      },
+                      "priority": 100
                     }
                   ]
                 },
@@ -425,22 +442,19 @@ metadata:
                       "priority": 500
                     },
                     {
-                      "containers": {
-                        "containerNames": [
-                          "bpfman-agent"
-                        ],
+                      "direction": "Egress",
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "networkNamespaces": {
                         "namespace": "bpfman",
                         "pods": {
                           "matchLabels": {
                             "name": "bpfman-daemon"
                           }
                         }
-                      },
-                      "direction": "Egress",
-                      "interfaceSelector": {
-                        "interfaces": [
-                          "eth0"
-                        ]
                       },
                       "priority": 100
                     }
@@ -508,21 +522,18 @@ metadata:
                       "priority": 55
                     },
                     {
-                      "containers": {
-                        "containerNames": [
-                          "bpfman-agent"
-                        ],
+                      "interfaceSelector": {
+                        "interfaces": [
+                          "eth0"
+                        ]
+                      },
+                      "networkNamespaces": {
                         "namespace": "bpfman",
                         "pods": {
                           "matchLabels": {
                             "name": "bpfman-daemon"
                           }
                         }
-                      },
-                      "interfaceSelector": {
-                        "interfaces": [
-                          "eth0"
-                        ]
                       },
                       "priority": 100
                     }
@@ -560,7 +571,7 @@ metadata:
           "apiVersion": "bpfman.io/v1alpha1",
           "kind": "ClusterBpfApplicationState",
           "metadata": {
-            "creationTimestamp": "2025-03-04T21:59:13Z",
+            "creationTimestamp": "2025-03-18T20:57:16Z",
             "finalizers": [
               "bpfman.io.clbpfapplicationcontroller/finalizer"
             ],
@@ -569,7 +580,7 @@ metadata:
               "bpfman.io/ownedByProgram": "clusterbpfapplication-sample",
               "kubernetes.io/hostname": "bpfman-deployment-control-plane"
             },
-            "name": "clusterbpfapplication-sample-7f0ab017",
+            "name": "clusterbpfapplication-sample-d641ddcb",
             "ownerReferences": [
               {
                 "apiVersion": "bpfman.io/v1alpha1",
@@ -577,11 +588,11 @@ metadata:
                 "controller": true,
                 "kind": "ClusterBpfApplication",
                 "name": "clusterbpfapplication-sample",
-                "uid": "a5f706e7-aecf-473c-bdfc-6acb684d65b1"
+                "uid": "8d00a9ac-91ae-4688-9385-272fc4be4b79"
               }
             ],
-            "resourceVersion": "729",
-            "uid": "86a048c6-df30-47ab-b544-3fd75f3b11dc"
+            "resourceVersion": "1655",
+            "uid": "c9949cb6-8e1a-4415-ae64-7d8b92a3a3b8"
           },
           "spec": {
             "appLoadStatus": "LoadSuccess",
@@ -592,49 +603,48 @@ metadata:
                   "links": [
                     {
                       "function": "try_to_wake_up",
-                      "linkId": 4211340334,
+                      "linkId": 641732519,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
-                      "uuid": "eff9d4e1-5386-48ac-9ebf-4f7ce5518629"
+                      "uuid": "7a808a40-324f-4aef-9f41-5e76deb81280"
                     }
                   ]
                 },
                 "name": "kprobe_test",
-                "programId": 4044,
+                "programId": 2960,
                 "programLinkStatus": "Success",
-                "type": "Kprobe"
+                "type": "KProbe"
               },
               {
                 "kretprobe": {
                   "links": [
                     {
                       "function": "try_to_wake_up",
-                      "linkId": 1254903747,
+                      "linkId": 3892478114,
                       "linkStatus": "Attached",
-                      "offset": 0,
                       "shouldAttach": true,
-                      "uuid": "3e8203b3-2de7-4032-abe5-a42493b38dd4"
+                      "uuid": "590d15e3-941f-4ac2-abec-16e8d42fb109"
                     }
                   ]
                 },
                 "name": "kretprobe_test",
-                "programId": 4045,
+                "programId": 2961,
                 "programLinkStatus": "Success",
-                "type": "KretProbe"
+                "type": "KRetProbe"
               },
               {
                 "name": "tracepoint_test",
-                "programId": 4046,
+                "programId": 2962,
                 "programLinkStatus": "Success",
                 "tracepoint": {
                   "links": [
                     {
-                      "linkId": 1360955591,
+                      "linkId": 3990685825,
                       "linkStatus": "Attached",
                       "name": "syscalls/sys_enter_openat",
                       "shouldAttach": true,
-                      "uuid": "554408d0-19fe-43c9-81b5-21c685c18631"
+                      "uuid": "e6e11297-bbc1-455f-b300-5e6c8cfaf6fa"
                     }
                   ]
                 },
@@ -642,22 +652,36 @@ metadata:
               },
               {
                 "name": "tc_pass_test",
-                "programId": 4048,
+                "programId": 2964,
                 "programLinkStatus": "Success",
                 "tc": {
                   "links": [
                     {
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceName": "eth0",
-                      "linkId": 2071011696,
+                      "linkId": 2016877062,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
-                        "pipe",
-                        "dispatcher_return"
+                        "Pipe",
+                        "DispatcherReturn"
                       ],
                       "shouldAttach": true,
-                      "uuid": "b11abbd5-abe3-48ea-be76-51fcebb1e29e"
+                      "uuid": "8d9e65e7-00a9-4dfb-b102-7dde5a2f75b7"
+                    },
+                    {
+                      "direction": "Egress",
+                      "interfaceName": "eth0",
+                      "linkId": 1884672478,
+                      "linkStatus": "Attached",
+                      "netnsPath": "/host/proc/2589/ns/net",
+                      "priority": 100,
+                      "proceedOn": [
+                        "Pipe",
+                        "DispatcherReturn"
+                      ],
+                      "shouldAttach": true,
+                      "uuid": "2961db25-83fd-405b-8a3d-0f2d7c67c1fd"
                     }
                   ]
                 },
@@ -665,28 +689,28 @@ metadata:
               },
               {
                 "name": "tcx_next_test",
-                "programId": 4049,
+                "programId": 2965,
                 "programLinkStatus": "Success",
                 "tcx": {
                   "links": [
                     {
-                      "direction": "ingress",
+                      "direction": "Ingress",
                       "interfaceName": "eth0",
-                      "linkId": 1065661122,
+                      "linkId": 2829185842,
                       "linkStatus": "Attached",
                       "priority": 500,
                       "shouldAttach": true,
-                      "uuid": "1c568cad-0ff9-44e5-973b-24599844e48a"
+                      "uuid": "10803beb-e787-4b3d-ba92-ecf4465ccf27"
                     },
                     {
-                      "containerPid": 2044,
-                      "direction": "egress",
+                      "direction": "Egress",
                       "interfaceName": "eth0",
-                      "linkId": 890204004,
+                      "linkId": 1318817411,
                       "linkStatus": "Attached",
+                      "netnsPath": "/host/proc/2589/ns/net",
                       "priority": 100,
                       "shouldAttach": true,
-                      "uuid": "ef125fe7-f05c-4c8a-a5a7-540828d63d82"
+                      "uuid": "9ab7e86f-9597-4b3f-895a-bac1cff9142a"
                     }
                   ]
                 },
@@ -694,75 +718,75 @@ metadata:
               },
               {
                 "name": "uprobe_test",
-                "programId": 4050,
+                "programId": 2966,
                 "programLinkStatus": "Success",
-                "type": "Uprobe",
+                "type": "UProbe",
                 "uprobe": {
                   "links": [
                     {
-                      "containerPid": 2044,
+                      "containerPid": 2490,
                       "function": "malloc",
-                      "linkId": 2632600106,
+                      "linkId": 4232324231,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "9052bea1-f07c-4b18-84f3-aa78503f2713"
+                      "uuid": "8a846138-b7a5-4e8f-a42c-b8d7d1f744b0"
                     }
                   ]
                 }
               },
               {
                 "name": "uretprobe_test",
-                "programId": 4051,
+                "programId": 2967,
                 "programLinkStatus": "Success",
-                "type": "UretProbe",
+                "type": "URetProbe",
                 "uretprobe": {
                   "links": [
                     {
-                      "containerPid": 2044,
+                      "containerPid": 2490,
                       "function": "malloc",
-                      "linkId": 1662220018,
+                      "linkId": 1537295223,
                       "linkStatus": "Attached",
                       "offset": 0,
                       "shouldAttach": true,
                       "target": "libc",
-                      "uuid": "f685d1df-3fe4-45c7-96e7-d98746428a10"
+                      "uuid": "e225851a-bdbe-460d-b6e9-c11da7586ea1"
                     }
                   ]
                 }
               },
               {
                 "name": "xdp_pass_test",
-                "programId": 4053,
+                "programId": 2969,
                 "programLinkStatus": "Success",
                 "type": "XDP",
                 "xdp": {
                   "links": [
                     {
                       "interfaceName": "eth0",
-                      "linkId": 775398736,
+                      "linkId": 2993905830,
                       "linkStatus": "Attached",
                       "priority": 55,
                       "proceedOn": [
-                        "pass",
-                        "dispatcher_return"
+                        "Pass",
+                        "DispatcherReturn"
                       ],
                       "shouldAttach": true,
-                      "uuid": "f4ed47ee-0bea-4d0e-8603-861cb1827d51"
+                      "uuid": "6add7ab6-b369-425c-8c00-49785be18e25"
                     },
                     {
-                      "containerPid": 2044,
                       "interfaceName": "eth0",
-                      "linkId": 1232024606,
+                      "linkId": 1139910373,
                       "linkStatus": "Attached",
+                      "netnsPath": "/host/proc/2589/ns/net",
                       "priority": 100,
                       "proceedOn": [
-                        "pass",
-                        "dispatcher_return"
+                        "Pass",
+                        "DispatcherReturn"
                       ],
                       "shouldAttach": true,
-                      "uuid": "c3fe1930-1d70-4ade-9f20-a43a6cb49e68"
+                      "uuid": "71a6d580-1a62-4a72-b3b4-e2284138e291"
                     }
                   ]
                 }
@@ -772,34 +796,34 @@ metadata:
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "linkId": 3721740425,
+                      "linkId": 140067200,
                       "linkStatus": "Attached",
                       "shouldAttach": true,
-                      "uuid": "878fd945-39f2-4864-9a13-5e3101add0fc"
+                      "uuid": "5ddba309-8aeb-4aef-82cd-c6cd27893c85"
                     }
                   ]
                 },
                 "name": "fentry_test",
-                "programId": 4054,
+                "programId": 2970,
                 "programLinkStatus": "Success",
-                "type": "Fentry"
+                "type": "FEntry"
               },
               {
                 "fexit": {
                   "function": "do_unlinkat",
                   "links": [
                     {
-                      "linkId": 3161417735,
+                      "linkId": 3488047693,
                       "linkStatus": "Attached",
                       "shouldAttach": true,
-                      "uuid": "e38912f9-1798-4fe8-b282-81bb3dfd10f2"
+                      "uuid": "fb5f30f0-3d08-454d-b9f1-c41afec042c8"
                     }
                   ]
                 },
                 "name": "fexit_test",
-                "programId": 4055,
+                "programId": 2971,
                 "programLinkStatus": "Success",
-                "type": "Fexit"
+                "type": "FExit"
               }
             ],
             "updateCount": 2
@@ -807,7 +831,7 @@ metadata:
           "status": {
             "conditions": [
               {
-                "lastTransitionTime": "2025-03-04T21:59:21Z",
+                "lastTransitionTime": "2025-03-18T20:58:08Z",
                 "message": "The BPF application has been successfully loaded and attached",
                 "reason": "Success",
                 "status": "True",
@@ -820,7 +844,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-03-25T15:29:54Z"
+    createdAt: "2025-03-26T15:27:51Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

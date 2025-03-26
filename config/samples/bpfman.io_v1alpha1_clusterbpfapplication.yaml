@@ -42,6 +42,16 @@ spec:
               primaryNodeInterface: true
             priority: 55
             direction: Ingress
+          - interfaceSelector:
+              interfaces:
+                - eth0
+            priority: 100
+            direction: Egress
+            networkNamespaces:
+              namespace: bpfman
+              pods:
+                matchLabels:
+                  name: bpfman-daemon
     - name: tcx_next_test
       type: TCX
       tcx:
@@ -55,13 +65,11 @@ spec:
                 - eth0
             priority: 100
             direction: Egress
-            containers:
+            networkNamespaces:
               namespace: bpfman
               pods:
                 matchLabels:
                   name: bpfman-daemon
-              containerNames:
-                - bpfman-agent
     - name: uprobe_test
       type: UProbe
       uprobe:
@@ -101,13 +109,11 @@ spec:
               interfaces:
                 - eth0
             priority: 100
-            containers:
+            networkNamespaces:
               namespace: bpfman
               pods:
                 matchLabels:
                   name: bpfman-daemon
-              containerNames:
-                - bpfman-agent
     - name: fentry_test
       type: FEntry
       fentry:
