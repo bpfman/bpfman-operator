@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vishvananda/netns"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -286,8 +287,7 @@ func interfaceInAllowedList(intf string, allowedRegexpes []*regexp.Regexp, allow
 func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node, discoveredInterfaces *sync.Map) ([]string, error) {
 	var interfaces []string
 
-	if interfaceSelector.InterfacesDiscoveryConfig != nil && interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery != nil &&
-		*interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery {
+	if isInterfacesDiscoveryEnabled(interfaceSelector) {
 		allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
 		discoveredInterfaces.Range(func(key, value any) bool {
 			if value.(bool) {
@@ -586,4 +586,28 @@ func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
 
 func netnsPathFromPID(pid int32) string {
 	return fmt.Sprintf("/host/proc/%d/ns/net", pid)
+}
+
+func getInterfaceNetNsList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ifName string, discoveredInterfaces *sync.Map) map[string][]string {
+	netnsList := make(map[string][]string)
+	if isInterfacesDiscoveryEnabled(interfaceSelector) {
+		discoveredInterfaces.Range(func(key, value any) bool {
+			if value.(bool) {
+				intf := key.(ifaces.Interface)
+				if intf.Name == ifName && intf.NetNS != netns.None() {
+					netnsList[ifName] = append(netnsList[ifName], internal.NetNsPath+intf.NetNS.String())
+				}
+			}
+			return true
+		})
+	}
+	return netnsList
+}
+
+func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector) bool {
+	if interfaceSelector.InterfacesDiscoveryConfig != nil && interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery != nil &&
+		*interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery {
+		return true
+	}
+	return false
 }

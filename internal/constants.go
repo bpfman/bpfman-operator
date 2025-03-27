@@ -39,6 +39,7 @@ const (
 	DefaultPort              = 50051
 	DefaultEnabled           = true
 	BpfAppStateOwner         = "bpfman.io/ownedByProgram"
+	NetNsPath                = "/run/netns"
 )
 
 // -----------------------------------------------------------------------------
