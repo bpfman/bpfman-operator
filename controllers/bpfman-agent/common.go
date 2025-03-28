@@ -19,9 +19,12 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/vishvananda/netns"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -240,15 +243,56 @@ func interfaceInExcludeList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelecto
 	return false
 }
 
+func setupAllowedInterfacesLists(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector) ([]*regexp.Regexp, []string) {
+	var isRegexp = regexp.MustCompile("^/(.*)/$")
+	var allowedRegexpes []*regexp.Regexp
+	var allowedMatches []string
+
+	for _, definition := range interfaceSelector.InterfacesDiscoveryConfig.AllowedInterfaces {
+		definition = strings.Trim(definition, " ")
+		// the user defined a /regexp/ between slashes: compile and store it as regular expression
+		if sm := isRegexp.FindStringSubmatch(definition); len(sm) > 1 {
+			re, err := regexp.Compile(sm[1])
+			if err != nil {
+				return allowedRegexpes, allowedMatches
+			}
+			allowedRegexpes = append(allowedRegexpes, re)
+		} else {
+			// otherwise, store it as exact match definition
+			allowedMatches = append(allowedMatches, definition)
+		}
+	}
+	return allowedRegexpes, allowedMatches
+}
+
+func interfaceInAllowedList(intf string, allowedRegexpes []*regexp.Regexp, allowedMatches []string) bool {
+	if len(allowedRegexpes) == 0 && len(allowedMatches) == 0 {
+		return true
+	}
+
+	for _, re := range allowedRegexpes {
+		if re.MatchString(intf) {
+			return true
+		}
+	}
+
+	for _, n := range allowedMatches {
+		if n == intf {
+			return true
+		}
+	}
+	return false
+}
+
 func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node, discoveredInterfaces *sync.Map) ([]string, error) {
 	var interfaces []string
 
-	if interfaceSelector.InterfacesDiscoveryConfig != nil && interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery != nil &&
-		*interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery {
+	if isInterfacesDiscoveryEnabled(interfaceSelector) {
+		allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
 		discoveredInterfaces.Range(func(key, value any) bool {
 			if value.(bool) {
 				intf := key.(ifaces.Interface)
-				if !interfaceInExcludeList(interfaceSelector, intf.Name) {
+				if !interfaceInExcludeList(interfaceSelector, intf.Name) && interfaceInAllowedList(intf.Name, allowedRegexpes, allowedMatches) {
 					interfaces = append(interfaces, intf.Name)
 				}
 			}
@@ -542,4 +586,28 @@ func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
 
 func netnsPathFromPID(pid int32) string {
 	return fmt.Sprintf("/host/proc/%d/ns/net", pid)
+}
+
+func getInterfaceNetNsList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ifName string, discoveredInterfaces *sync.Map) map[string][]string {
+	netnsList := make(map[string][]string)
+	if isInterfacesDiscoveryEnabled(interfaceSelector) {
+		discoveredInterfaces.Range(func(key, value any) bool {
+			if value.(bool) {
+				intf := key.(ifaces.Interface)
+				if intf.Name == ifName && intf.NetNS != netns.None() {
+					netnsList[ifName] = append(netnsList[ifName], internal.NetNsPath+intf.NetNS.String())
+				}
+			}
+			return true
+		})
+	}
+	return netnsList
+}
+
+func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector) bool {
+	if interfaceSelector.InterfacesDiscoveryConfig != nil && interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery != nil &&
+		*interfaceSelector.InterfacesDiscoveryConfig.InterfaceAutoDiscovery {
+		return true
+	}
+	return false
 }

@@ -308,18 +308,37 @@ func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 		}
 	} else {
 		for _, iface := range interfaces {
-			link := bpfmaniov1alpha1.ClXdpAttachInfoState{
-				AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
-					ShouldAttach: true,
-					UUID:         uuid.New().String(),
-					LinkId:       nil,
-					LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
-				},
-				InterfaceName: iface,
-				Priority:      attachInfo.Priority,
-				ProceedOn:     attachInfo.ProceedOn,
+			netnsList := getInterfaceNetNsList(&attachInfo.InterfaceSelector, iface, r.Interfaces)
+			if len(netnsList) == 0 {
+				link := bpfmaniov1alpha1.ClXdpAttachInfoState{
+					AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
+						ShouldAttach: true,
+						UUID:         uuid.New().String(),
+						LinkId:       nil,
+						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
+					},
+					InterfaceName: iface,
+					Priority:      attachInfo.Priority,
+					ProceedOn:     attachInfo.ProceedOn,
+				}
+				nodeLinks = append(nodeLinks, link)
+			} else {
+				for _, netns := range netnsList[iface] {
+					link := bpfmaniov1alpha1.ClXdpAttachInfoState{
+						AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
+							ShouldAttach: true,
+							UUID:         uuid.New().String(),
+							LinkId:       nil,
+							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
+						},
+						InterfaceName: iface,
+						Priority:      attachInfo.Priority,
+						ProceedOn:     attachInfo.ProceedOn,
+						NetnsPath:     netns,
+					}
+					nodeLinks = append(nodeLinks, link)
+				}
 			}
-			nodeLinks = append(nodeLinks, link)
 		}
 	}
 

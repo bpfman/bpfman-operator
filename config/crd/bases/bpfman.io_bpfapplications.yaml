@@ -257,6 +257,15 @@ spec:
                                     description: discoveryConfig allow configuring
                                       interface discovery functionality,
                                     properties:
+                                      allowedInterfaces:
+                                        description: |-
+                                          allowedInterfaces contains the interface names. If empty, the agent
+                                          fetches all the interfaces in the system, excepting the ones listed in `excludeInterfaces`.
+                                          An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
+                                          Otherwise, it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
                                       excludeInterfaces:
                                         default:
                                         - lo
@@ -410,6 +419,15 @@ spec:
                                     description: discoveryConfig allow configuring
                                       interface discovery functionality,
                                     properties:
+                                      allowedInterfaces:
+                                        description: |-
+                                          allowedInterfaces contains the interface names. If empty, the agent
+                                          fetches all the interfaces in the system, excepting the ones listed in `excludeInterfaces`.
+                                          An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
+                                          Otherwise, it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
                                       excludeInterfaces:
                                         default:
                                         - lo
@@ -746,6 +764,15 @@ spec:
                                     description: discoveryConfig allow configuring
                                       interface discovery functionality,
                                     properties:
+                                      allowedInterfaces:
+                                        description: |-
+                                          allowedInterfaces contains the interface names. If empty, the agent
+                                          fetches all the interfaces in the system, excepting the ones listed in `excludeInterfaces`.
+                                          An entry enclosed by slashes, such as `/br-/`, is matched as a regular expression.
+                                          Otherwise, it is matched as a case-sensitive string.
+                                        items:
+                                          type: string
+                                        type: array
                                       excludeInterfaces:
                                         default:
                                         - lo

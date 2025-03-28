@@ -25,6 +25,8 @@ spec:
           - interfaceSelector:
               interfacesDiscoveryConfig:
                 interfaceAutoDiscovery: true
+                allowedInterfaces:
+                  - "/veth*/"
             direction: Ingress
     - name: tcx_next_test
       type: TCX
