@@ -74,7 +74,7 @@ func statusChangedPredicateCluster() predicate.Funcs {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.ClusterBpfApplicationState)
 			newObject := e.ObjectNew.(*bpfmaniov1alpha1.ClusterBpfApplicationState)
-			return !reflect.DeepEqual(oldObject.GetStatus(), newObject.Status)
+			return !reflect.DeepEqual(oldObject.Status.Conditions, newObject.Status.Conditions)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return false

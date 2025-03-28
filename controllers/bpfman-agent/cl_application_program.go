@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,27 +72,21 @@ func (r *ClBpfApplicationReconciler) getNodeSelector() *metav1.LabelSelector {
 	return &r.currentApp.Spec.NodeSelector
 }
 
-func (r *ClBpfApplicationReconciler) GetStatus() *bpfmaniov1alpha1.BpfAppStatus {
-	return &r.currentAppState.Status
+func (r *ClBpfApplicationReconciler) getAppStateConditions() *[]metav1.Condition {
+	return &r.currentAppState.Status.Conditions
 }
 
 func (r *ClBpfApplicationReconciler) isBeingDeleted() bool {
 	return !r.currentApp.GetDeletionTimestamp().IsZero()
 }
 
-func (r *ClBpfApplicationReconciler) updateBpfAppStatus(ctx context.Context, condition metav1.Condition) error {
+func (r *ClBpfApplicationReconciler) setAppStateConditions(condition metav1.Condition) {
 	r.currentAppState.Status.Conditions = nil
 	meta.SetStatusCondition(&r.currentAppState.Status.Conditions, condition)
-	err := r.Status().Update(ctx, r.currentAppState)
-	if err != nil {
-		return err
-	} else {
-		return r.waitForBpfAppStateStatusUpdate(ctx)
-	}
 }
 
-func (r *ClBpfApplicationReconciler) updateLoadStatus(status bpfmaniov1alpha1.AppLoadStatus) {
-	r.currentAppState.Spec.AppLoadStatus = status
+func (r *ClBpfApplicationReconciler) setAppLoadStatus(status bpfmaniov1alpha1.AppLoadStatus) {
+	r.currentAppState.Status.AppLoadStatus = status
 }
 
 // SetupWithManager sets up the controller with the Manager. The Bpfman-Agent
@@ -156,56 +150,33 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		r.Logger.Info("Reconciling ClusterBpfApplication", "Name", r.currentApp.Name)
 
-		// Get the corresponding BpfApplicationState object, and if it doesn't
-		// exist, instantiate a copy. If bpfAppStateNew is true, then we need to
-		// create a new BpfApplicationState object instead of just updating the
-		// existing one.
-		appState, bpfAppStateNew, err := r.getBpfAppState(ctx, !r.isBeingDeleted())
+		// Get the BpfApplicationState object for this node if it exists.
+		appState, err := r.getBpfAppState(ctx)
 		if err != nil {
 			r.Logger.Error(err, "failed to get BpfApplicationState")
 			return ctrl.Result{}, err
 		}
 
-		if appState == nil && r.isBeingDeleted() {
-			// If the BpfApplicationState doesn't exist and the BpfApplication
-			// is being deleted, we don't need to do anything.  Just continue
-			// with the next BpfApplication.
-			r.Logger.Info("BpfApplicationState doesn't exist and BpfApplication is being deleted",
-				"Name", r.currentApp.Name)
-			continue
+		if appState == nil {
+			if r.isBeingDeleted() {
+				// If the BpfApplicationState doesn't exist and the BpfApplication
+				// is being deleted, we don't need to do anything.  Just continue
+				// with the next BpfApplication.
+				r.Logger.Info("BpfApplicationState doesn't exist and BpfApplication is being deleted",
+					"Name", r.currentApp.Name)
+				continue
+			}
+			// Create a new ClusterBpfApplicationState object first, once it's
+			// created, initialize the Status subresource and then update the
+			// status.
+			return r.createBpfAppState(ctx)
 		}
 
 		r.currentAppState = appState
 
 		// Save a copy of the original BpfApplicationState to check for changes
-		// at the end of the reconcile process. This approach simplifies the
-		// code and reduces the risk of errors by avoiding the need to track
-		// changes throughout.  We don't need to do this for new
-		// BpfApplicationStates because they don't exist yet and will need to be
-		// created anyway.
-		var bpfAppStateOriginal *bpfmaniov1alpha1.ClusterBpfApplicationState
-		if !bpfAppStateNew {
-			bpfAppStateOriginal = r.currentAppState.DeepCopy()
-		}
-
-		r.Logger.Info("BpfApplicationState status", "new", bpfAppStateNew)
-
-		if bpfAppStateNew {
-			// Create the object and return. We'll get the updated object in the
-			// next reconcile.
-			_, err := r.updateBpfAppStateSpec(ctx, bpfAppStateOriginal, bpfAppStateNew)
-			if err != nil {
-				r.Logger.Error(err, "failed to update BpfApplicationState", "Name", r.currentAppState.Name)
-				_, _ = r.updateStatus(ctx, r, bpfmaniov1alpha1.BpfAppStateCondError)
-				// If there was an error updating the object, request a requeue
-				// because we can't be sure what was updated and whether the manager
-				// will requeue us without the request.
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
-			} else {
-				_, _ = r.updateStatus(ctx, r, bpfmaniov1alpha1.BpfAppStateCondPending)
-				return ctrl.Result{}, nil
-			}
-		}
+		// at the end of the reconcile process.
+		bpfAppStateOriginal := r.currentAppState.DeepCopy()
 
 		// Make sure the BpfApplication code is loaded on the node.
 		r.Logger.Info("Calling reconcileLoad()", "isBeingDeleted", r.isBeingDeleted())
@@ -214,15 +185,19 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// There's no point continuing to reconcile the links if we
 			// can't load the code.
 			r.Logger.Error(err, "failed to reconcileLoad")
-			objectChanged, _ := r.updateBpfAppStateSpec(ctx, bpfAppStateOriginal, bpfAppStateNew)
-			statusChanged, _ := r.updateStatus(ctx, r, bpfmaniov1alpha1.BpfAppStateCondError)
-			if statusChanged || objectChanged {
+			r.updateBpfAppStateCondition(r, bpfmaniov1alpha1.BpfAppStateCondError)
+			statusChanged, err := r.updateBpfAppStateStatus(ctx, nil)
+			if err != nil {
+				r.Logger.Error(err, "failed to update BpfApplicationState status", "Name", r.currentApp.Name)
 				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
-			} else {
-				// If nothing changed, continue with the next BpfApplication.
-				// Otherwise, one bad BpfApplication can block the rest.
-				continue
 			}
+			if statusChanged {
+				r.Logger.Info("BpfApplicationState updated", "Name", r.currentAppState.Name, "Status Changed", statusChanged)
+				return ctrl.Result{}, nil
+			}
+			// If nothing changed, continue with the next BpfApplication.
+			// Otherwise, one bad BpfApplication can block the rest.
+			continue
 		}
 
 		// Initialize the BpfApplicationState status to Success.  It will be set
@@ -236,7 +211,7 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// Reconcile each program in the BpfApplication
 			for progIndex := range r.currentApp.Spec.Programs {
 				prog := &r.currentApp.Spec.Programs[progIndex]
-				progState, err := r.getProgState(prog, r.currentAppState.Spec.Programs)
+				progState, err := r.getProgState(prog, r.currentAppState.Status.Programs)
 				if err != nil {
 					// TODO: This entry should have been created when the
 					// BpfApplication was loaded.  If it's not here, then we
@@ -274,28 +249,16 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 		}
 
+		r.updateBpfAppStateCondition(r, bpfApplicationStatus)
+
 		// We've completed reconciling all programs and if something has
-		// changed, we need to create or update the BpfApplicationState.
-		specChanged, err := r.updateBpfAppStateSpec(ctx, bpfAppStateOriginal, bpfAppStateNew)
+		// changed, we need to update the BpfApplicationState.
+		statusChanged, err := r.updateBpfAppStateStatus(ctx, bpfAppStateOriginal)
 		if err != nil {
-			r.Logger.Error(err, "failed to update BpfApplicationState", "Name", r.currentAppState.Name)
-			_, _ = r.updateStatus(ctx, r, bpfmaniov1alpha1.BpfAppStateCondError)
-			// If there was an error updating the object, request a requeue
-			// because we can't be sure what was updated and whether the manager
-			// will requeue us without the request.
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 		}
-
-		statusChanged, err := r.updateStatus(ctx, r, bpfApplicationStatus)
-		if err != nil {
-			// This can happen if the object hasn't been updated in the API
-			// server yet, so we'll requeue.
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
-		}
-
-		if specChanged || statusChanged {
-			r.Logger.Info("BpfApplicationState updated", "Name", r.currentAppState.Name, "Spec Changed",
-				specChanged, "Status Changed", statusChanged)
+		if statusChanged {
+			r.Logger.Info("BpfApplicationState updated", "Name", r.currentAppState.Name, "Status Changed", statusChanged)
 			return ctrl.Result{}, nil
 		}
 
@@ -312,6 +275,30 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// We're done with all the BpfApplication objects, so we can return.
 	r.Logger.Info("All BpfApplication objects have been reconciled")
+	return ctrl.Result{}, nil
+}
+
+func (r *ClBpfApplicationReconciler) createBpfAppState(ctx context.Context) (ctrl.Result, error) {
+	// Create a new ClusterBpfApplicationState object first, once it's created,
+	// initialize the Status subresource and then update the status.
+	if err := r.initBpfAppState(); err != nil {
+		r.Logger.Error(err, "failed to initialize BpfApplicationState object")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	}
+	if err := r.createInitialBpfAppState(ctx); err != nil {
+		r.Logger.Error(err, "failed to create BpfApplicationState object")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	}
+	if err := r.initBpfAppStateStatus(ctx); err != nil {
+		r.Logger.Error(err, "failed to initialize BpfApplicationState status")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	}
+	if _, err := r.updateBpfAppStateStatus(ctx, nil); err != nil {
+		r.Logger.Error(err, "failed to update BpfApplicationState status", "Name", r.currentApp.Name)
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	}
+	// We're done creating a new BpfApplicationState object, so we can
+	// return and be requeued.
 	return ctrl.Result{}, nil
 }
 
@@ -410,7 +397,7 @@ func (r *ClBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 }
 
 func (r *ClBpfApplicationReconciler) checkProgramStatus() bpfmaniov1alpha1.BpfApplicationStateConditionType {
-	for _, program := range r.currentAppState.Spec.Programs {
+	for _, program := range r.currentAppState.Status.Programs {
 		if program.ProgramLinkStatus != bpfmaniov1alpha1.ProgAttachSuccess {
 			return bpfmaniov1alpha1.BpfAppStateCondError
 		}
@@ -441,115 +428,99 @@ func (r *ClBpfApplicationReconciler) getProgState(prog *bpfmaniov1alpha1.ClBpfAp
 	return nil, fmt.Errorf("BpfApplicationProgramState not found")
 }
 
-// updateBpfAppStateSpec creates or updates the BpfApplicationState object if it is
-// new or has changed. It returns true if the object was created or updated, and
-// an error if the API call fails. If true is returned without an error, the
-// reconciler should return immediately because a new reconcile will be
-// triggered.  If an error is returned, the code should return and request a
-// requeue because it's uncertain whether a reconcile will be triggered.  If
-// false is returned without an error, the reconciler may continue reconciling
-// because nothing was changed.
-func (r *ClBpfApplicationReconciler) updateBpfAppStateSpec(ctx context.Context, originalAppState *bpfmaniov1alpha1.ClusterBpfApplicationState,
-	bpfAppStateNew bool) (bool, error) {
+// createInitialBpfAppState creates a BpfApplicationState object. If there are
+// no errors creating the object, it then waits for the new object to be
+// available from the API server.
+func (r *ClBpfApplicationReconciler) createInitialBpfAppState(ctx context.Context) error {
+	r.Logger.Info("Creating new BpfApplicationState object", "Name", r.currentAppState.Name)
+	if err := r.Create(ctx, r.currentAppState); err != nil {
+		r.Logger.Error(err, "failed to create BpfApplicationState")
+		return err
+	}
+	return r.waitForBpfAppStateSpecUpdate(ctx)
+}
 
-	// We've completed reconciling this program and something has
-	// changed.  We need to create or update the BpfApplicationState.
-	if bpfAppStateNew {
-		// Create a new BpfApplicationState
-		r.currentAppState.Spec.UpdateCount = 1
-		r.Logger.Info("Creating new BpfApplicationState object", "Name", r.currentAppState.Name,
-			"bpfAppStateNew", bpfAppStateNew, "UpdateCount", r.currentAppState.Spec.UpdateCount)
-		if err := r.Create(ctx, r.currentAppState); err != nil {
-			r.Logger.Error(err, "failed to create BpfApplicationState")
-			return true, err
-		}
-		return r.waitForBpfAppStateUpdate(ctx)
-	} else if !reflect.DeepEqual(originalAppState.Spec, r.currentAppState.Spec) {
+func (r *ClBpfApplicationReconciler) updateBpfAppStateStatus(ctx context.Context, originalAppState *bpfmaniov1alpha1.ClusterBpfApplicationState) (bool, error) {
+
+	// We've completed reconciling this program and if something has changed.
+	// We need to update the BpfApplicationState Status.
+	if originalAppState == nil || !reflect.DeepEqual(originalAppState.Status, r.currentAppState.Status) {
 		// Update the BpfApplicationState
-		r.currentAppState.Spec.UpdateCount = r.currentAppState.Spec.UpdateCount + 1
-		r.Logger.Info("Updating BpfApplicationState object", "Name", r.currentAppState.Name, "bpfAppStateNew", bpfAppStateNew, "UpdateCount", r.currentAppState.Spec.UpdateCount)
-		if err := r.Update(ctx, r.currentAppState); err != nil {
+		r.currentAppState.Status.UpdateCount = r.currentAppState.Status.UpdateCount + 1
+		r.Logger.Info("Updating BpfApplicationState Status", "Name", r.currentAppState.Name, "UpdateCount", r.currentAppState.Status.UpdateCount)
+		if err := r.Status().Update(ctx, r.currentAppState); err != nil {
 			r.Logger.Error(err, "failed to update BpfApplicationState")
 			return true, err
 		}
-		return r.waitForBpfAppStateUpdate(ctx)
+		return true, r.waitForBpfAppStateStatusUpdate(ctx)
 	}
 	return false, nil
 }
 
-// waitForBpfAppStateUpdate waits for the new BpfApplicationState object to be ready.
-// bpfman saves state in the BpfApplicationState object that controls what needs
-// to be done, so it is critical for each reconcile attempt to have the updated
-// information. However, it takes time for objects to be created or updated, and
-// for the API server to be able to return the update.  I've seen cases where
-// the new object isn't ready when a reconcile is launched too soon after an
-// update. A field called "UpdateCount" is used to ensure we get the updated
-// object.  Kubernetes maintains a similar value called "Generation" which we
-// might be able to use instead, but I'm not 100% sure I can trust it yet. When
-// waitForBpfAppStateUpdate gets the updated object, it also updates r.currentAppState
-// so the object can be used for subsequent operations (like a status update).
-// From observations so far on kind, the updated object is sometimes ready on
-// the first try, and sometimes it takes one more try.  I've not seen it take
-// more than one retry.  waitForBpfAppStateUpdate currently waits for up to 10 seconds
-// (100 * 100ms).
-func (r *ClBpfApplicationReconciler) waitForBpfAppStateUpdate(ctx context.Context) (bool, error) {
-	const maxRetries = 100
-	const retryInterval = 100 * time.Millisecond
-
-	var bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState
-	var err error
-	r.Logger.Info("waitForBpfAppStateUpdate()", "UpdateCount", r.currentAppState.Spec.UpdateCount, "currentGeneration", r.currentAppState.GetGeneration())
-
-	for i := 0; i < maxRetries; i++ {
-		bpfAppState, _, err = r.getBpfAppState(ctx, false)
-		if err != nil {
-			// If we get an error, we'll just log it and keep trying.
-			r.Logger.Info("Error getting BpfApplicationState", "Attempt", i, "error", err)
-		} else if bpfAppState != nil && bpfAppState.Spec.UpdateCount >= r.currentAppState.Spec.UpdateCount {
-			r.Logger.Info("Found new bpfAppState Spec", "Attempt", i, "UpdateCount", bpfAppState.Spec.UpdateCount,
-				"currentGeneration", bpfAppState.GetGeneration())
-			r.currentAppState = bpfAppState
-			return true, nil
-		}
-		time.Sleep(retryInterval)
+// waitForBpfAppStateUpdate waits for the new BpfApplicationState object to be
+// ready. bpfman saves state in the BpfApplicationState object that controls
+// what needs to be done, so it is critical for each reconcile attempt to have
+// the updated information. However, it takes time for objects to be created or
+// updated, and for the API server to be able to return the update. When
+// waitForBpfAppStateUpdate gets the updated object, it also updates
+// r.currentAppState so the object can be used for subsequent operations (like a
+// status update).
+func (r *ClBpfApplicationReconciler) waitForBpfAppStateSpecUpdate(ctx context.Context) error {
+	r.Logger.V(1).Info("Start waitForBpfAppStateSpecUpdate()")
+	i := 0
+	err := wait.PollUntilContextTimeout(ctx, updateRetryInterval, updateTimeout, true,
+		func(ctx context.Context) (bool, error) {
+			i++
+			bpfAppState, err := r.getBpfAppState(ctx)
+			if err != nil {
+				// If we get an error, we'll just log it and keep trying.
+				r.Logger.V(1).Info("Error getting BpfApplicationState", "Attempt", i, "error", err)
+				return false, nil
+			}
+			if bpfAppState != nil {
+				r.Logger.Info("Found created BpfApplicationState Spec", "Attempt", i)
+				r.currentAppState = bpfAppState
+				return true, nil
+			}
+			r.Logger.V(1).Info("Didn't find new BpfApplicationState", "Attempt", i)
+			return false, nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to get updated BpfApplicationState spec.  Attempts: %d", i)
 	}
-
-	r.Logger.Info("Didn't find new BpfApplicationState", "Attempts", maxRetries)
-	return false, fmt.Errorf("failed to get new BpfApplicationState after %d retries", maxRetries)
+	return nil
 }
 
 // See waitForBpfAppStateUpdate() for an explanation of why this function is needed.
 func (r *ClBpfApplicationReconciler) waitForBpfAppStateStatusUpdate(ctx context.Context) error {
-	const maxRetries = 100
-	const retryInterval = 100 * time.Millisecond
-
-	var bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState
-	var err error
-	r.Logger.Info("waitForBpfAppStateStatusUpdate()", "UpdateCount", r.currentAppState.Spec.UpdateCount,
-		"currentGeneration", r.currentAppState.GetGeneration())
-
-	for i := 0; i < maxRetries; i++ {
-		bpfAppState, _, err = r.getBpfAppState(ctx, false)
-		if err != nil {
-			// If we get an error, we'll just log it and keep trying.
-			r.Logger.Info("Error getting BpfApplicationState", "Attempt", i, "error", err)
-		} else if bpfAppState != nil && len(bpfAppState.Status.Conditions) > 0 &&
-			bpfAppState.Status.Conditions[0].Type == r.currentAppState.Status.Conditions[0].Type {
-			r.Logger.Info("Found new bpfAppState Status", "Attempt", i, "UpdateCount", bpfAppState.Spec.UpdateCount,
-				"currentGeneration", bpfAppState.GetGeneration())
-			r.currentAppState = bpfAppState
-			return nil
-		}
-		time.Sleep(retryInterval)
+	r.Logger.V(1).Info("Start waitForBpfAppStateStatusUpdate()")
+	i := 0
+	err := wait.PollUntilContextTimeout(ctx, updateRetryInterval, updateTimeout, true,
+		func(ctx context.Context) (bool, error) {
+			i++
+			bpfAppState, err := r.getBpfAppState(ctx)
+			if err != nil {
+				// If we get an error, we'll just log it and keep trying.
+				r.Logger.Info("Error getting BpfApplicationState", "Attempt", i, "error", err)
+				return false, nil
+			}
+			if bpfAppState != nil && bpfAppState.Status.UpdateCount >= r.currentAppState.Status.UpdateCount {
+				r.Logger.Info("Found updated BpfApplicationState Status", "Attempt", i, "UpdateCount", bpfAppState.Status.UpdateCount)
+				r.currentAppState = bpfAppState
+				return true, nil
+			}
+			r.Logger.V(1).Info("Didn't find new BpfApplicationState status", "Attempt", i)
+			return false, nil
+		})
+	if err != nil {
+		return fmt.Errorf("failed to get updated BpfApplicationState status.  Attempts: %d", i)
 	}
-
-	r.Logger.Info("Didn't find new BpfApplicationState", "Attempts", maxRetries)
-	return fmt.Errorf("failed to get new BpfApplicationState after %d retries", maxRetries)
+	return nil
 }
 
-// getBpfAppState returns the BpfApplicationState object for the current node. If
-// needed to be created, the returned bool will be true.  Otherwise, it will be false.
-func (r *ClBpfApplicationReconciler) getBpfAppState(ctx context.Context, createIfNotFound bool) (*bpfmaniov1alpha1.ClusterBpfApplicationState, bool, error) {
+// getBpfAppState gets the BpfApplicationState object for the current
+// BpfApplicationObject.
+func (r *ClBpfApplicationReconciler) getBpfAppState(ctx context.Context) (*bpfmaniov1alpha1.ClusterBpfApplicationState, error) {
 
 	appProgramList := &bpfmaniov1alpha1.ClusterBpfApplicationStateList{}
 
@@ -562,27 +533,27 @@ func (r *ClBpfApplicationReconciler) getBpfAppState(ctx context.Context, createI
 
 	err := r.List(ctx, appProgramList, opts...)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
-	if len(appProgramList.Items) == 1 {
-		// We got exatly one BpfApplicationState, so return it
-		return &appProgramList.Items[0], false, nil
-	}
-	if len(appProgramList.Items) > 1 {
-		// This should never happen, but if it does, return an error
-		return nil, false, fmt.Errorf("more than one BpfApplicationState found (%d)", len(appProgramList.Items))
-	}
-	// There are no BpfApplicationStates for this BpfApplication on this node.
-	if createIfNotFound {
-		return r.createBpfAppState()
-	} else {
-		return nil, false, nil
+	switch len(appProgramList.Items) {
+	case 1:
+		// We got exactly one BpfApplicationState, so update r.currentAppState
+		r.Logger.V(1).Info("Found BpfApplicationState", "Name", r.currentAppState.Name)
+		return &appProgramList.Items[0], nil
+	case 0:
+		// No BpfApplicationState found, so return nil
+		r.Logger.V(1).Info("No BpfApplicationState found")
+		return nil, nil
+	default:
+		// More than one matching BpfApplicationState found. This should never
+		// happen, but if it does, return an error
+		return nil, fmt.Errorf("more than one BpfApplicationState found (%d)", len(appProgramList.Items))
 	}
 }
 
-func (r *ClBpfApplicationReconciler) createBpfAppState() (*bpfmaniov1alpha1.ClusterBpfApplicationState, bool, error) {
-	bpfAppState := &bpfmaniov1alpha1.ClusterBpfApplicationState{
+func (r *ClBpfApplicationReconciler) initBpfAppState() error {
+	r.currentAppState = &bpfmaniov1alpha1.ClusterBpfApplicationState{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       generateUniqueName(r.currentApp.Name),
 			Finalizers: []string{r.finalizer},
@@ -591,37 +562,41 @@ func (r *ClBpfApplicationReconciler) createBpfAppState() (*bpfmaniov1alpha1.Clus
 				internal.K8sHostLabel:     r.NodeName,
 			},
 		},
-		Spec: bpfmaniov1alpha1.ClBpfApplicationStateSpec{
-			Node:          r.NodeName,
-			AppLoadStatus: bpfmaniov1alpha1.AppLoadNotLoaded,
-			UpdateCount:   0,
-			Programs:      []bpfmaniov1alpha1.ClBpfApplicationProgramState{},
-		},
-		Status: bpfmaniov1alpha1.BpfAppStatus{Conditions: []metav1.Condition{}},
 	}
 
-	err := r.initializeNodeProgramList(bpfAppState)
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to initialize BpfApplicationState program list: %v", err)
+	r.Logger.Info("Initialized BpfApplicationState object", "App Name", r.currentApp.Name, "AppState Name", r.currentAppState.Name)
+
+	if err := ctrl.SetControllerReference(r.currentApp, r.currentAppState, r.Scheme); err != nil {
+		return fmt.Errorf("failed to set bpfAppState object owner reference: %v", err)
 	}
 
-	// Make the corresponding BpfApplication the owner
-	if err := ctrl.SetControllerReference(r.currentApp, bpfAppState, r.Scheme); err != nil {
-		return nil, false, fmt.Errorf("failed to set bpfAppState object owner reference: %v", err)
-	}
-
-	return bpfAppState, true, nil
+	return nil
 }
 
-func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState) error {
+func (r *ClBpfApplicationReconciler) initBpfAppStateStatus(ctx context.Context) error {
+	r.currentAppState.Status = bpfmaniov1alpha1.ClBpfApplicationStateStatus{
+		Node:          r.NodeName,
+		AppLoadStatus: bpfmaniov1alpha1.AppLoadNotLoaded,
+		UpdateCount:   0,
+		Programs:      []bpfmaniov1alpha1.ClBpfApplicationProgramState{},
+		Conditions:    []metav1.Condition{},
+	}
+	if err := r.initializeNodeProgramList(); err != nil {
+		return fmt.Errorf("failed to initialize BpfApplicationState program list. Name: %s, Error: %v", r.currentApp.Name, err)
+	}
+	r.updateBpfAppStateCondition(r, bpfmaniov1alpha1.BpfAppStateCondPending)
+	return nil
+}
+
+func (r *ClBpfApplicationReconciler) initializeNodeProgramList() error {
 	// The list should only be initialized once when the BpfApplication is first
 	// created.  After that, the user can't add or remove programs.
-	if len(bpfAppState.Spec.Programs) != 0 {
+	if len(r.currentAppState.Status.Programs) != 0 {
 		return fmt.Errorf("BpfApplicationState programs list has already been initialized")
 	}
 
 	for _, prog := range r.currentApp.Spec.Programs {
-		_, err := r.getProgState(&prog, bpfAppState.Spec.Programs)
+		_, err := r.getProgState(&prog, r.currentAppState.Status.Programs)
 		if err == nil {
 			return fmt.Errorf("duplicate bpf function detected. bpfFunctionName: %s", prog.Name)
 		}
@@ -689,7 +664,7 @@ func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 			return fmt.Errorf("unexpected EBPFProgType: %#v", prog.Type)
 		}
 
-		bpfAppState.Spec.Programs = append(bpfAppState.Spec.Programs, progState)
+		r.currentAppState.Status.Programs = append(r.currentAppState.Status.Programs, progState)
 	}
 
 	return nil
@@ -698,7 +673,7 @@ func (r *ClBpfApplicationReconciler) initializeNodeProgramList(bpfAppState *bpfm
 func (r *ClBpfApplicationReconciler) isLoaded(ctx context.Context) bool {
 	allProgramsLoaded := true
 	someProgramsLoaded := false
-	for _, program := range r.currentAppState.Spec.Programs {
+	for _, program := range r.currentAppState.Status.Programs {
 		if program.ProgramId == nil {
 			allProgramsLoaded = false
 		} else if _, err := bpfmanagentinternal.GetBpfmanProgramById(ctx, r.BpfmanClient, *program.ProgramId); err != nil {
@@ -729,7 +704,7 @@ func (r *ClBpfApplicationReconciler) getLoadRequest() (*gobpfman.LoadRequest, er
 	loadInfo := []*gobpfman.LoadInfo{}
 
 	for _, program := range r.currentApp.Spec.Programs {
-		progState, err := r.getProgState(&program, r.currentAppState.Spec.Programs)
+		progState, err := r.getProgState(&program, r.currentAppState.Status.Programs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get program state: %v", err)
 		}
@@ -765,7 +740,7 @@ func (r *ClBpfApplicationReconciler) load(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to load eBPF Program: %v", err)
 	} else {
-		for p, program := range r.currentAppState.Spec.Programs {
+		for p, program := range r.currentAppState.Status.Programs {
 			id, err := bpfmanagentinternal.GetBpfProgramId(program.Name, loadResponse.Programs)
 			// This should never happen because the bpfman load is all or nothing,
 			// and we aren't allowing users to add or remove programs from an
@@ -774,14 +749,14 @@ func (r *ClBpfApplicationReconciler) load(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to get program id: %v", err)
 			}
-			r.currentAppState.Spec.Programs[p].ProgramId = id
+			r.currentAppState.Status.Programs[p].ProgramId = id
 		}
 	}
 	return nil
 }
 
 func (r *ClBpfApplicationReconciler) unload(ctx context.Context) {
-	for i, program := range r.currentAppState.Spec.Programs {
+	for i, program := range r.currentAppState.Status.Programs {
 		if program.ProgramId != nil {
 			err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *program.ProgramId)
 			if err != nil {
@@ -790,12 +765,12 @@ func (r *ClBpfApplicationReconciler) unload(ctx context.Context) {
 				// that case, we should log the error and continue.
 				r.Logger.Error(err, "failed to unload program", "ProgramId", *program.ProgramId)
 			}
-			r.currentAppState.Spec.Programs[i].ProgramId = nil
+			r.currentAppState.Status.Programs[i].ProgramId = nil
 			// When bpfman deletes a program, it also automatically detaches all links, so,
 			// we can just delete the links from the state.
-			r.deleteLinks(&r.currentAppState.Spec.Programs[i])
+			r.deleteLinks(&r.currentAppState.Status.Programs[i])
 		}
-		r.currentAppState.Spec.Programs[i].ProgramLinkStatus = bpfmaniov1alpha1.ProgAttachSuccess
+		r.currentAppState.Status.Programs[i].ProgramLinkStatus = bpfmaniov1alpha1.ProgAttachSuccess
 	}
 }
 
@@ -829,10 +804,10 @@ func (r *ClBpfApplicationReconciler) deleteLinks(program *bpfmaniov1alpha1.ClBpf
 // validateProgramList checks the BpfApplicationPrograms to ensure that none
 // have been added or deleted.
 func (r *ClBpfApplicationReconciler) validateProgramList() error {
-	// Create a map of the programs in r.currentAppState.Spec.Programs to make
-	// the checks more efficient.
+	// Create a map of the current list of programs to make the checks more
+	// efficient.
 	appStateProgMap := make(map[string]bool)
-	for _, program := range r.currentAppState.Spec.Programs {
+	for _, program := range r.currentAppState.Status.Programs {
 		appStateProgMap[program.Name] = true
 	}
 

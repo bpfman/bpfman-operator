@@ -159,12 +159,10 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 			Labels:     map[string]string{internal.BpfAppStateOwner: app.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.ClBpfApplicationControllerFinalizer},
 		},
-		Spec: bpfmaniov1alpha1.ClBpfApplicationStateSpec{
+		Status: bpfmaniov1alpha1.ClBpfApplicationStateStatus{
 			AppLoadStatus: bpfmaniov1alpha1.AppLoadSuccess,
 			Programs:      []bpfmaniov1alpha1.ClBpfApplicationProgramState{},
-		},
-		Status: bpfmaniov1alpha1.BpfAppStatus{
-			Conditions: []metav1.Condition{bpfmaniov1alpha1.BpfAppCondSuccess.Condition("")},
+			Conditions:    []metav1.Condition{bpfmaniov1alpha1.BpfAppCondSuccess.Condition("")},
 		},
 	}
 

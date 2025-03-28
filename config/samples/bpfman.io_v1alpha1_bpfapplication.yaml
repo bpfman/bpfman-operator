@@ -32,7 +32,7 @@ spec:
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target
     - name: tcx_next_test
       type: TCX
       tcx:
@@ -45,7 +45,7 @@ spec:
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target
     - name: uprobe_test
       type: UProbe
       uprobe:
@@ -55,7 +55,7 @@ spec:
             containers:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target
     - name: uretprobe_test
       type: URetProbe
       uretprobe:
@@ -65,7 +65,7 @@ spec:
             containers:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target
     - name: xdp_pass_test
       type: XDP
       xdp:
@@ -77,4 +77,4 @@ spec:
             networkNamespaces:
               pods:
                 matchLabels:
-                  app: nginx
+                  app: test-target

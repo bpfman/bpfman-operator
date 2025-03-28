@@ -46,9 +46,8 @@ const (
 
 type BpfProgOper interface {
 	GetName() string
-
 	GetLabels() map[string]string
-	GetStatus() *bpfmaniov1alpha1.BpfAppStatus
+	GetConditions() []metav1.Condition
 }
 
 type BpfProgListOper[T any] interface {
@@ -140,10 +139,10 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 			finalApplied = append(finalApplied, bpfAppState.GetName())
 		}
 
-		status := bpfAppState.GetStatus()
-		if bpfmanHelpers.IsBpfAppStateConditionFailure(&status.Conditions) {
+		conditions := bpfAppState.GetConditions()
+		if bpfmanHelpers.IsBpfAppStateConditionFailure(conditions) {
 			failedBpfApplications = append(failedBpfApplications, bpfAppState.GetName())
-		} else if bpfmanHelpers.IsBpfAppStateConditionPending(&status.Conditions) {
+		} else if bpfmanHelpers.IsBpfAppStateConditionPending(conditions) {
 			pendingBpfApplications = append(pendingBpfApplications, bpfAppState.GetName())
 		}
 	}
