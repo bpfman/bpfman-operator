@@ -86,12 +86,15 @@ spec:
                       url:
                         description: url is a valid container image URL used to reference
                           a remote bytecode image.
+                        maxLength: 525
+                        pattern: '[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}'
                         type: string
                     required:
                     - url
                     type: object
                   path:
                     description: path is used to specify a bytecode object via filepath.
+                    pattern: ^(/[^/\0]+)+/?$
                     type: string
                 type: object
               globalData:

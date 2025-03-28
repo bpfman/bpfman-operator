@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// +kubebuilder:validation:Required
 package v1alpha1
 
 import (
@@ -187,21 +186,27 @@ const (
 // ByteCodeSelector defines the various ways to reference bpf bytecode objects.
 type ByteCodeSelector struct {
 	// image used to specify a bytecode container image.
+	// +optional
 	Image *ByteCodeImage `json:"image,omitempty"`
 
 	// path is used to specify a bytecode object via filepath.
+	// +kubebuilder:validation:Pattern=`^(/[^/\0]+)+/?$`
+	// +optional
 	Path *string `json:"path,omitempty"`
 }
 
 // ByteCodeImage defines how to specify a bytecode container image.
 type ByteCodeImage struct {
 	// url is a valid container image URL used to reference a remote bytecode image.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength:=525
+	// +kubebuilder:validation:Pattern=`[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}`
 	Url string `json:"url"`
 
 	// pullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.
 	// +kubebuilder:default:=IfNotPresent
 	// +optional
-	ImagePullPolicy PullPolicy `json:"imagePullPolicy"`
+	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// imagePullSecret is the name of the secret bpfman should use to get remote image
 	// repository secrets.
