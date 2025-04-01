@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vishvananda/netns"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -293,18 +292,22 @@ func getDiscoveredInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelect
 	var discoveredInterfaces []discoveredInterface
 	var netNSPath string
 	allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
+	seenInterface := make(map[discoveredInterface]bool)
 	discoveredInterfacesMap.Range(func(key, value any) bool {
 		if value.(bool) {
 			intf := key.(ifaces.Interface)
 			if !interfaceInExcludeList(interfaceSelector, intf.Name) && interfaceInAllowedList(intf.Name, allowedRegexpes, allowedMatches) {
 				netNSPath = ""
-				if intf.NetNS != netns.None() {
-					netNSPath = internal.NetNsPath + intf.NetNS.String()
+				if intf.NSName != "" {
+					netNSPath = internal.NetNsPath + "/" + intf.NSName
 				}
-				discoveredInterfaces = append(discoveredInterfaces, discoveredInterface{
-					interfaceName: intf.Name,
-					netNSPath:     netNSPath,
-				})
+				if _, ok := seenInterface[discoveredInterface{intf.Name, netNSPath}]; !ok {
+					discoveredInterfaces = append(discoveredInterfaces, discoveredInterface{
+						interfaceName: intf.Name,
+						netNSPath:     netNSPath,
+					})
+					seenInterface[discoveredInterface{intf.Name, netNSPath}] = true
+				}
 			}
 		}
 		return true
