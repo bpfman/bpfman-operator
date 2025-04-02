@@ -94,9 +94,6 @@ type ClBpfApplicationProgramState struct {
 	TracePoint *ClTracepointProgramInfoState `json:"tracepoint,omitempty"`
 }
 
-type ClBpfApplicationStateSpec struct {
-}
-
 // ClBpfApplicationStateStatus reflects the status of the ClusterBpfApplicationState on the given node
 type ClBpfApplicationStateStatus struct {
 	// updateCount is the number of times the BpfApplicationState has been updated. Set to 1
@@ -134,7 +131,6 @@ type ClusterBpfApplicationState struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClBpfApplicationStateSpec   `json:"spec,omitempty"`
 	Status ClBpfApplicationStateStatus `json:"status,omitempty"`
 }
 

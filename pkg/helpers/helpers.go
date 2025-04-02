@@ -169,7 +169,7 @@ func IsBpfAppStateConditionFailure(conditions []metav1.Condition) bool {
 
 	return conditions[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondError) ||
 		conditions[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondProgramListChangedError) ||
-		conditions[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondDeleteError)
+		conditions[0].Type == string(bpfmaniov1alpha1.BpfAppStateCondUnloadError)
 }
 
 func IsBpfAppStateConditionPending(conditions []metav1.Condition) bool {

@@ -24,6 +24,7 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	"github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	v1 "k8s.io/api/core/v1"
@@ -109,7 +110,7 @@ func (r *ClBpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).
 		// Watch for changes in Pod resources in case we are using a container
-		// or network namepsce selector.
+		// or network namespace selector.
 		Watches(
 			&v1.Pod{},
 			&handler.EnqueueRequestForObject{},
@@ -241,12 +242,13 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					r.Logger.Info("Successfully reconciled program", "Name", rec.getProgName())
 				}
 			}
+		}
 
-			// If the bpfApplicationStatus didn't get changed to an error already,
-			// check the status of the programs.
-			if bpfApplicationStatus == bpfmaniov1alpha1.BpfAppStateCondSuccess {
-				bpfApplicationStatus = r.checkProgramStatus()
-			}
+		// If the bpfApplicationStatus didn't get changed to an error already,
+		// check the status of the programs.
+		if bpfApplicationStatus == bpfmaniov1alpha1.BpfAppStateCondSuccess {
+			bpfApplicationStatus = r.checkProgramStatus()
+			r.Logger.Info("Checking program status", "Name", r.currentAppState.Name, "Status", bpfApplicationStatus)
 		}
 
 		r.updateBpfAppStateCondition(r, bpfApplicationStatus)
@@ -262,7 +264,7 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, nil
 		}
 
-		if r.isBeingDeleted() {
+		if r.isBeingDeleted() && !helpers.IsBpfAppStateConditionFailure(r.currentAppState.Status.Conditions) {
 			r.Logger.Info("BpfApplication is being deleted", "Name", r.currentApp.Name)
 			if r.removeFinalizer(ctx, r.currentAppState, r.finalizer) {
 				return ctrl.Result{}, nil
@@ -289,7 +291,7 @@ func (r *ClBpfApplicationReconciler) createBpfAppState(ctx context.Context) (ctr
 		r.Logger.Error(err, "failed to create BpfApplicationState object")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
-	if err := r.initBpfAppStateStatus(ctx); err != nil {
+	if err := r.initBpfAppStateStatus(); err != nil {
 		r.Logger.Error(err, "failed to initialize BpfApplicationState status")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
@@ -397,6 +399,12 @@ func (r *ClBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 }
 
 func (r *ClBpfApplicationReconciler) checkProgramStatus() bpfmaniov1alpha1.BpfApplicationStateConditionType {
+	if r.currentAppState.Status.AppLoadStatus == bpfmaniov1alpha1.AppLoadError {
+		return bpfmaniov1alpha1.BpfAppStateCondUnloadError
+	}
+	if r.currentAppState.Status.AppLoadStatus == bpfmaniov1alpha1.AppUnLoadSuccess {
+		return bpfmaniov1alpha1.BpfAppStateCondUnloaded
+	}
 	for _, program := range r.currentAppState.Status.Programs {
 		if program.ProgramLinkStatus != bpfmaniov1alpha1.ProgAttachSuccess {
 			return bpfmaniov1alpha1.BpfAppStateCondError
@@ -573,7 +581,7 @@ func (r *ClBpfApplicationReconciler) initBpfAppState() error {
 	return nil
 }
 
-func (r *ClBpfApplicationReconciler) initBpfAppStateStatus(ctx context.Context) error {
+func (r *ClBpfApplicationReconciler) initBpfAppStateStatus() error {
 	r.currentAppState.Status = bpfmaniov1alpha1.ClBpfApplicationStateStatus{
 		Node:          r.NodeName,
 		AppLoadStatus: bpfmaniov1alpha1.AppLoadNotLoaded,

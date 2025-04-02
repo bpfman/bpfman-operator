@@ -75,7 +75,10 @@ func statusChangedPredicateNamespace() predicate.Funcs {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*bpfmaniov1alpha1.BpfApplicationState)
 			newObject := e.ObjectNew.(*bpfmaniov1alpha1.BpfApplicationState)
-			return !reflect.DeepEqual(oldObject.Status.Conditions, newObject.Status.Conditions)
+			statusChanged := !reflect.DeepEqual(oldObject.Status.Conditions, newObject.Status.Conditions)
+			finalizerChanged := controllerutil.ContainsFinalizer(oldObject, internal.NsBpfApplicationControllerFinalizer) !=
+				controllerutil.ContainsFinalizer(newObject, internal.NsBpfApplicationControllerFinalizer)
+			return statusChanged || finalizerChanged
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return false

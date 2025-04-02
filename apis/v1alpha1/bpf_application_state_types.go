@@ -64,9 +64,6 @@ type BpfApplicationProgramState struct {
 	URetProbe *UprobeProgramInfoState `json:"uretprobe,omitempty"`
 }
 
-type BpfApplicationStateSpec struct {
-}
-
 // BpfApplicationStateStatus reflects the status of the BpfApplication on the given node
 type BpfApplicationStateStatus struct {
 	// updateCount is the number of times the BpfApplicationState has been updated. Set to 1
@@ -103,7 +100,6 @@ type BpfApplicationState struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BpfApplicationStateSpec   `json:"spec,omitempty"`
 	Status BpfApplicationStateStatus `json:"status,omitempty"`
 }
 

@@ -339,9 +339,14 @@ const (
 	// node while attempting to apply the configuration described in the CRD.
 	BpfAppStateCondProgramListChangedError BpfApplicationStateConditionType = "ProgramListChangedError"
 
-	// BpfAppStateCondDeleteError indicates that the BPF Application was marked
-	// for deletion, but deletion was unsuccessful on the given node.
-	BpfAppStateCondDeleteError BpfApplicationStateConditionType = "DeleteError"
+	// BpfAppStateCondUnloadError indicates that the BPF Application was marked
+	// for deletion, but unloading one or more programs was unsuccessful on the
+	// given node.
+	BpfAppStateCondUnloadError BpfApplicationStateConditionType = "UnloadError"
+
+	// BpfAppStateCondUnloaded indicates that the BPF Application was marked
+	// for deletion, and has been successfully unloaded.
+	BpfAppStateCondUnloaded BpfApplicationStateConditionType = "Unloaded"
 )
 
 // Condition is a helper method to promote any given
@@ -375,13 +380,21 @@ func (b BpfApplicationStateConditionType) Condition() metav1.Condition {
 			Reason:  "Error",
 			Message: "An error has occurred",
 		}
-	case BpfAppStateCondDeleteError:
-		condType := string(BpfAppStateCondDeleteError)
+	case BpfAppStateCondUnloadError:
+		condType := string(BpfAppStateCondUnloadError)
 		cond = metav1.Condition{
 			Type:    condType,
 			Status:  metav1.ConditionTrue,
-			Reason:  "Delete Error",
-			Message: "Deletion failed on one or more nodes",
+			Reason:  "Unload Error",
+			Message: "Unload failed for one or more programs",
+		}
+	case BpfAppStateCondUnloaded:
+		condType := string(BpfAppStateCondUnloaded)
+		cond = metav1.Condition{
+			Type:    condType,
+			Status:  metav1.ConditionTrue,
+			Reason:  "Unloaded",
+			Message: "The application has been successfully unloaded",
 		}
 	}
 	return cond
