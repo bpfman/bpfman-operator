@@ -55,7 +55,9 @@ import (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 const (
-	retryDurationAgent = 1 * time.Second
+	retryDurationAgent  = 1 * time.Second
+	updateRetryInterval = 100 * time.Millisecond
+	updateTimeout       = 2 * time.Minute
 )
 
 type ReconcilerCommon struct {
@@ -88,10 +90,10 @@ type ApplicationReconciler interface {
 	getAppStateName() string
 	getNode() *v1.Node
 	getNodeSelector() *metav1.LabelSelector
-	GetStatus() *bpfmaniov1alpha1.BpfAppStatus
+	getAppStateConditions() *[]metav1.Condition
+	setAppStateConditions(condition metav1.Condition)
 	isBeingDeleted() bool
-	updateBpfAppStatus(ctx context.Context, condition metav1.Condition) error
-	updateLoadStatus(updateStatus bpfmaniov1alpha1.AppLoadStatus)
+	setAppLoadStatus(updateStatus bpfmaniov1alpha1.AppLoadStatus)
 	validateProgramList() error
 	load(ctx context.Context) error
 	isLoaded(ctx context.Context) bool
@@ -132,26 +134,26 @@ func (r *ReconcilerCommon) reconcileLoad(ctx context.Context, rec ApplicationRec
 	if !isNodeSelected {
 		// The program should not be loaded.  Unload it if necessary
 		rec.unload(ctx)
-		rec.updateLoadStatus(bpfmaniov1alpha1.NotSelected)
+		rec.setAppLoadStatus(bpfmaniov1alpha1.NotSelected)
 	} else if rec.isBeingDeleted() {
 		// The program should not be loaded.  Unload it if necessary
 		rec.unload(ctx)
-		rec.updateLoadStatus(bpfmaniov1alpha1.AppUnLoadSuccess)
+		rec.setAppLoadStatus(bpfmaniov1alpha1.AppUnLoadSuccess)
 	} else {
 		err := rec.validateProgramList()
 		if err != nil {
-			rec.updateLoadStatus(bpfmaniov1alpha1.ProgListChangedError)
+			rec.setAppLoadStatus(bpfmaniov1alpha1.ProgListChangedError)
 			return err
 		}
 		if rec.isLoaded(ctx) {
-			rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
+			rec.setAppLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
 		} else {
 			err := rec.load(ctx)
 			if err != nil {
-				rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadError)
+				rec.setAppLoadStatus(bpfmaniov1alpha1.AppLoadError)
 				return fmt.Errorf("failed to load program: %v", err)
 			} else {
-				rec.updateLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
+				rec.setAppLoadStatus(bpfmaniov1alpha1.AppLoadSuccess)
 			}
 		}
 	}
@@ -159,47 +161,41 @@ func (r *ReconcilerCommon) reconcileLoad(ctx context.Context, rec ApplicationRec
 	return nil
 }
 
-// updateStatus updates the status of a BpfApplicationState object if needed,
-// returning true if the status was changed, and false if the status was not
-// changed.
-func (r *ReconcilerCommon) updateStatus(
-	ctx context.Context,
+// updateBpfAppStateCondition updates the overall status of a BpfApplicationState object
+// maintained in the Conditions field if needed, returning true if the status
+// was changed, and false if the status was not changed.
+func (r *ReconcilerCommon) updateBpfAppStateCondition(
 	rec ApplicationReconciler,
 	condition bpfmaniov1alpha1.BpfApplicationStateConditionType,
-) (bool, error) {
-	status := rec.GetStatus()
-	r.Logger.V(1).Info("updateStatus()", "existing conds", status.Conditions, "new cond", condition)
+) bool {
+	conditions := rec.getAppStateConditions()
+	r.Logger.V(1).Info("updateStatus()", "existing conds", conditions, "new cond", condition)
 
-	if status.Conditions != nil {
-		numConditions := len(status.Conditions)
+	if conditions != nil {
+		numConditions := len(*conditions)
 
 		if numConditions == 1 {
-			if status.Conditions[0].Type == string(condition) {
+			if (*conditions)[0].Type == string(condition) {
 				// No change, so just return false -- not updated
-				return false, nil
+				return false
 			} else {
 				// We're changing the condition, so delete this one.  The
 				// new condition will be added below.
-				status.Conditions = nil
+				*conditions = nil
 			}
 		} else if numConditions > 1 {
 			// We should only ever have one condition, so we shouldn't hit this
 			// case.  However, if we do, log a message, delete the existing
 			// conditions, and add the new one below.
 			r.Logger.Info("more than one condition detected", "numConditions", numConditions)
-			status.Conditions = nil
+			*conditions = nil
 		}
 		// if numConditions == 0, just add the new condition below.
 	}
 
-	r.Logger.Info("Calling KubeAPI to update BpfAppState condition", "Name", rec.getAppStateName, "condition", condition.Condition().Type)
-	err := rec.updateBpfAppStatus(ctx, condition.Condition())
-	if err != nil {
-		r.Logger.Info("failed to set BpfApplication object status", "reason", err)
-	}
-
-	r.Logger.V(1).Info("condition updated", "new condition", condition, "existing conds", status.Conditions)
-	return true, err
+	rec.setAppStateConditions(condition.Condition())
+	r.Logger.V(1).Info("condition updated", "new condition", condition, "existing conds", conditions)
+	return true
 }
 
 // reconcileProgram is a common function for reconciling programs contained in a

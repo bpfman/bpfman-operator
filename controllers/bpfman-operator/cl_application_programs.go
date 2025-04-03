@@ -54,6 +54,7 @@ func (r *BpfApplicationReconciler) getFinalizer() string {
 }
 
 // SetupWithManager sets up the controller with the Manager.
+
 func (r *BpfApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfmaniov1alpha1.ClusterBpfApplication{}).

@@ -286,13 +286,12 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Check if the ClusterBpfApplicationState Object was created successfully
-	bpfAppState, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
+	// Check if the BpfApplicationState Object was created successfully
+	bpfAppState, err := r.getBpfAppState(ctx)
 	require.NoError(t, err)
 
-	// Make sure we got bpfAppState from the api server and didn't create a new
-	// one.
-	require.Equal(t, false, bpfAppStateNew)
+	// Make sure we got bpfAppState from the api server
+	require.NotEqual(t, nil, bpfAppState)
 
 	require.Equal(t, 1, len(bpfAppState.Status.Conditions))
 	require.Equal(t, string(bpfmaniov1alpha1.BpfAppStateCondPending), bpfAppState.Status.Conditions[0].Type)
@@ -313,13 +312,12 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Check if the ClusterBpfApplicationState Object was created successfully
-	bpfAppState2, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
+	// Check if the BpfApplicationState Object was created successfully
+	bpfAppState2, err := r.getBpfAppState(ctx)
 	require.NoError(t, err)
 
-	// Make sure we got bpfAppState from the api server and didn't create a new
-	// one.
-	require.Equal(t, false, bpfAppStateNew)
+	// Make sure we got bpfAppState from the api server
+	require.NotEqual(t, nil, bpfAppState2)
 
 	require.Equal(t, 1, len(bpfAppState2.Status.Conditions))
 	require.Equal(t, string(bpfmaniov1alpha1.BpfAppStateCondSuccess), bpfAppState2.Status.Conditions[0].Type)
@@ -330,7 +328,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 
 	require.Equal(t, internal.ClBpfApplicationControllerFinalizer, bpfAppState2.Finalizers[0])
 
-	for _, program := range bpfAppState2.Spec.Programs {
+	for _, program := range bpfAppState2.Status.Programs {
 		r.Logger.Info("ProgramAttachStatus check", "program", program.Name, "status", program.ProgramLinkStatus)
 		require.Equal(t, bpfmaniov1alpha1.ProgAttachSuccess, program.ProgramLinkStatus)
 	}
@@ -345,13 +343,13 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 
 	r.Logger.Info("Third reconcile", "res:", res, "err:", err)
 
-	// Check if the ClusterBpfApplicationState Object was created successfully
-	bpfAppState3, bpfAppStateNew, err := r.getBpfAppState(ctx, false)
+	// Check if the BpfApplicationState Object was created successfully
+	bpfAppState3, err := r.getBpfAppState(ctx)
 	require.NoError(t, err)
 
 	// Make sure we got bpfAppState from the api server and didn't create a new
 	// one.
-	require.Equal(t, false, bpfAppStateNew)
+	require.NotEqual(t, nil, bpfAppState3)
 
 	// Check that the bpfAppState was not updated
 	require.True(t, reflect.DeepEqual(bpfAppState2, bpfAppState3))
