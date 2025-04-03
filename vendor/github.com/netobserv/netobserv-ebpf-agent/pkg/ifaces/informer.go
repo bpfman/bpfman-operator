@@ -36,10 +36,9 @@ type Event struct {
 }
 
 type Interface struct {
-	Name   string
-	Index  int
-	NetNS  netns.NsHandle
-	NSName string
+	Name  string
+	Index int
+	NetNS netns.NsHandle
 }
 
 // Informer provides notifications about each network interface that is added or removed
@@ -49,7 +48,7 @@ type Informer interface {
 	Subscribe(ctx context.Context) (<-chan Event, error)
 }
 
-func netInterfaces(nsh netns.NsHandle, ns string) ([]Interface, error) {
+func netInterfaces(nsh netns.NsHandle) ([]Interface, error) {
 	handle, err := netlink.NewHandleAt(nsh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create handle for netns (%s): %w", nsh.String(), err)
@@ -64,7 +63,7 @@ func netInterfaces(nsh netns.NsHandle, ns string) ([]Interface, error) {
 
 	names := make([]Interface, len(links))
 	for i, link := range links {
-		names[i] = Interface{Name: link.Attrs().Name, Index: link.Attrs().Index, NetNS: nsh, NSName: ns}
+		names[i] = Interface{Name: link.Attrs().Name, Index: link.Attrs().Index, NetNS: nsh}
 	}
 	return names, nil
 }
