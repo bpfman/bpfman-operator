@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vishvananda/netns"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -284,25 +283,43 @@ func interfaceInAllowedList(intf string, allowedRegexpes []*regexp.Regexp, allow
 	return false
 }
 
-func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node, discoveredInterfaces *sync.Map) ([]string, error) {
-	var interfaces []string
+type discoveredInterface struct {
+	interfaceName string
+	netNSPath     string
+}
 
-	if isInterfacesDiscoveryEnabled(interfaceSelector) {
-		allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
-		discoveredInterfaces.Range(func(key, value any) bool {
-			if value.(bool) {
-				intf := key.(ifaces.Interface)
-				if !interfaceInExcludeList(interfaceSelector, intf.Name) && interfaceInAllowedList(intf.Name, allowedRegexpes, allowedMatches) {
-					interfaces = append(interfaces, intf.Name)
+func getDiscoveredInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, discoveredInterfacesMap *sync.Map) ([]discoveredInterface, error) {
+	var discoveredInterfaces []discoveredInterface
+	var netNSPath string
+	allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
+	seenInterface := make(map[discoveredInterface]bool)
+	discoveredInterfacesMap.Range(func(key, value any) bool {
+		if value.(bool) {
+			intf := key.(ifaces.Interface)
+			if !interfaceInExcludeList(interfaceSelector, intf.Name) && interfaceInAllowedList(intf.Name, allowedRegexpes, allowedMatches) {
+				netNSPath = ""
+				if intf.NSName != "" {
+					netNSPath = internal.NetNsPath + "/" + intf.NSName
+				}
+				if _, ok := seenInterface[discoveredInterface{intf.Name, netNSPath}]; !ok {
+					discoveredInterfaces = append(discoveredInterfaces, discoveredInterface{
+						interfaceName: intf.Name,
+						netNSPath:     netNSPath,
+					})
+					seenInterface[discoveredInterface{intf.Name, netNSPath}] = true
 				}
 			}
-			return true
-		})
-		if len(interfaces) > 0 {
-			return interfaces, nil
 		}
-		return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
+		return true
+	})
+	if len(discoveredInterfaces) > 0 {
+		return discoveredInterfaces, nil
 	}
+	return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
+}
+
+func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node) ([]string, error) {
+	var interfaces []string
 
 	if len(interfaceSelector.Interfaces) > 0 {
 		return interfaceSelector.Interfaces, nil
@@ -586,22 +603,6 @@ func directionToStr(direction bpfmaniov1alpha1.TCDirectionType) string {
 
 func netnsPathFromPID(pid int32) string {
 	return fmt.Sprintf("/host/proc/%d/ns/net", pid)
-}
-
-func getInterfaceNetNsList(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ifName string, discoveredInterfaces *sync.Map) map[string][]string {
-	netnsList := make(map[string][]string)
-	if isInterfacesDiscoveryEnabled(interfaceSelector) {
-		discoveredInterfaces.Range(func(key, value any) bool {
-			if value.(bool) {
-				intf := key.(ifaces.Interface)
-				if intf.Name == ifName && intf.NetNS != netns.None() {
-					netnsList[ifName] = append(netnsList[ifName], internal.NetNsPath+intf.NetNS.String())
-				}
-			}
-			return true
-		})
-	}
-	return netnsList
 }
 
 func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector) bool {

@@ -257,18 +257,44 @@ func (r *ClXdpProgramReconciler) removeLinks(links []bpfmaniov1alpha1.ClXdpAttac
 
 // getExpectedLinks expands *AttachInfo into a list of specific attach
 // points.
-func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.ClXdpAttachInfo,
-) ([]bpfmaniov1alpha1.ClXdpAttachInfoState, error) {
-	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode, r.Interfaces)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get interfaces for XdpProgram: %v", err)
+func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo bpfmaniov1alpha1.ClXdpAttachInfo) ([]bpfmaniov1alpha1.ClXdpAttachInfoState, error) {
+	nodeLinks := []bpfmaniov1alpha1.ClXdpAttachInfoState{}
+	// Helper function to create a ClXdpAttachInfoState entry
+	createLinkEntry := func(interfaceName, netnsPath string) bpfmaniov1alpha1.ClXdpAttachInfoState {
+		return bpfmaniov1alpha1.ClXdpAttachInfoState{
+			AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
+				ShouldAttach: true,
+				UUID:         uuid.New().String(),
+				LinkId:       nil,
+				LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
+			},
+			InterfaceName: interfaceName,
+			NetnsPath:     netnsPath,
+			Priority:      attachInfo.Priority,
+			ProceedOn:     attachInfo.ProceedOn,
+		}
 	}
 
-	nodeLinks := []bpfmaniov1alpha1.ClXdpAttachInfoState{}
+	// Handle interface discovery
+	if isInterfacesDiscoveryEnabled(&attachInfo.InterfaceSelector) {
+		discoveredInterfaces, err := getDiscoveredInterfaces(&attachInfo.InterfaceSelector, r.Interfaces)
+		if err != nil {
+			return nil, fmt.Errorf("failed to discover interfaces: %w", err)
+		}
+		for _, intf := range discoveredInterfaces {
+			nodeLinks = append(nodeLinks, createLinkEntry(intf.interfaceName, intf.netNSPath))
+		}
+		return nodeLinks, nil
+	}
 
+	// Fetch interfaces if discovery is disabled
+	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get interfaces for XdpProgram: %w", err)
+	}
+
+	// Handle network namespaces if provided
 	if attachInfo.NetworkNamespaces != nil {
-		// There is a network namespace selector, so see if there are any
-		// matching network namespaces on this node.
 		containerInfo, err := r.Containers.GetContainers(
 			ctx,
 			attachInfo.NetworkNamespaces.Namespace,
@@ -277,69 +303,27 @@ func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 			r.Logger,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get container pids: %v", err)
+			return nil, fmt.Errorf("failed to get container pids: %w", err)
 		}
 
-		if containerInfo != nil {
-			// Just use one container per pod to get the pod's network
-			// namespace.
-			containerInfo = GetOneContainerPerPod(containerInfo)
-			for _, container := range *containerInfo {
-				netnsPath := netnsPathFromPID(container.pid)
-				for _, iface := range interfaces {
-					link := bpfmaniov1alpha1.ClXdpAttachInfoState{
-						AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
-							ShouldAttach: true,
-							UUID:         uuid.New().String(),
-							LinkId:       nil,
-							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
-						},
-						InterfaceName: iface,
-						NetnsPath:     netnsPath,
-						Priority:      attachInfo.Priority,
-						ProceedOn:     attachInfo.ProceedOn,
-					}
-					nodeLinks = append(nodeLinks, link)
-				}
-			}
-		} else {
-			// This is an error -- either namespacePath or pods must be set.
-			r.Logger.Error(fmt.Errorf("neither namespacePath nor pods is set"), "internal error")
+		if containerInfo == nil {
+			r.Logger.Info("NetworkNamespaces is configured but no matching container found")
+			return nodeLinks, nil
 		}
-	} else {
-		for _, iface := range interfaces {
-			netnsList := getInterfaceNetNsList(&attachInfo.InterfaceSelector, iface, r.Interfaces)
-			if len(netnsList) == 0 {
-				link := bpfmaniov1alpha1.ClXdpAttachInfoState{
-					AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
-						ShouldAttach: true,
-						UUID:         uuid.New().String(),
-						LinkId:       nil,
-						LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
-					},
-					InterfaceName: iface,
-					Priority:      attachInfo.Priority,
-					ProceedOn:     attachInfo.ProceedOn,
-				}
-				nodeLinks = append(nodeLinks, link)
-			} else {
-				for _, netns := range netnsList[iface] {
-					link := bpfmaniov1alpha1.ClXdpAttachInfoState{
-						AttachInfoStateCommon: bpfmaniov1alpha1.AttachInfoStateCommon{
-							ShouldAttach: true,
-							UUID:         uuid.New().String(),
-							LinkId:       nil,
-							LinkStatus:   bpfmaniov1alpha1.ApAttachNotAttached,
-						},
-						InterfaceName: iface,
-						Priority:      attachInfo.Priority,
-						ProceedOn:     attachInfo.ProceedOn,
-						NetnsPath:     netns,
-					}
-					nodeLinks = append(nodeLinks, link)
-				}
+
+		containerInfo = GetOneContainerPerPod(containerInfo)
+		for _, container := range *containerInfo {
+			netnsPath := netnsPathFromPID(container.pid)
+			for _, iface := range interfaces {
+				nodeLinks = append(nodeLinks, createLinkEntry(iface, netnsPath))
 			}
 		}
+		return nodeLinks, nil
+	}
+
+	// Fallback: Assign interfaces without a namespace
+	for _, iface := range interfaces {
+		nodeLinks = append(nodeLinks, createLinkEntry(iface, ""))
 	}
 
 	return nodeLinks, nil

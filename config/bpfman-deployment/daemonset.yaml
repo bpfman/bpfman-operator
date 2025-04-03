@@ -104,6 +104,9 @@ spec:
             - mountPath: /host/netns
               name: host-netns
               mountPropagation: HostToContainer
+            - mountPath: /var/run/netns
+              name: var-run-netns
+              mountPropagation: HostToContainer
             # The bpfman.toml config file
             - name: bpfman-config
               mountPath: /etc/bpfman/bpfman.toml
@@ -144,6 +147,9 @@ spec:
               name: host-dockerd
             - mountPath: /etc/crictl.yaml
               name: host-crictl-config
+            - mountPath: /var/run/netns
+              name: var-run-netns
+              mountPropagation: HostToContainer
         - name: node-driver-registrar
           image: quay.io/bpfman/csi-node-driver-registrar:v2.13.0
           imagePullPolicy: IfNotPresent
@@ -218,6 +224,9 @@ spec:
         - hostPath:
             path: /run/netns
           name: host-netns
+        - hostPath:
+            path: /var/run/netns
+          name: var-run-netns
         - hostPath:
             path: /run/containerd/containerd.sock
           name: host-containerd
