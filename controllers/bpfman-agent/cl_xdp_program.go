@@ -187,8 +187,8 @@ func (r *ClXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClXdp
 		// attachInfoState is the same as a if the the following fields are the
 		// same: IfName, NetnsPath, Priority, and ProceedOn.
 		if a.InterfaceName == attachInfoState.InterfaceName && a.Priority == attachInfoState.Priority &&
-			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) &&
-			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
+			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
+			reflect.DeepEqual(getInode(r.Logger, a.NetnsPath), getInode(r.Logger, attachInfoState.NetnsPath)) {
 			return &i
 		}
 	}

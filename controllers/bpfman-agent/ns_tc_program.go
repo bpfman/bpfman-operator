@@ -165,8 +165,8 @@ func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAtta
 		// same: InterfaceName, Direction, Priority, NetnsPath, and ProceedOn.
 		if a.InterfaceName == attachInfoState.InterfaceName && a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
-			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) &&
-			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) {
+			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
+			reflect.DeepEqual(getInode(r.Logger, a.NetnsPath), getInode(r.Logger, attachInfoState.NetnsPath)) {
 			return &i
 		}
 	}

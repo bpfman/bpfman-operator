@@ -19,9 +19,11 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -607,4 +609,26 @@ func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceS
 		return true
 	}
 	return false
+}
+
+func getInode(log logr.Logger, path string) *uint64 {
+	if path == "" {
+		log.V(1).Info("getInode: Path is empty.  Using /proc/1/ns/net")
+		path = "/proc/1/ns/net"
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		log.Info("getInode: Failed to stat file", "path", path, "error", err)
+		return nil
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		log.Info("getInode: Failed to convert to Stat_t", "path", path)
+		return nil
+	}
+
+	log.V(1).Info("getInode", "Path", path, "inode", stat.Ino)
+	return &stat.Ino
 }

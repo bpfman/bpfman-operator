@@ -165,7 +165,7 @@ func (r *ClTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcx
 		// same: InterfaceName, NetnsPath, Priority, and Direction.
 		if a.InterfaceName == attachInfoState.InterfaceName && a.Priority == attachInfoState.Priority &&
 			a.Direction == attachInfoState.Direction &&
-			reflect.DeepEqual(a.NetnsPath, attachInfoState.NetnsPath) {
+			reflect.DeepEqual(getInode(r.Logger, a.NetnsPath), getInode(r.Logger, attachInfoState.NetnsPath)) {
 			return &i
 		}
 	}
