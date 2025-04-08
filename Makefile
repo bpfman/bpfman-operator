@@ -320,8 +320,8 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 
 .PHONY: build
 build: fmt ## Build bpfman-operator and bpfman-agent binaries.
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
 
 # These paths map the host's GOCACHE location to the container's
 # location. We want to mount the host's Go cache in the container to
