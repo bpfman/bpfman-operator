@@ -126,7 +126,7 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	r.finalizer = internal.ClBpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
 
-	r.Logger.Info("Enter BpfApplication Reconcile", "Name", req.Name)
+	r.Logger.Info("Enter ClusterBpfApplication Reconcile", "Name", req.Name)
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {

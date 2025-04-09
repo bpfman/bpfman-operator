@@ -611,24 +611,31 @@ func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceS
 	return false
 }
 
-func getInode(log logr.Logger, path string) *uint64 {
+// getNetnsId returns the network namespace ID from the given path. If the path
+// is empty, it defaults to "/host/proc/1/ns/net".  If the file is a hard link,
+// it returns the inode number of the file.  If the file is a soft link, it
+// returns the inode of the file linked. If the path is not valid or the
+// conversion to Stat_t fails, it returns nil.
+func getNetnsId(log logr.Logger, path string) *uint64 {
 	if path == "" {
-		log.V(1).Info("getInode: Path is empty.  Using /proc/1/ns/net")
-		path = "/proc/1/ns/net"
+		log.V(1).Info("Enter getNetnsId: Path is empty.  Using /host/proc/1/ns/net")
+		path = "/host/proc/1/ns/net"
+	} else {
+		log.V(1).Info("Enter getNetnsId", "Path", path)
 	}
 
 	info, err := os.Stat(path)
 	if err != nil {
-		log.Info("getInode: Failed to stat file", "path", path, "error", err)
+		log.V(1).Info("Exit getNetnsId: Failed to stat file", "path", path, "error", err)
 		return nil
 	}
 
 	stat, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
-		log.Info("getInode: Failed to convert to Stat_t", "path", path)
+		log.V(1).Info("Exit getNetnsId: Failed to convert to Stat_t", "path", path)
 		return nil
 	}
 
-	log.V(1).Info("getInode", "Path", path, "inode", stat.Ino)
+	log.V(1).Info("Exit getNetnsId", "Path", path, "inode", stat.Ino)
 	return &stat.Ino
 }

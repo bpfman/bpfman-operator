@@ -173,7 +173,11 @@ func (r *ClTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 				return fmt.Errorf("failed to get node links: %v", error)
 			}
 			for _, link := range expectedLinks {
-				index := r.findLink(link)
+				index, err := r.findLink(link)
+				if err != nil {
+					r.Logger.Info("Error", "Invalid link", r.printAttachInfo(link), "Error", err)
+					continue
+				}
 				if index != nil {
 					// Link already exists, so set ShouldAttach to true.
 					r.currentProgramState.TC.Links[*index].AttachInfoStateCommon.ShouldAttach = true
@@ -194,18 +198,36 @@ func (r *ClTcProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted 
 	return nil
 }
 
-func (r *ClTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcAttachInfoState) *int {
+func (r *ClTcProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha1.ClTcAttachInfoState) string {
+	var netnsPath string
+	if attachInfoState.NetnsPath == "" {
+		netnsPath = "host"
+	} else {
+		netnsPath = attachInfoState.NetnsPath
+	}
+
+	return fmt.Sprintf("interfaceName: %s, netnsPath: %s, direction: %s, priority: %d",
+		attachInfoState.InterfaceName, netnsPath, attachInfoState.Direction, attachInfoState.Priority)
+}
+
+func (r *ClTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClTcAttachInfoState) (*int, error) {
+	newNetnsId := getNetnsId(r.Logger, attachInfoState.NetnsPath)
+	if newNetnsId == nil {
+		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
+	}
+	r.Logger.V(1).Info("findlink", "New Path", attachInfoState.NetnsPath, "NetnsId", newNetnsId)
 	for i, a := range r.currentProgramState.TC.Links {
 		// attachInfoState is the same as a if the the following fields are the
-		// same: InterfaceName, Direction, Priority, NetnsPath, and ProceedOn.
-		if a.InterfaceName == attachInfoState.InterfaceName && a.Direction == attachInfoState.Direction &&
+		// same: InterfaceName, Direction, Priority, ProceedOn, and network namespace.
+		if a.InterfaceName == attachInfoState.InterfaceName &&
+			a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(getInode(r.Logger, a.NetnsPath), getInode(r.Logger, attachInfoState.NetnsPath)) {
-			return &i
+			reflect.DeepEqual(getNetnsId(r.Logger, a.NetnsPath), newNetnsId) {
+			return &i, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // processLinks calls reconcileBpfLink() for each link. It
