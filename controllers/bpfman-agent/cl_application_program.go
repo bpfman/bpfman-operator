@@ -695,7 +695,7 @@ func (r *ClBpfApplicationReconciler) isLoaded(ctx context.Context) bool {
 		// This should never happen because the bpfman load is all or nothing,
 		// and we aren't allowing users to add or remove programs from an
 		// existing BpfApplication.  However, if it does happen, log an error.
-		r.Logger.Error(fmt.Errorf("inconsistent program load state"),
+		r.Logger.Error(fmt.Errorf("inconsistent program load state"), "inconsistent program load state",
 			"allProgramsLoaded", allProgramsLoaded, "someProgramsLoaded", someProgramsLoaded)
 	}
 
