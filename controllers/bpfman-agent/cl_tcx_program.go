@@ -133,9 +133,10 @@ func (r *ClTcxProgramReconciler) updateLinks(ctx context.Context, isBeingDeleted
 
 	if r.currentProgram.TCX != nil && r.currentProgram.TCX.Links != nil {
 		for _, attachInfo := range r.currentProgram.TCX.Links {
-			expectedLinks, error := r.getExpectedLinks(ctx, attachInfo)
-			if error != nil {
-				return fmt.Errorf("failed to get node links: %v", error)
+			expectedLinks, err := r.getExpectedLinks(ctx, attachInfo)
+			if err != nil {
+				r.Logger.V(1).Info("updateLinks() failed", "error", err)
+				return fmt.Errorf("failed to get node links: %v", err)
 			}
 			for _, link := range expectedLinks {
 				index, err := r.findLink(link)
@@ -276,21 +277,24 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 
 	// Handle interface discovery
 	if isInterfacesDiscoveryEnabled(&attachInfo.InterfaceSelector) {
-		discoveredInterfaces, err := getDiscoveredInterfaces(&attachInfo.InterfaceSelector, r.Interfaces)
-		if err != nil {
-			return nil, fmt.Errorf("failed to discover interfaces: %w", err)
-		}
+		discoveredInterfaces := getDiscoveredInterfaces(&attachInfo.InterfaceSelector, r.Interfaces)
+
+		r.Logger.Info("getExpectedLinks", "num discoveredInterfaces", len(discoveredInterfaces))
 		for _, intf := range discoveredInterfaces {
 			nodeLinks = append(nodeLinks, createLinkEntry(intf.interfaceName, intf.netNSPath))
 		}
+		r.Logger.V(1).Info("getExpectedLinks-discovery", "Links created", len(nodeLinks))
 		return nodeLinks, nil
 	}
 
 	// Fetch interfaces if discovery is disabled
 	interfaces, err := getInterfaces(&attachInfo.InterfaceSelector, r.ourNode)
 	if err != nil {
+		r.Logger.V(1).Info("getExpectedLinks failed to get interfaces", "error", err)
 		return nil, fmt.Errorf("failed to get interfaces for XdpProgram: %w", err)
 	}
+
+	r.Logger.Info("getExpectedLinks", "Number of interfaces", len(interfaces))
 
 	// Handle network namespaces if provided
 	if attachInfo.NetworkNamespaces != nil {
@@ -302,6 +306,7 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 			r.Logger,
 		)
 		if err != nil {
+			r.Logger.V(1).Info("getExpectedLinks failed to get container pids", "error", err)
 			return nil, fmt.Errorf("failed to get container pids: %w", err)
 		}
 
@@ -317,6 +322,7 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 				nodeLinks = append(nodeLinks, createLinkEntry(iface, netnsPath))
 			}
 		}
+		r.Logger.V(1).Info("getExpectedLinks", "Links created", len(nodeLinks))
 		return nodeLinks, nil
 	}
 
@@ -325,6 +331,7 @@ func (r *ClTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 		nodeLinks = append(nodeLinks, createLinkEntry(iface, ""))
 	}
 
+	r.Logger.V(1).Info("getExpectedLinks", "Links created", len(nodeLinks))
 	return nodeLinks, nil
 }
 

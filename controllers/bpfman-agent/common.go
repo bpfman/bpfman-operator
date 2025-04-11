@@ -207,6 +207,7 @@ func (r *ReconcilerCommon) updateBpfAppStateCondition(
 func (r *ReconcilerCommon) reconcileProgram(ctx context.Context, program ProgramReconciler, isBeingDeleted bool) error {
 	err := program.updateLinks(ctx, isBeingDeleted)
 	if err != nil {
+		r.Logger.V(1).Info("updateLinks() failed", "error", err)
 		program.setProgramLinkStatus(bpfmaniov1alpha1.UpdateAttachInfoError)
 		return err
 	}
@@ -286,7 +287,7 @@ type discoveredInterface struct {
 	netNSPath     string
 }
 
-func getDiscoveredInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, discoveredInterfacesMap *sync.Map) ([]discoveredInterface, error) {
+func getDiscoveredInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, discoveredInterfacesMap *sync.Map) []discoveredInterface {
 	var discoveredInterfaces []discoveredInterface
 	var netNSPath string
 	allowedRegexpes, allowedMatches := setupAllowedInterfacesLists(interfaceSelector)
@@ -310,10 +311,7 @@ func getDiscoveredInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelect
 		}
 		return true
 	})
-	if len(discoveredInterfaces) > 0 {
-		return discoveredInterfaces, nil
-	}
-	return nil, fmt.Errorf("interfaces discovery is enabled but no interface discovered")
+	return discoveredInterfaces
 }
 
 func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNode *v1.Node) ([]string, error) {
