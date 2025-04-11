@@ -362,7 +362,6 @@ build-agent-image: ## Build bpfman-agent image.
 push-images: ## Push bpfman-agent and bpfman-operator images.
 	$(OCI_BIN) push ${BPFMAN_OPERATOR_IMG}
 	$(OCI_BIN) push ${BPFMAN_AGENT_IMG}
-	$(OCI_BIN) push ${BPFMAN_IMG}
 
 .PHONY: load-images-kind
 load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.

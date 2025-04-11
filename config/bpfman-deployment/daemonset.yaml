@@ -147,6 +147,9 @@ spec:
               name: host-dockerd
             - mountPath: /etc/crictl.yaml
               name: host-crictl-config
+            - mountPath: /host/proc
+              name: host-proc
+              mountPropagation: HostToContainer
             - mountPath: /var/run/netns
               name: var-run-netns
               mountPropagation: HostToContainer
