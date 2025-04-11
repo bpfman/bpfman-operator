@@ -2,18 +2,18 @@ module github.com/bpfman/bpfman-operator
 
 go 1.23.0
 
-toolchain go1.23.5
+toolchain go1.24.1
 
 require (
 	github.com/bpfman/bpfman v0.5.7-0.20250305151919-a74c631c3643
-	github.com/containers/image/v5 v5.34.2
+	github.com/containers/image/v5 v5.34.3
 	github.com/go-logr/logr v1.4.2
 	github.com/kong/kubernetes-testing-framework v0.47.2
-	github.com/netobserv/netobserv-ebpf-agent v1.7.0-community.0.20250402125041-1fca7614320e
+	github.com/netobserv/netobserv-ebpf-agent v1.8.2-community
 	github.com/openshift/api v0.0.0-20240605201059-cefcda60d938
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
