@@ -201,7 +201,7 @@ func (r *ClXdpProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha
 }
 
 func (r *ClXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClXdpAttachInfoState) (*int, error) {
-	newNetnsId := getNetnsId(r.Logger, attachInfoState.NetnsPath)
+	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -212,7 +212,7 @@ func (r *ClXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClXdp
 		if a.InterfaceName == attachInfoState.InterfaceName &&
 			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(getNetnsId(r.Logger, a.NetnsPath), newNetnsId) {
+			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}
@@ -302,7 +302,6 @@ func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 	// Handle interface discovery
 	if isInterfacesDiscoveryEnabled(&attachInfo.InterfaceSelector) {
 		discoveredInterfaces := getDiscoveredInterfaces(&attachInfo.InterfaceSelector, r.Interfaces)
-
 		r.Logger.Info("getExpectedLinks", "num discoveredInterfaces", len(discoveredInterfaces))
 		for _, intf := range discoveredInterfaces {
 			nodeLinks = append(nodeLinks, createLinkEntry(intf.interfaceName, intf.netNSPath))

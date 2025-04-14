@@ -174,7 +174,7 @@ func (r *NsXdpProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha
 }
 
 func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAttachInfoState) (*int, error) {
-	newNetnsId := getNetnsId(r.Logger, attachInfoState.NetnsPath)
+	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -185,7 +185,7 @@ func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAt
 		if a.InterfaceName == attachInfoState.InterfaceName &&
 			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(getNetnsId(r.Logger, a.NetnsPath), newNetnsId) {
+			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}

@@ -125,6 +125,7 @@ func (r *ClBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	r.Logger = ctrl.Log.WithName("cluster-app")
 	r.finalizer = internal.ClBpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
+	r.NetnsCache = make(map[string]uint64)
 
 	r.Logger.Info("Enter ClusterBpfApplication Reconcile", "Name", req.Name)
 
