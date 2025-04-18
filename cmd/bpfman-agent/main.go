@@ -224,11 +224,11 @@ func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event, int
 			iface := event.Interface
 			switch event.Type {
 			case ifaces.EventAdded:
-				setupLog.Info("interface created", "Name", iface.Name, "netns", iface.NetNS)
+				setupLog.Info("interface created", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
 				interfaces.Store(iface, true)
 			case ifaces.EventDeleted:
-				setupLog.Info("interface deleted", "Name", iface.Name, "netns", iface.NetNS)
-				interfaces.Store(iface, false)
+				setupLog.Info("interface deleted", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
+				interfaces.Delete(iface)
 			default:
 			}
 		}

@@ -12,6 +12,7 @@ spec:
       labels:
         app: test-target
     spec:
+      # hostNetwork: true # Enable host networking
       containers:
         - name: test-target
           image: quay.io/bpfman-userspace/go-target:latest
