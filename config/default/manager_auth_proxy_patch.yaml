@@ -27,8 +27,13 @@ spec:
         - name: bpfman-operator
           args:
             - --health-probe-bind-address=:8175
-            - --metrics-bind-address=0
+            - --metrics-bind-address=:8443
+            - --cert-dir=/tmp/k8s-webhook-server/serving-certs
             - --leader-elect
+          ports:
+            - containerPort: 8443
+              protocol: TCP
+              name: https-metrics
           resources:
             limits:
               cpu: 500m

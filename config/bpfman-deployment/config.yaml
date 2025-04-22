@@ -12,7 +12,7 @@ data:
   ## See https://docs.rs/env_logger/latest/env_logger/ for configuration options
   bpfman.log.level: info
   bpfman.agent.healthprobe.addr: :8175
-  bpfman.agent.metric.addr: 127.0.0.1:8174
+  bpfman.agent.metric.addr: :8443
   # Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
   bpfman.toml: |
     [database]

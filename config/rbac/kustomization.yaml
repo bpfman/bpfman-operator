@@ -14,3 +14,5 @@ resources:
   - bpfapplication_viewer_role.yaml
   - clusterbpfapplication_editor_role.yaml
   - clusterbpfapplication_viewer_role.yaml
+  - metrics_reader_role.yaml
+  - auth_delegator_binding.yaml

@@ -11,11 +11,10 @@ metadata:
     app.kubernetes.io/part-of: bpfman-operator
     app.kubernetes.io/managed-by: kustomize
   name: controller-manager-metrics-monitor
-  namespace: system
 spec:
   endpoints:
     - path: /metrics
-      port: https
+      port: https-metrics
       scheme: https
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
       tlsConfig:

@@ -129,7 +129,7 @@ func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req 
 	}
 
 	bpfmanDeployment := &appsv1.DaemonSet{}
-	staticBpfmanDeployment := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment)
+	staticBpfmanDeployment := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment, r.IsOpenshift)
 	r.Logger.V(1).Info("StaticBpfmanDeployment with CSI", "DS", staticBpfmanDeployment)
 	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanDsName}, bpfmanDeployment); err != nil {
 		if errors.IsNotFound(err) {
@@ -284,7 +284,7 @@ func LoadCsiDriver(path string) *storagev1.CSIDriver {
 	return obj.(*storagev1.CSIDriver)
 }
 
-func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.DaemonSet {
+func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift bool) *appsv1.DaemonSet {
 	// Load static bpfman deployment from disk
 	file, err := os.Open(path)
 	if err != nil {
@@ -345,6 +345,67 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.Dae
 			}
 		}
 	}
+
+	if isOpenshift {
+		if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
+			staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+
+		staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = "agent-metrics-tls"
+
+		staticBpfmanDeployment.Spec.Template.Spec.Volumes = append(staticBpfmanDeployment.Spec.Template.Spec.Volumes, corev1.Volume{
+			Name: "agent-metrics-tls",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: "agent-metrics-tls",
+				},
+			},
+		})
+
+		for i, container := range staticBpfmanDeployment.Spec.Template.Spec.Containers {
+			if container.Name != internal.BpfmanAgentContainerName {
+				continue
+			}
+
+			volumeMount := corev1.VolumeMount{
+				Name:      "agent-metrics-tls",
+				MountPath: "/tmp/k8s-webhook-server/serving-certs",
+				ReadOnly:  true,
+			}
+
+			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts = append(
+				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts,
+				volumeMount,
+			)
+
+			metricsPort := corev1.ContainerPort{
+				ContainerPort: 8443,
+				Name:          "https-metrics",
+				Protocol:      corev1.ProtocolTCP,
+			}
+
+			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports = append(
+				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports,
+				metricsPort,
+			)
+
+			hasCertDir := false
+			for _, arg := range staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args {
+				if strings.HasPrefix(arg, "--cert-dir=") {
+					hasCertDir = true
+					break
+				}
+			}
+			if !hasCertDir {
+				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args = append(
+					staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args,
+					"--cert-dir=/tmp/k8s-webhook-server/serving-certs",
+				)
+			}
+			break
+		}
+	}
+
 	controllerutil.AddFinalizer(staticBpfmanDeployment, internal.BpfmanOperatorFinalizer)
 
 	return staticBpfmanDeployment
