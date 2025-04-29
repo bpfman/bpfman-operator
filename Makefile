@@ -435,7 +435,7 @@ deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specifi
 .PHONY: undeploy
 undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	kubectl delete --ignore-not-found=$(ignore-not-found) cm bpfman-config -n bpfman
-	sleep 5 # Wait for the operator to cleanup the daemonset
+	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images
@@ -459,6 +459,8 @@ deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift
 
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	kubectl delete --ignore-not-found=$(ignore-not-found) cm bpfman-config -n bpfman
+	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 # Deploy the catalog.
