@@ -89,7 +89,7 @@ type ClTcAttachInfo struct {
 	// program in the chain will be called. If a TC program returns Stolen, the
 	// next TC program in the chain will NOT be called.
 	// +optional
-	// +kubebuilder:default:={OK,Pipe,DispatcherReturn}
+	// +kubebuilder:default:={Pipe,DispatcherReturn}
 	ProceedOn []TcProceedOnValue `json:"proceedOn,omitempty"`
 }
 

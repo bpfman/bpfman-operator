@@ -134,17 +134,17 @@ type ClBpfApplicationProgramState struct {
 }
 
 type ClBpfApplicationStateStatus struct {
-	// updateCount is the number of times the ClusterBpfApplicationState has been
-	// updated. Set to 1 when the object is created, then it is incremented prior
-	// to each update. This is used to verify that the API server has the updated
-	// object prior to starting a new Reconcile operation.
+	// UpdateCount tracks the number of times the BpfApplicationState object has
+	// been updated. The bpfman agent initializes it to 1 when it creates the
+	// object, and then increments it before each subsequent update. It serves
+	// as a lightweight sequence number to verify that the API server is serving
+	// the most recent version of the object before beginning a new Reconcile
+	// operation.
 	UpdateCount int64 `json:"updateCount"`
 	// node is the name of the Kubernetes node for this ClusterBpfApplicationState.
 	Node string `json:"node"`
 	// appLoadStatus reflects the status of loading the eBPF application on the
-	// given node. Whether or not the eBPF program is attached to an attachment
-	// point is tracked by the linkStatus field, which is under of each link of
-	// each program.
+	// given node.
 	//
 	// NotLoaded is a temporary state that is assigned when a
 	// ClusterBpfApplicationState is created and the initial reconcile is being

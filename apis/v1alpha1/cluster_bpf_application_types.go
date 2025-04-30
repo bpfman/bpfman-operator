@@ -84,9 +84,7 @@ type ClBpfApplicationProgram struct {
 	// +kubebuilder:validation:MaxLength=64
 	Name string `json:"name"`
 
-	// type is a required field used to specify the type of the eBPF program. The
-	// type dictates which eBPF attachment point to use. This is where the eBPF
-	// program is executed.
+	// type is a required field used to specify the type of the eBPF program.
 	//
 	// Allowed values are:
 	//   FEntry, FExit, KProbe, KRetProbe, TC, TCX, TracePoint, UProbe, URetProbe,
@@ -305,8 +303,8 @@ type ClBpfApplicationSpec struct {
 // +kubebuilder:resource:scope=Cluster
 
 // ClusterBpfApplication is the schema for the cluster scoped BPF Applications
-// API. Using this API allows applications to load one or more eBPF programs on
-// a Kubernetes cluster using bpfman to load the programs.
+// API. This API allows applications to use bpfman to load and attach one or
+// more eBPF programs on a Kubernetes cluster.
 //
 // The clusterBpfApplication.status field reports the overall status of the
 // ClusterBpfApplication CRD. A given ClusterBpfApplication CRD can result in

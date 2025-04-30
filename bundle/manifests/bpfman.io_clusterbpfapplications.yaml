@@ -29,8 +29,8 @@ spec:
       openAPIV3Schema:
         description: |-
           ClusterBpfApplication is the schema for the cluster scoped BPF Applications
-          API. Using this API allows applications to load one or more eBPF programs on
-          a Kubernetes cluster using bpfman to load the programs.
+          API. This API allows applications to use bpfman to load and attach one or
+          more eBPF programs on a Kubernetes cluster.
 
 
           The clusterBpfApplication.status field reports the overall status of the
@@ -95,8 +95,8 @@ spec:
                           present on the node.
 
 
-                          When set to Never, the given image will never be pulled and must be load on
-                          the node by some other means.
+                          When set to Never, the given image will never be pulled and must be
+                          loaded on the node by some other means.
                         enum:
                         - Always
                         - Never
@@ -563,8 +563,8 @@ spec:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
-                                          monitors the creation and deletion of interfaces and automatically attached
-                                          eBPF programs to the newly discovered interfaces in both directions.
+                                          monitors the creation and deletion of interfaces and automatically
+                                          attached eBPF programs to the newly discovered interfaces.
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean
@@ -654,7 +654,6 @@ spec:
                                 type: integer
                               proceedOn:
                                 default:
-                                - OK
                                 - Pipe
                                 - DispatcherReturn
                                 description: |-
@@ -793,8 +792,8 @@ spec:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
-                                          monitors the creation and deletion of interfaces and automatically attached
-                                          eBPF programs to the newly discovered interfaces in both directions.
+                                          monitors the creation and deletion of interfaces and automatically
+                                          attached eBPF programs to the newly discovered interfaces.
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean
@@ -934,9 +933,7 @@ spec:
                       type: object
                     type:
                       description: |-
-                        type is a required field used to specify the type of the eBPF program. The
-                        type dictates which eBPF attachment point to use. This is where the eBPF
-                        program is executed.
+                        type is a required field used to specify the type of the eBPF program.
 
 
                         Allowed values are:
@@ -1049,12 +1046,12 @@ spec:
                                 description: |-
                                   containers is an optional field that identifies the set of containers in
                                   which to attach the UProbe or URetProbe program. If containers is not
-                                  specified, the eBPF program will be attached in the bpfman-agent container.
+                                  specified, the eBPF program will be attached in the bpfman container.
                                 properties:
                                   containerNames:
                                     description: |-
                                       containerNames is an optional field and is a list of container names in a
-                                      pod to attach the eBPF program. If no names are  specified, all containers
+                                      pod to attach the eBPF program. If no names are specified, all containers
                                       in the pod are selected.
                                     items:
                                       type: string
@@ -1062,7 +1059,7 @@ spec:
                                   namespace:
                                     description: |-
                                       namespace is an optional field and indicates the target Kubernetes
-                                      namespace. If not provided, the default Kubernetes namespace is used.
+                                      namespace. If not provided, all Kubernetes namespaces are included.
                                     type: string
                                   pods:
                                     description: |-
@@ -1186,12 +1183,12 @@ spec:
                                 description: |-
                                   containers is an optional field that identifies the set of containers in
                                   which to attach the UProbe or URetProbe program. If containers is not
-                                  specified, the eBPF program will be attached in the bpfman-agent container.
+                                  specified, the eBPF program will be attached in the bpfman container.
                                 properties:
                                   containerNames:
                                     description: |-
                                       containerNames is an optional field and is a list of container names in a
-                                      pod to attach the eBPF program. If no names are  specified, all containers
+                                      pod to attach the eBPF program. If no names are specified, all containers
                                       in the pod are selected.
                                     items:
                                       type: string
@@ -1199,7 +1196,7 @@ spec:
                                   namespace:
                                     description: |-
                                       namespace is an optional field and indicates the target Kubernetes
-                                      namespace. If not provided, the default Kubernetes namespace is used.
+                                      namespace. If not provided, all Kubernetes namespaces are included.
                                     type: string
                                   pods:
                                     description: |-
@@ -1310,10 +1307,10 @@ spec:
 
 
                             The attachment point for an XDP program is a network interface (or device).
-                            The interface can be specified by name, or by setting the
-                            primaryNodeInterface flag, which instructs bpfman to use the primary
-                            interface of a Kubernetes node. Optionally, the XDP program can also be
-                            installed into a set of network namespaces.
+                            The interface can be specified by name, by allowing bpfman to discover each
+                            interface, or by setting the primaryNodeInterface flag, which instructs
+                            bpfman to use the primary interface of a Kubernetes node. Optionally, the
+                            XDP program can also be installed into a set of network namespaces.
                           items:
                             properties:
                               interfaceSelector:
@@ -1370,8 +1367,8 @@ spec:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
-                                          monitors the creation and deletion of interfaces and automatically attached
-                                          eBPF programs to the newly discovered interfaces in both directions.
+                                          monitors the creation and deletion of interfaces and automatically
+                                          attached eBPF programs to the newly discovered interfaces.
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean

@@ -30,10 +30,10 @@ type ClXdpProgramInfo struct {
 	// attached or detached.
 	//
 	// The attachment point for an XDP program is a network interface (or device).
-	// The interface can be specified by name, or by setting the
-	// primaryNodeInterface flag, which instructs bpfman to use the primary
-	// interface of a Kubernetes node. Optionally, the XDP program can also be
-	// installed into a set of network namespaces.
+	// The interface can be specified by name, by allowing bpfman to discover each
+	// interface, or by setting the primaryNodeInterface flag, which instructs
+	// bpfman to use the primary interface of a Kubernetes node. Optionally, the
+	// XDP program can also be installed into a set of network namespaces.
 	// +optional
 	Links []ClXdpAttachInfo `json:"links,omitempty"`
 }

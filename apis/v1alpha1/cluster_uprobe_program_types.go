@@ -66,7 +66,7 @@ type ClUprobeAttachInfo struct {
 
 	// containers is an optional field that identifies the set of containers in
 	// which to attach the UProbe or URetProbe program. If containers is not
-	// specified, the eBPF program will be attached in the bpfman-agent container.
+	// specified, the eBPF program will be attached in the bpfman container.
 	// +optional
 	Containers *ClContainerSelector `json:"containers,omitempty"`
 }

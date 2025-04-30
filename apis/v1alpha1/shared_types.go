@@ -22,8 +22,8 @@ import (
 
 type InterfaceDiscovery struct {
 	// interfaceAutoDiscovery is an optional field. When enabled, the agent
-	// monitors the creation and deletion of interfaces and automatically attached
-	// eBPF programs to the newly discovered interfaces in both directions.
+	// monitors the creation and deletion of interfaces and automatically
+	// attached eBPF programs to the newly discovered interfaces.
 	// CAUTION: This has the potential to attach a given eBPF program to a large
 	// number of interfaces. Use with caution.
 	// +optional
@@ -52,7 +52,7 @@ type InterfaceDiscovery struct {
 	AllowedInterfaces []string `json:"allowedInterfaces,omitempty"`
 }
 
-// InterfaceSelector defines how to attach to interfaces.
+// InterfaceSelector describes the set of interfaces to attach a program to.
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type InterfaceSelector struct {
@@ -76,9 +76,10 @@ type InterfaceSelector struct {
 	PrimaryNodeInterface *bool `json:"primaryNodeInterface,omitempty"`
 }
 
+// ClContainerSelector identifies a set of containers.
 type ClContainerSelector struct {
 	// namespace is an optional field and indicates the target Kubernetes
-	// namespace. If not provided, the default Kubernetes namespace is used.
+	// namespace. If not provided, all Kubernetes namespaces are included.
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
 
@@ -88,15 +89,15 @@ type ClContainerSelector struct {
 	Pods metav1.LabelSelector `json:"pods"`
 
 	// containerNames is an optional field and is a list of container names in a
-	// pod to attach the eBPF program. If no names are  specified, all containers
+	// pod to attach the eBPF program. If no names are specified, all containers
 	// in the pod are selected.
 	// +optional
 	ContainerNames []string `json:"containerNames,omitempty"`
 }
 
-// ContainerSelector identifies a set of containers. It is different from ContainerSelector
+// ContainerSelector identifies a set of containers. It is different from ClContainerSelector
 // in that "Namespace" was removed. Namespace scoped programs can only attach to the namespace
-// they are created in, so namespace at this level doesn't apply.
+// they are created in.
 type ContainerSelector struct {
 	// pods is a required field and indicates the target pods. To select all pods
 	// use the standard metav1.LabelSelector semantics and make it empty.
@@ -264,8 +265,8 @@ type ByteCodeImage struct {
 	// When set to IfNotPresent, the given image will only be pulled if it is not
 	// present on the node.
 	//
-	// When set to Never, the given image will never be pulled and must be load on
-	// the node by some other means.
+	// When set to Never, the given image will never be pulled and must be
+	// loaded on the node by some other means.
 	// +optional
 	// +kubebuilder:default:=IfNotPresent
 	ImagePullPolicy PullPolicy `json:"imagePullPolicy,omitempty"`

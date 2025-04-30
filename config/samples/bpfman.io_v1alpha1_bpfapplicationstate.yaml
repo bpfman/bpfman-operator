@@ -1,249 +1,242 @@
-apiVersion: v1
-items:
-- apiVersion: bpfman.io/v1alpha1
-  kind: BpfApplicationState
-  metadata:
-    creationTimestamp: "2025-03-31T11:53:29Z"
-    finalizers:
-    - bpfman.io.nsbpfapplicationcontroller/finalizer
-    generation: 1
-    labels:
-      bpfman.io/ownedByProgram: bpfapplication-sample
-      kubernetes.io/hostname: bpfman-deployment-control-plane
-    name: bpfapplication-sample-91e81477
-    namespace: acme
-    ownerReferences:
-    - apiVersion: bpfman.io/v1alpha1
-      blockOwnerDeletion: true
-      controller: true
-      kind: BpfApplication
-      name: bpfapplication-sample
-      uid: 993bee6d-9129-4de7-9de2-11fe00c6297d
-    resourceVersion: "93093"
-    uid: 73992afc-4e20-486a-bd64-9562ed1f6a34
-  spec: {}
-  status:
-    appLoadStatus: LoadSuccess
-    appStatus:
-      conditions:
-      - lastTransitionTime: "2025-03-31T11:54:03Z"
-        message: The BPF application has been successfully loaded and attached
-        reason: Success
-        status: "True"
-        type: Success
-    node: bpfman-deployment-control-plane
-    programs:
-    - name: tc_pass_test
-      programId: 13049
-      programLinkStatus: Success
-      tc:
-        links:
-        - direction: Ingress
-          interfaceName: eth0
-          linkId: 9075174
-          linkStatus: Attached
-          netnsPath: /host/proc/11334/ns/net
-          priority: 55
-          proceedOn:
-          - Pipe
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 623614c2-8ac6-4907-b4c3-7eb19556c697
-        - direction: Ingress
-          interfaceName: eth0
-          linkId: 470449002
-          linkStatus: Attached
-          netnsPath: /host/proc/11297/ns/net
-          priority: 55
-          proceedOn:
-          - Pipe
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 8b7792a1-267d-49eb-a9fe-9529e1d10704
-        - direction: Ingress
-          interfaceName: eth0
-          linkId: 2104185296
-          linkStatus: Attached
-          netnsPath: /host/proc/12511/ns/net
-          priority: 55
-          proceedOn:
-          - Pipe
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 2ab314a4-d51a-428d-9205-d9a376cd4f35
-        - direction: Ingress
-          interfaceName: eth0
-          linkId: 3879948226
-          linkStatus: Attached
-          netnsPath: /host/proc/12502/ns/net
-          priority: 55
-          proceedOn:
-          - Pipe
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: a687c020-8692-4ade-8321-b680cd83960e
-      type: TC
-    - name: tcx_next_test
-      programId: 13050
-      programLinkStatus: Success
-      tcx:
-        links:
-        - direction: Egress
-          interfaceName: eth0
-          linkId: 356767155
-          linkStatus: Attached
-          netnsPath: /host/proc/11334/ns/net
-          priority: 100
-          shouldAttach: true
-          uuid: 2964d2f8-df64-4c5a-94e1-09597f60ed3e
-        - direction: Egress
-          interfaceName: eth0
-          linkId: 3971612108
-          linkStatus: Attached
-          netnsPath: /host/proc/11297/ns/net
-          priority: 100
-          shouldAttach: true
-          uuid: 5e1a3762-ee04-4f39-91bd-6fcc1e8b9d13
-        - direction: Egress
-          interfaceName: eth0
-          linkId: 3278813340
-          linkStatus: Attached
-          netnsPath: /host/proc/12511/ns/net
-          priority: 100
-          shouldAttach: true
-          uuid: 53bc603a-fcc1-45ac-aef0-fca770a0e268
-        - direction: Egress
-          interfaceName: eth0
-          linkId: 2268269530
-          linkStatus: Attached
-          netnsPath: /host/proc/12502/ns/net
-          priority: 100
-          shouldAttach: true
-          uuid: 94910ca2-f6a2-458c-b868-5acf0796d60f
-      type: TCX
-    - name: uprobe_test
-      programId: 13051
-      programLinkStatus: Success
-      type: UProbe
-      uprobe:
-        links:
-        - containerPid: 11334
-          function: malloc
-          linkId: 3327245542
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 89870861-20a6-4c6c-a42f-f0e4aaa2d27b
-        - containerPid: 11297
-          function: malloc
-          linkId: 3161457287
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 2fc05309-1c96-4da4-b31a-f72a074e825b
-        - containerPid: 12511
-          function: malloc
-          linkId: 3840558596
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 11a56460-6753-487e-9485-444e13fa34e2
-        - containerPid: 12502
-          function: malloc
-          linkId: 2650626549
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 168264ab-c59c-4f42-8903-8e0c50734f01
-    - name: uretprobe_test
-      programId: 13052
-      programLinkStatus: Success
-      type: URetProbe
-      uretprobe:
-        links:
-        - containerPid: 11334
-          function: malloc
-          linkId: 875680773
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: ff4638d3-4149-467c-a192-763f58cece20
-        - containerPid: 11297
-          function: malloc
-          linkId: 1673370364
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 2ed62e97-79c5-40a5-b6e0-e0e6f764e5cb
-        - containerPid: 12511
-          function: malloc
-          linkId: 1577310058
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: 10875abe-a1ef-4b8b-a10b-9fa724be8f5b
-        - containerPid: 12502
-          function: malloc
-          linkId: 869427060
-          linkStatus: Attached
-          offset: 0
-          shouldAttach: true
-          target: libc
-          uuid: cdc3632c-b2e7-466e-8a47-dea0a3d15bd9
-    - name: xdp_pass_test
-      programId: 13054
-      programLinkStatus: Success
-      type: XDP
-      xdp:
-        links:
-        - interfaceName: eth0
-          linkId: 1076298761
-          linkStatus: Attached
-          netnsPath: /host/proc/11334/ns/net
-          priority: 100
-          proceedOn:
-          - Pass
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 424cd0ee-1af3-41cb-9da1-447f7feedef1
-        - interfaceName: eth0
-          linkId: 44043353
-          linkStatus: Attached
-          netnsPath: /host/proc/11297/ns/net
-          priority: 100
-          proceedOn:
-          - Pass
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: fc14fba2-8ace-4187-95a3-867648b22291
-        - interfaceName: eth0
-          linkId: 2949403124
-          linkStatus: Attached
-          netnsPath: /host/proc/12511/ns/net
-          priority: 100
-          proceedOn:
-          - Pass
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 0f2d1d93-ea2b-47ca-a877-230415392727
-        - interfaceName: eth0
-          linkId: 2792719200
-          linkStatus: Attached
-          netnsPath: /host/proc/12502/ns/net
-          priority: 100
-          proceedOn:
-          - Pass
-          - DispatcherReturn
-          shouldAttach: true
-          uuid: 191018f1-a4eb-48cc-9fc0-77d123a00537
-    updateCount: 3
-kind: List
+apiVersion: bpfman.io/v1alpha1
+kind: BpfApplicationState
 metadata:
-  resourceVersion: ""
+  creationTimestamp: "2025-04-30T20:59:17Z"
+  finalizers:
+  - bpfman.io.nsbpfapplicationcontroller/finalizer
+  generation: 1
+  labels:
+    bpfman.io/ownedByProgram: bpfapplication-sample
+    kubernetes.io/hostname: bpfman-deployment-control-plane
+  name: bpfapplication-sample-ed7beed4
+  namespace: acme
+  ownerReferences:
+  - apiVersion: bpfman.io/v1alpha1
+    blockOwnerDeletion: true
+    controller: true
+    kind: BpfApplication
+    name: bpfapplication-sample
+    uid: a3897014-2014-4585-90a1-ccdb70adeef9
+  resourceVersion: "1348"
+  uid: 5728d3b2-a576-4144-be74-e5c83619344e
+status:
+  appLoadStatus: LoadSuccess
+  conditions:
+  - lastTransitionTime: "2025-04-30T21:01:50Z"
+    message: The BPF application has been successfully loaded and attached
+    reason: Success
+    status: "True"
+    type: Success
+  node: bpfman-deployment-control-plane
+  programs:
+  - name: tc_pass_test
+    programId: 1398
+    programLinkStatus: Success
+    tc:
+      links:
+      - direction: Ingress
+        interfaceName: eth0
+        linkId: 1909324080
+        linkStatus: Attached
+        netnsPath: /host/proc/3041/ns/net
+        priority: 55
+        proceedOn:
+        - Pipe
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: 38e00746-b7be-4bcf-bf14-622ad349b4fa
+      - direction: Ingress
+        interfaceName: eth0
+        linkId: 1342701196
+        linkStatus: Attached
+        netnsPath: /host/proc/3032/ns/net
+        priority: 55
+        proceedOn:
+        - Pipe
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: ba806cdf-5980-4e7f-8d8f-d819e6a57220
+      - direction: Ingress
+        interfaceName: eth0
+        linkId: 2698014225
+        linkStatus: Attached
+        netnsPath: /host/proc/2792/ns/net
+        priority: 55
+        proceedOn:
+        - Pipe
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: e74fa413-d5df-4aa8-8d17-b580b6cb42a5
+      - direction: Ingress
+        interfaceName: eth0
+        linkId: 184300305
+        linkStatus: Attached
+        netnsPath: /host/proc/2833/ns/net
+        priority: 55
+        proceedOn:
+        - Pipe
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: cef8985d-f184-4b18-9ee2-fe21018fae77
+    type: TC
+  - name: tcx_next_test
+    programId: 1399
+    programLinkStatus: Success
+    tcx:
+      links:
+      - direction: Egress
+        interfaceName: eth0
+        linkId: 1256673356
+        linkStatus: Attached
+        netnsPath: /host/proc/3041/ns/net
+        priority: 100
+        shouldAttach: true
+        uuid: 3feed40b-fe4b-4a69-8e91-49624df45673
+      - direction: Egress
+        interfaceName: eth0
+        linkId: 18009714
+        linkStatus: Attached
+        netnsPath: /host/proc/3032/ns/net
+        priority: 100
+        shouldAttach: true
+        uuid: 37b02539-0884-418d-bee4-31456384495e
+      - direction: Egress
+        interfaceName: eth0
+        linkId: 3446068106
+        linkStatus: Attached
+        netnsPath: /host/proc/2792/ns/net
+        priority: 100
+        shouldAttach: true
+        uuid: 24a56373-8967-46f4-bbd4-423a7872f18b
+      - direction: Egress
+        interfaceName: eth0
+        linkId: 733646956
+        linkStatus: Attached
+        netnsPath: /host/proc/2833/ns/net
+        priority: 100
+        shouldAttach: true
+        uuid: 4c855178-0a35-4ac6-abf7-83e61541aca4
+    type: TCX
+  - name: uprobe_test
+    programId: 1400
+    programLinkStatus: Success
+    type: UProbe
+    uprobe:
+      links:
+      - containerPid: 3041
+        function: malloc
+        linkId: 3629930733
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: ed72f8a7-cdc9-4245-8c40-c645fa5969d7
+      - containerPid: 3032
+        function: malloc
+        linkId: 1860984127
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: 5c3b196d-bbe9-4b2c-8c5c-9d78c5ed6512
+      - containerPid: 2792
+        function: malloc
+        linkId: 3256920823
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: 927071d2-c574-4c1f-87f2-baa5e7cfcc8f
+      - containerPid: 2833
+        function: malloc
+        linkId: 3700254381
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: fd351a1a-fb83-4b6c-af2f-c84906c6b54b
+  - name: uretprobe_test
+    programId: 1401
+    programLinkStatus: Success
+    type: URetProbe
+    uretprobe:
+      links:
+      - containerPid: 3041
+        function: malloc
+        linkId: 4161687115
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: 2c8ad027-eca0-4da9-baa6-f7b6f0fc25fd
+      - containerPid: 3032
+        function: malloc
+        linkId: 3445215503
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: 623f2642-9f85-45ca-bab4-8f98d8a31079
+      - containerPid: 2792
+        function: malloc
+        linkId: 1387817990
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: fe81f29b-493d-41a9-b1c7-35733c9ee861
+      - containerPid: 2833
+        function: malloc
+        linkId: 2271422622
+        linkStatus: Attached
+        offset: 0
+        shouldAttach: true
+        target: libc
+        uuid: d6af1106-2c72-4f7d-9ee9-5c32e59e03b7
+  - name: xdp_pass_test
+    programId: 1402
+    programLinkStatus: Success
+    type: XDP
+    xdp:
+      links:
+      - interfaceName: eth0
+        linkId: 1752219747
+        linkStatus: Attached
+        netnsPath: /host/proc/3041/ns/net
+        priority: 100
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: 17760ccc-5ca7-4d21-9590-5f6e5c0fd4ab
+      - interfaceName: eth0
+        linkId: 3877814802
+        linkStatus: Attached
+        netnsPath: /host/proc/3032/ns/net
+        priority: 100
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: 194d2096-a15f-417f-9be6-2032217f3e86
+      - interfaceName: eth0
+        linkId: 2514284800
+        linkStatus: Attached
+        netnsPath: /host/proc/2792/ns/net
+        priority: 100
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: de0f43b3-6a0e-4c22-8127-9fb519a0238b
+      - interfaceName: eth0
+        linkId: 1682543086
+        linkStatus: Attached
+        netnsPath: /host/proc/2833/ns/net
+        priority: 100
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: 84289766-bff1-4af5-a0bd-5d150747a29a
+  updateCount: 2
