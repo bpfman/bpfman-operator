@@ -18,10 +18,12 @@ package bpfmanoperator
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,13 +32,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
+
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	osv1 "github.com/openshift/api/security/v1"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/bpfman/bpfman-operator/internal"
 )
@@ -55,158 +62,89 @@ type BpfmanConfigReconciler struct {
 	IsOpenshift              bool
 }
 
-// SetupWithManager sets up the controller with the Manager.
+// retry is the standard requeue result with a delay.
+var retry = ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}
+
+// SetupWithManager sets up watches for the bpfman-config ConfigMap
+// and for the bpfman-daemon DaemonSet. Any DS event for the named
+// DaemonSet will enqueue a reconcile for the bpfman-config.
 func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Define mapping function for DaemonSet events to ConfigMap
+	// reconcile requests.
+	mapDaemonSetToConfigMap := func(ctx context.Context, obj client.Object) []reconcile.Request {
+		if obj.GetName() != internal.BpfmanDsName {
+			return nil
+		}
+		return []reconcile.Request{{
+			NamespacedName: types.NamespacedName{
+				Namespace: obj.GetNamespace(),
+				Name:      internal.BpfmanConfigName,
+			},
+		}}
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
-		// Watch the bpfman-daemon configmap to configure the bpfman deployment across the whole cluster
-		For(&corev1.ConfigMap{},
-			builder.WithPredicates(bpfmanConfigPredicate())).
-		// This only watches the bpfman daemonset which is stored on disk and will be created
-		// by this operator. We're doing a manual watch since the operator (As a controller)
-		// doesn't really want to have an owner-ref since we don't have a CRD for
-		// configuring it, only a configmap.
-		Owns(
+		// Watch only the single bpfman-config ConfigMap.
+		For(&corev1.ConfigMap{}, builder.WithPredicates(bpfmanConfigPredicate())).
+		// Watch the DaemonSet (create/update/delete) and map
+		// back to the ConfigMap.
+		Watches(
 			&appsv1.DaemonSet{},
-			builder.WithPredicates(bpfmanDaemonPredicate())).
+			handler.EnqueueRequestsFromMapFunc(mapDaemonSetToConfigMap),
+			builder.WithPredicates(bpfmanDaemonPredicate()),
+		).
 		Complete(r)
 }
 
+// Reconcile ensures the bpfman-config ConfigMap and related resources
+// are created, updated, or cleaned up.
 func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = ctrl.Log.WithName("configMap")
+	r.Logger = log.FromContext(ctx).WithName("bpfman-config")
+
+	if req.NamespacedName != (types.NamespacedName{
+		Namespace: internal.BpfmanNamespace,
+		Name:      internal.BpfmanConfigName,
+	}) {
+		r.Logger.Info("Ignoring ConfigMap from unexpected namespace", "expected", internal.BpfmanNamespace, "got", req.Namespace, "name", req.Name)
+		return ctrl.Result{}, nil
+	}
 
 	bpfmanConfig := &corev1.ConfigMap{}
 	if err := r.Get(ctx, req.NamespacedName, bpfmanConfig); err != nil {
-		if !errors.IsNotFound(err) {
-			r.Logger.Error(err, "failed getting bpfman config", "ReconcileObject", req.NamespacedName)
+		if errors.IsNotFound(err) {
+			// ConfigMap was deleted, nothing to do.
 			return ctrl.Result{}, nil
 		}
-	} else {
-		if updated := controllerutil.AddFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer); updated {
-			if err := r.Update(ctx, bpfmanConfig); err != nil {
-				r.Logger.Error(err, "failed adding bpfman-operator finalizer to bpfman config")
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-			}
-		}
-		return r.ReconcileBpfmanConfig(ctx, req, bpfmanConfig)
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req ctrl.Request, bpfmanConfig *corev1.ConfigMap) (ctrl.Result, error) {
-	bpfmanCsiDriver := &storagev1.CSIDriver{}
-	// one-shot try to create bpfman's CSIDriver object if it doesn't exist, does not re-trigger reconcile.
-	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanCsiDriverName}, bpfmanCsiDriver); err != nil {
-		if errors.IsNotFound(err) {
-			bpfmanCsiDriver = LoadCsiDriver(r.CsiDriverDeployment)
-
-			r.Logger.Info("Creating Bpfman csi driver object")
-			if err := r.Create(ctx, bpfmanCsiDriver); err != nil {
-				r.Logger.Error(err, "Failed to create Bpfman csi driver")
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-			}
-		} else {
-			r.Logger.Error(err, "Failed to get csi.bpfman.io csidriver")
-		}
-	}
-
-	if r.IsOpenshift {
-		bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{}
-		// one-shot try to create the bpfman-restricted SCC if it doesn't exist, does not re-trigger reconcile.
-		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanRestrictedSccName}, bpfmanRestrictedSCC); err != nil {
-			if errors.IsNotFound(err) {
-				bpfmanRestrictedSCC = LoadRestrictedSecurityContext(r.RestrictedSCC)
-
-				r.Logger.Info("Creating Bpfman restricted scc object for unprivileged users to bind to")
-				if err := r.Create(ctx, bpfmanRestrictedSCC); err != nil {
-					r.Logger.Error(err, "Failed to create Bpfman restricted scc")
-					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-				}
-			} else {
-				r.Logger.Error(err, "Failed to get bpfman-restricted scc")
-			}
-		}
-	}
-
-	bpfmanDeployment := &appsv1.DaemonSet{}
-	staticBpfmanDeployment := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment, r.IsOpenshift)
-	r.Logger.V(1).Info("StaticBpfmanDeployment with CSI", "DS", staticBpfmanDeployment)
-	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanDsName}, bpfmanDeployment); err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("Creating Bpfman Daemon")
-			// Causes Requeue
-			if err := r.Create(ctx, staticBpfmanDeployment); err != nil {
-				r.Logger.Error(err, "Failed to create Bpfman Daemon")
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-			}
-			return ctrl.Result{}, nil
-		}
-
-		r.Logger.Error(err, "Failed to get bpfman daemon")
-		return ctrl.Result{}, nil
+		r.Logger.Error(err, "Failed getting bpfman config", "ReconcileObject", req.NamespacedName)
+		return ctrl.Result{}, err
 	}
 
 	if !bpfmanConfig.DeletionTimestamp.IsZero() {
-		r.Logger.Info("Deleting bpfman daemon and config")
-		controllerutil.RemoveFinalizer(bpfmanDeployment, internal.BpfmanOperatorFinalizer)
-
-		err := r.Update(ctx, bpfmanDeployment)
-		if err != nil {
-			r.Logger.Error(err, "failed removing bpfman-operator finalizer from bpfmanDs")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-		}
-
-		bpfmanCsiDriver := &storagev1.CSIDriver{}
-
-		// one-shot try to delete bpfman's CSIDriver object only if it exists.
-		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanCsiDriverName}, bpfmanCsiDriver); err == nil {
-			r.Logger.Info("Deleting Bpfman csi driver object")
-			if err := r.Delete(ctx, bpfmanCsiDriver); err != nil {
-				r.Logger.Error(err, "Failed to delete Bpfman csi driver")
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-			}
-		}
-
-		if err = r.Delete(ctx, bpfmanDeployment); err != nil {
-			r.Logger.Error(err, "failed deleting bpfman DS")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-		}
-
-		if r.IsOpenshift {
-			bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{}
-			// one-shot try to delete the bpfman
-			// restricted SCC object but only if it
-			// exists.
-			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfmanRestrictedSccName}, bpfmanRestrictedSCC); err == nil {
-				r.Logger.Info("Deleting Bpfman restricted SCC object")
-				if err := r.Delete(ctx, bpfmanRestrictedSCC); err != nil {
-					r.Logger.Error(err, "Failed to delete Bpfman restricted SCC")
-					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-				}
-			}
-		}
-
-		controllerutil.RemoveFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer)
-		err = r.Update(ctx, bpfmanConfig)
-		if err != nil {
-			r.Logger.Error(err, "failed removing bpfman-operator finalizer from bpfman config")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-		}
-
-		return ctrl.Result{}, nil
+		return r.handleTeardown(ctx, bpfmanConfig)
 	}
 
-	if !reflect.DeepEqual(staticBpfmanDeployment.Spec, bpfmanDeployment.Spec) {
-		r.Logger.Info("Reconciling bpfman")
+	if err := r.ensureFinalizer(ctx, bpfmanConfig); err != nil {
+		r.Logger.Error(err, "failed to add finalizer to ConfigMap")
+		return retry, err
+	}
 
-		// Causes Requeue
-		if err := r.Update(ctx, staticBpfmanDeployment); err != nil {
-			r.Logger.Error(err, "failed reconciling bpfman deployment")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+	if err := r.ensureCSIDriver(ctx); err != nil {
+		r.Logger.Error(err, "failed to ensure Bpfman CSIDriver")
+		return retry, err
+	}
+
+	if r.IsOpenshift {
+		if err := r.ensureRestrictedSCC(ctx); err != nil {
+			r.Logger.Error(err, "failed to ensure Bpfman restricted SCC")
+			return ctrl.Result{}, err
 		}
 	}
 
-	return ctrl.Result{}, nil
+	result, err := r.reconcileDaemonSet(ctx, bpfmanConfig)
+	if err != nil {
+		r.Logger.Error(err, "failed to reconcile Bpfman DaemonSet")
+	}
+	return result, err
 }
 
 // Only reconcile on bpfman-daemon Daemonset events.
@@ -311,8 +249,8 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 	bpfmanConfigs := config.Data["bpfman.toml"]
 
 	// Annotate the log level on the ds so we get automatic restarts on changes.
-	if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
-		staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	if staticBpfmanDeployment.Spec.Template.Annotations == nil {
+		staticBpfmanDeployment.Spec.Template.Annotations = make(map[string]string)
 	}
 
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.loglevel"] = bpfmanLogLevel
@@ -332,81 +270,299 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 			for aindex, arg := range container.Args {
 				if bpfmanHealthProbeAddr != "" {
 					if strings.Contains(arg, "health-probe-bind-address") {
-						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] =
-							"--health-probe-bind-address=" + bpfmanHealthProbeAddr
+						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] = "--health-probe-bind-address=" + bpfmanHealthProbeAddr
 					}
 				}
 				if bpfmanMetricAddr != "" {
 					if strings.Contains(arg, "metrics-bind-address") {
-						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] =
-							"--metrics-bind-address=" + bpfmanMetricAddr
+						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] = "--metrics-bind-address=" + bpfmanMetricAddr
 					}
 				}
 			}
 		}
 	}
 
-	if isOpenshift {
-		if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
-			staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
+	return staticBpfmanDeployment
+}
 
-		staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = "agent-metrics-tls"
+// handleTeardown ensures that all resources created by the presence
+// of the bpfman-config ConfigMap are deleted when the ConfigMap is
+// marked for deletion (i.e., DeletionTimestamp is set).
+//
+// It performs the following steps:
+//
+//  1. Logs which managed resources (DaemonSet, CSIDriver, SCC) still
+//     exist.
+//  2. Attempts to delete any that remain, returning `retry` if any
+//     are still present or if any deletion attempt fails.
+//  3. If all resources have been deleted, removes the operator's
+//     finalizer from the ConfigMap.
+//
+// The operator uses a finalizer to block Kubernetes from deleting the
+// ConfigMap until cleanup is complete. The Reconcile loop continues
+// to call handleTeardown as long as:
+//
+//   - The ConfigMap exists, and
+//   - The DeletionTimestamp is set, and
+//   - The finalizer is still present.
+//
+// Once all resources are gone and the finalizer is successfully
+// removed, Kubernetes deletes the ConfigMap. On the next reconcile,
+// `Get(...)` will return IsNotFound, and the controller will stop
+// calling `handleTeardown`.
+//
+// This pattern ensures that teardown is:
+//   - Explicit
+//   - Idempotent (safe to run repeatedly)
+//   - Driven by observed state
+//   - Finalises cleanly without race conditions from async deletes
+//
+// Any failed or pending delete operation causes the controller to
+// requeue, giving time for propagation to complete or transient
+// failures to resolve.
+func (r *BpfmanConfigReconciler) handleTeardown(ctx context.Context, bpfmanConfig *corev1.ConfigMap) (ctrl.Result, error) {
+	var toDelete []string
 
-		staticBpfmanDeployment.Spec.Template.Spec.Volumes = append(staticBpfmanDeployment.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: "agent-metrics-tls",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "agent-metrics-tls",
-				},
-			},
-		})
+	dsKey := types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanDsName}
+	if err := r.Get(ctx, dsKey, &appsv1.DaemonSet{}); err == nil {
+		toDelete = append(toDelete, "DaemonSet")
+	}
 
-		for i, container := range staticBpfmanDeployment.Spec.Template.Spec.Containers {
-			if container.Name != internal.BpfmanAgentContainerName {
-				continue
-			}
+	csiKey := types.NamespacedName{Name: internal.BpfmanCsiDriverName}
+	if err := r.Get(ctx, csiKey, &storagev1.CSIDriver{}); err == nil {
+		toDelete = append(toDelete, "CSIDriver")
+	}
 
-			volumeMount := corev1.VolumeMount{
-				Name:      "agent-metrics-tls",
-				MountPath: "/tmp/k8s-webhook-server/serving-certs",
-				ReadOnly:  true,
-			}
-
-			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts = append(
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts,
-				volumeMount,
-			)
-
-			metricsPort := corev1.ContainerPort{
-				ContainerPort: 8443,
-				Name:          "https-metrics",
-				Protocol:      corev1.ProtocolTCP,
-			}
-
-			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports = append(
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports,
-				metricsPort,
-			)
-
-			hasCertDir := false
-			for _, arg := range staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args {
-				if strings.HasPrefix(arg, "--cert-dir=") {
-					hasCertDir = true
-					break
-				}
-			}
-			if !hasCertDir {
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args = append(
-					staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args,
-					"--cert-dir=/tmp/k8s-webhook-server/serving-certs",
-				)
-			}
-			break
+	if r.IsOpenshift {
+		sccKey := types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
+		if err := r.Get(ctx, sccKey, &osv1.SecurityContextConstraints{}); err == nil {
+			toDelete = append(toDelete, "RestrictedSCC")
 		}
 	}
 
-	controllerutil.AddFinalizer(staticBpfmanDeployment, internal.BpfmanOperatorFinalizer)
+	if len(toDelete) > 0 {
+		r.Logger.Info("Tearing down resources managed by ConfigMap", "resourcesRemaining", toDelete)
 
-	return staticBpfmanDeployment
+		if result, err := r.tryDeleteDaemonSet(ctx, bpfmanConfig.Namespace); result.Requeue || err != nil {
+			if err != nil {
+				r.Logger.Error(err, "failed to delete Bpfman DaemonSet")
+			}
+			return result, err
+		}
+
+		if result, err := r.tryDeleteCSIDriver(ctx); result.Requeue || err != nil {
+			if err != nil {
+				r.Logger.Error(err, "failed to delete Bpfman CSIDriver")
+			}
+			return result, err
+		}
+
+		if r.IsOpenshift {
+			if result, err := r.tryDeleteSCC(ctx); result.Requeue || err != nil {
+				if err != nil {
+					r.Logger.Error(err, "failed to delete Bpfman SCC")
+				}
+				return result, err
+			}
+		}
+	}
+
+	result, err := r.removeFinalizer(ctx, bpfmanConfig)
+	if err != nil {
+		r.Logger.Error(err, "failed to remove finalizer from ConfigMap")
+	}
+	return result, err
+}
+
+// Try to delete the DaemonSet, return a requeue result if it exists
+// or an error.
+func (r *BpfmanConfigReconciler) tryDeleteDaemonSet(ctx context.Context, namespace string) (ctrl.Result, error) {
+	key := types.NamespacedName{Namespace: namespace, Name: internal.BpfmanDsName}
+	daemonSet := &appsv1.DaemonSet{}
+
+	switch err := r.Get(ctx, key, daemonSet); {
+	case errors.IsNotFound(err):
+		// Already deleted
+		return ctrl.Result{}, nil
+	case err != nil:
+		return retry, fmt.Errorf("getting DaemonSet %q in namespace %q: %w", key.Name, key.Namespace, err)
+	}
+
+	if err := r.Delete(ctx, daemonSet); err != nil {
+		return retry, fmt.Errorf("deleting DaemonSet %q in namespace %q: %w", key.Name, key.Namespace, err)
+	}
+
+	return retry, nil
+}
+
+// Ensure the finalizer is added to the ConfigMap.
+func (r *BpfmanConfigReconciler) ensureFinalizer(ctx context.Context, bpfmanConfig *corev1.ConfigMap) error {
+	if updated := controllerutil.AddFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer); updated {
+		if err := r.Update(ctx, bpfmanConfig); err != nil {
+			return fmt.Errorf("adding finalizer to ConfigMap %q/%q: %w", bpfmanConfig.Namespace, bpfmanConfig.Name, err)
+		}
+	}
+	return nil
+}
+
+// Ensure CSIDriver exists, create if necessary.
+func (r *BpfmanConfigReconciler) ensureCSIDriver(ctx context.Context) error {
+	key := types.NamespacedName{
+		Namespace: corev1.NamespaceAll,
+		Name:      internal.BpfmanCsiDriverName,
+	}
+	csiDriver := &storagev1.CSIDriver{}
+
+	switch err := r.Get(ctx, key, csiDriver); {
+	case errors.IsNotFound(err):
+		*csiDriver = *LoadCsiDriver(r.CsiDriverDeployment)
+		if err := r.Create(ctx, csiDriver); err != nil {
+			return fmt.Errorf("creating Bpfman CSIDriver %q: %w", key.Name, err)
+		}
+	case err != nil:
+		return fmt.Errorf("getting Bpfman CSIDriver %q: %w", key.Name, err)
+	}
+
+	return nil
+}
+
+// Ensure the restricted SCC exists (for OpenShift).
+func (r *BpfmanConfigReconciler) ensureRestrictedSCC(ctx context.Context) error {
+	key := types.NamespacedName{
+		Namespace: corev1.NamespaceAll,
+		Name:      internal.BpfmanRestrictedSccName,
+	}
+	scc := &osv1.SecurityContextConstraints{}
+
+	switch err := r.Get(ctx, key, scc); {
+	case errors.IsNotFound(err):
+		*scc = *LoadRestrictedSecurityContext(r.RestrictedSCC)
+		if err := r.Create(ctx, scc); err != nil {
+			return fmt.Errorf("creating restricted SCC %q: %w", key.Name, err)
+		}
+	case err != nil:
+		return fmt.Errorf("getting restricted SCC %q: %w", key.Name, err)
+	}
+
+	return nil
+}
+
+// Ensure the restricted SCC exists (for OpenShift).
+func (r *BpfmanConfigReconciler) reconcileDaemonSet(ctx context.Context, bpfmanConfig *corev1.ConfigMap) (ctrl.Result, error) {
+	key := types.NamespacedName{
+		Namespace: bpfmanConfig.Namespace,
+		Name:      internal.BpfmanDsName,
+	}
+
+	currentDS := &appsv1.DaemonSet{}
+	staticDaemonSet := LoadAndConfigureBpfmanDs(bpfmanConfig, r.BpfmanStandardDeployment, r.IsOpenshift)
+
+	switch err := r.Get(ctx, key, currentDS); {
+	case errors.IsNotFound(err):
+		// Check if there's a terminating DaemonSet.
+		terminating, terminatingDS, err := r.anyTerminatingDaemonSets(ctx, key.Namespace, key.Name)
+		if err != nil {
+			r.Logger.Error(err, "Failed to check for terminating DaemonSets")
+			return ctrl.Result{}, err
+		}
+		if terminating {
+			r.Logger.Info("Found terminating DaemonSet, requeuing", "deletionTimestamp", terminatingDS.DeletionTimestamp, "resourceVersion", terminatingDS.ResourceVersion, "uid", terminatingDS.UID)
+			return retry, nil
+		}
+
+		if err := r.Create(ctx, staticDaemonSet); err != nil {
+			return ctrl.Result{}, fmt.Errorf("creating Bpfman DaemonSet %q/%q: %w", key.Namespace, key.Name, err)
+		}
+
+		return ctrl.Result{}, nil
+	case err != nil:
+		r.Logger.Error(err, "Failed to get DaemonSet during reconciliation")
+		return ctrl.Result{}, fmt.Errorf("getting Bpfman DaemonSet %q/%q: %w", key.Namespace, key.Name, err)
+	}
+
+	r.Logger.Info("Found existing DaemonSet", "resourceVersion", currentDS.ResourceVersion, "uid", currentDS.UID, "generation", currentDS.Generation)
+
+	return r.updateDaemonSetIfNeeded(ctx, currentDS, staticDaemonSet)
+}
+
+// Try to delete the CSIDriver, return a requeue result if it exists
+// or an error.
+func (r *BpfmanConfigReconciler) tryDeleteCSIDriver(ctx context.Context) (ctrl.Result, error) {
+	key := types.NamespacedName{Name: internal.BpfmanCsiDriverName}
+	csiDriver := &storagev1.CSIDriver{}
+
+	switch err := r.Get(ctx, key, csiDriver); {
+	case errors.IsNotFound(err):
+		return ctrl.Result{}, nil
+	case err != nil:
+		return retry, fmt.Errorf("getting CSIDriver %q: %w", key.Name, err)
+	}
+
+	if err := r.Delete(ctx, csiDriver); err != nil {
+		return retry, fmt.Errorf("deleting CSIDriver %q: %w", key.Name, err)
+	}
+
+	return retry, nil
+}
+
+// Try to delete the restricted SCC, return a requeue result if it
+// exists or an error.
+func (r *BpfmanConfigReconciler) tryDeleteSCC(ctx context.Context) (ctrl.Result, error) {
+	key := types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
+	scc := &osv1.SecurityContextConstraints{}
+
+	switch err := r.Get(ctx, key, scc); {
+	case errors.IsNotFound(err):
+		return ctrl.Result{}, nil
+	case err != nil:
+		return retry, fmt.Errorf("getting SCC %q: %w", key.Name, err)
+	}
+
+	if err := r.Delete(ctx, scc); err != nil {
+		return retry, fmt.Errorf("deleting SCC %q: %w", key.Name, err)
+	}
+
+	return retry, nil
+}
+
+// Remove the finalizer from the ConfigMap if present.
+func (r *BpfmanConfigReconciler) removeFinalizer(ctx context.Context, bpfmanConfig *corev1.ConfigMap) (ctrl.Result, error) {
+	if controllerutil.ContainsFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer) {
+		controllerutil.RemoveFinalizer(bpfmanConfig, internal.BpfmanOperatorFinalizer)
+		if err := r.Update(ctx, bpfmanConfig); err != nil {
+			return retry, fmt.Errorf("removing finalizer from ConfigMap %q/%q: %w", bpfmanConfig.Namespace, bpfmanConfig.Name, err)
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// Update DaemonSet if its spec has changed.
+func (r *BpfmanConfigReconciler) updateDaemonSetIfNeeded(ctx context.Context, bpfmanDeployment, staticBpfmanDeployment *appsv1.DaemonSet) (ctrl.Result, error) {
+	if !reflect.DeepEqual(staticBpfmanDeployment.Spec, bpfmanDeployment.Spec) {
+		r.Logger.Info("Updating Bpfman DaemonSet due to spec change")
+		if err := r.Update(ctx, staticBpfmanDeployment); err != nil {
+			return retry, fmt.Errorf("reconciling Bpfman DaemonSet: %w", err)
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// anyTerminatingDaemonSets checks if there are any terminating
+// DaemonSets with the given name. Returns whether a terminating
+// DaemonSet was found, info about it if found, and any error.
+func (r *BpfmanConfigReconciler) anyTerminatingDaemonSets(ctx context.Context, namespace, name string) (bool, *appsv1.DaemonSet, error) {
+	dsList := &appsv1.DaemonSetList{}
+	if err := r.List(ctx, dsList, client.InNamespace(namespace)); err != nil {
+		return false, nil, fmt.Errorf("listing DaemonSets: %w", err)
+	}
+
+	for _, ds := range dsList.Items {
+		if ds.Name == name && !ds.DeletionTimestamp.IsZero() {
+			return true, ds.DeepCopy(), nil
+		}
+	}
+
+	return false, nil, nil
 }
