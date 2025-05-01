@@ -183,7 +183,7 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 			require.Equal(t, tc.isOpenShift, r.RestrictedSCC != "", "RestrictedSCC should be non-empty for OpenShift and empty otherwise")
 
 			// The expected bpfman daemonset
-			expectedBpfmanDs := LoadAndConfigureBpfmanDs(bpfmanConfig, resolveConfigPath(internal.BpfmanDaemonManifestPath))
+			expectedBpfmanDs := LoadAndConfigureBpfmanDs(bpfmanConfig, resolveConfigPath(internal.BpfmanDaemonManifestPath), tc.isOpenShift)
 
 			// First reconcile will add bpfman-operator finalizer to bpfman configmap
 			res, err := r.Reconcile(ctx, req)

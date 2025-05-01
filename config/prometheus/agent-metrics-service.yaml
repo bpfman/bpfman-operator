@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-metrics-service
+  labels:
+    app.kubernetes.io/name: agent-metrics-service
+    app.kubernetes.io/instance: agent-metrics-service
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/created-by: bpfman-operator
+    app.kubernetes.io/part-of: bpfman-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  ports:
+  - name: https-metrics
+    port: 8443
+    protocol: TCP
+    targetPort: https-metrics
+  selector:
+    name: bpfman-daemon

@@ -19,9 +19,8 @@ namePrefix: bpfman-
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 # - ../prometheus
 
-# Protect the /metrics endpoint by putting it behind auth.
-# If you want your controller-manager to expose the /metrics
-# endpoint w/o any authn/z, please comment the following line.
+# Configure the deployment with TLS for metrics endpoint.
+# This uses controller-runtime's built-in TLS capability.
 patchesStrategicMerge:
   - manager_auth_proxy_patch.yaml
 

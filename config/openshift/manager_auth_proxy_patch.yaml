@@ -1,5 +1,4 @@
-# This patch inject a sidecar container which is a HTTP proxy for the
-# controller manager, it performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.
+# This patch configures the operator deployment.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,6 +6,9 @@ metadata:
   namespace: system
 spec:
   template:
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: controller-manager-metrics-tls
     spec:
       affinity:
         nodeAffinity:
@@ -25,22 +27,20 @@ spec:
                     values:
                       - linux
       containers:
-        - name: kube-rbac-proxy
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-          image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
+        - name: bpfman-operator
           args:
-            - --secure-listen-address=0.0.0.0:8443
-            - --upstream=http://127.0.0.1:8174/
-            - --logtostderr=true
-            - --v=0
+            - --health-probe-bind-address=:8175
+            - --metrics-bind-address=:8443
+            - --leader-elect
+            - --cert-dir=/tmp/k8s-webhook-server/serving-certs
           ports:
             - containerPort: 8443
               protocol: TCP
-              name: https
+              name: https-metrics
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: controller-manager-metrics-tls
+              readOnly: true
           resources:
             limits:
               cpu: 500m
@@ -48,8 +48,7 @@ spec:
             requests:
               cpu: 5m
               memory: 64Mi
-        - name: bpfman-operator
-          args:
-            - --health-probe-bind-address=:8175
-            - --metrics-bind-address=127.0.0.1:8174
-            - --leader-elect
+      volumes:
+        - name: controller-manager-metrics-tls
+          secret:
+            secretName: controller-manager-metrics-tls

@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-manager-metrics-service
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: controller-manager-metrics-tls

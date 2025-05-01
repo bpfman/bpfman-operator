@@ -994,7 +994,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-04-30T21:37:41Z"
+    createdAt: "2025-05-01T12:26:00Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1507,18 +1507,6 @@ spec:
           - get
           - list
           - watch
-        - apiGroups:
-          - authentication.k8s.io
-          resources:
-          - tokenreviews
-          verbs:
-          - create
-        - apiGroups:
-          - authorization.k8s.io
-          resources:
-          - subjectaccessreviews
-          verbs:
-          - create
         serviceAccountName: bpfman-operator
       deployments:
       - label:
@@ -1540,6 +1528,7 @@ spec:
             metadata:
               annotations:
                 kubectl.kubernetes.io/default-container: manager
+                service.beta.openshift.io/serving-cert-secret-name: controller-manager-metrics-tls
               labels:
                 control-plane: controller-manager
             spec:
@@ -1561,32 +1550,10 @@ spec:
                         - linux
               containers:
               - args:
-                - --secure-listen-address=0.0.0.0:8443
-                - --upstream=http://127.0.0.1:8174/
-                - --logtostderr=true
-                - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
-                name: kube-rbac-proxy
-                ports:
-                - containerPort: 8443
-                  name: https
-                  protocol: TCP
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 128Mi
-                  requests:
-                    cpu: 5m
-                    memory: 64Mi
-                securityContext:
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop:
-                    - ALL
-              - args:
                 - --health-probe-bind-address=:8175
-                - --metrics-bind-address=127.0.0.1:8174
+                - --metrics-bind-address=:8443
                 - --leader-elect
+                - --cert-dir=/tmp/k8s-webhook-server/serving-certs
                 command:
                 - /bpfman-operator
                 env:
@@ -1601,6 +1568,10 @@ spec:
                   initialDelaySeconds: 15
                   periodSeconds: 20
                 name: bpfman-operator
+                ports:
+                - containerPort: 8443
+                  name: https-metrics
+                  protocol: TCP
                 readinessProbe:
                   httpGet:
                     path: /readyz
@@ -1612,17 +1583,25 @@ spec:
                     cpu: 500m
                     memory: 128Mi
                   requests:
-                    cpu: 10m
+                    cpu: 5m
                     memory: 64Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
                     drop:
                     - ALL
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: controller-manager-metrics-tls
+                  readOnly: true
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: bpfman-operator
               terminationGracePeriodSeconds: 10
+              volumes:
+              - name: controller-manager-metrics-tls
+                secret:
+                  secretName: controller-manager-metrics-tls
       permissions:
       - rules:
         - apiGroups:

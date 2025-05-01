@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -40,9 +41,11 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	//+kubebuilder:scaffold:imports
@@ -68,12 +71,14 @@ func main() {
 	var opts zap.Options
 	var enableHTTP2, enableInterfacesDiscovery bool
 	var pprofAddr string
+	var certDir string
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8174", "The address the metric endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to. Use \"0\" to disable.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.StringVar(&pprofAddr, "profiling-bind-address", "", "The address the profiling endpoint binds to, such as ':6060'. Leave unset to disable profiling.")
 	flag.BoolVar(&enableInterfacesDiscovery, "enable-interfaces-discovery", true, "Enable ebpfman agent process to auto detect interfaces creation and deletion")
+	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "The directory containing TLS certificates for HTTPS servers.")
 
 	flag.Parse()
 
@@ -108,12 +113,19 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	metricsOptions := server.Options{
+		BindAddress:    metricsAddr,
+		SecureServing:  true,
+		CertDir:        certDir,
+		TLSOpts:        []func(*tls.Config){disableHTTP2},
+		FilterProvider: filters.WithAuthenticationAndAuthorization,
+	}
+
+	certWatcher := setupCertWatcher(certDir, &metricsOptions.TLSOpts)
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Metrics: server.Options{
-			BindAddress: metricsAddr,
-			TLSOpts:     []func(*tls.Config){disableHTTP2},
-		},
+		Scheme:  scheme,
+		Metrics: metricsOptions,
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Port:    9443,
 			TLSOpts: []func(*tls.Config){disableHTTP2},
@@ -130,6 +142,15 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	// Add the certificate watcher to the manager if it was
+	// created. This ensures proper certificate rotation.
+	if certWatcher != nil {
+		if err := mgr.Add(certWatcher); err != nil {
+			setupLog.Error(err, "unable to add certificate watcher to manager")
+			os.Exit(1)
+		}
 	}
 
 	// Set up a connection to bpfman, block until bpfman is up.
@@ -213,6 +234,28 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// setupCertWatcher creates and configures a certificate watcher.
+// Returns the watcher or nil if creation failed.
+func setupCertWatcher(certDir string, tlsOpts *[]func(*tls.Config)) *certwatcher.CertWatcher {
+	certPath := filepath.Join(certDir, "tls.crt")
+	keyPath := filepath.Join(certDir, "tls.key")
+
+	certWatcher, err := certwatcher.New(certPath, keyPath)
+	if err != nil {
+		setupLog.Error(err, "Unable to create certificate watcher", "certPath", certPath, "keyPath", keyPath)
+		// Don't exit on failure - controller-runtime will
+		// handle certificates if the watcher fails.
+		return nil
+	}
+
+	*tlsOpts = append(*tlsOpts, func(c *tls.Config) {
+		c.GetCertificate = certWatcher.GetCertificate
+	})
+
+	setupLog.Info("Certificate watcher configured for metrics TLS", "certPath", certPath)
+	return certWatcher
 }
 
 func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event, interfaces *sync.Map) {

@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/created-by: bpfman-operator
     app.kubernetes.io/part-of: bpfman-operator
     app.kubernetes.io/managed-by: kustomize
-  name: bpfman-operator-rolebinding
+  name: operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

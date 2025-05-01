@@ -3,7 +3,7 @@ data:
   bpfman.agent.healthprobe.addr: :8175
   bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest
   bpfman.agent.log.level: info
-  bpfman.agent.metric.addr: 127.0.0.1:8174
+  bpfman.agent.metric.addr: :8443
   bpfman.image: quay.io/bpfman/bpfman:latest
   bpfman.log.level: info
   bpfman.toml: |
