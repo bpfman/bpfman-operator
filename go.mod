@@ -1,8 +1,6 @@
 module github.com/bpfman/bpfman-operator
 
-go 1.23.0
-
-toolchain go1.23.5
+go 1.24.0
 
 require (
 	github.com/bpfman/bpfman v0.5.7-0.20250305151919-a74c631c3643
@@ -62,7 +60,6 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.0 // indirect
 	sigs.k8s.io/gateway-api v1.1.0 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
 require (
