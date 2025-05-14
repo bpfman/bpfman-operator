@@ -9,6 +9,7 @@
 [![Go report card][go-report-card-badge]][go-report-card-report]
 [![OpenSSF Scorecard][openssf-badge]][openssf-url]
 [![FOSSA Status][fossa-badge]][fossa-url]
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bpfman/bpfman-operator)
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [apache2-url]: https://opensource.org/licenses/Apache-2.0
