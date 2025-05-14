@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG BUILDPLATFORM
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS bpfman-agent-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24 AS bpfman-agent-build
 
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
@@ -25,7 +25,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -mod vendor -o bpfman-agent ./cmd/bpfman-agent/main.go
 
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS cri-tools-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24 AS cri-tools-build
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
 ARG TARGETARCH
@@ -37,12 +37,12 @@ RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDP
 
 WORKDIR /usr/src/cri-tools
 ARG CRI_REPO_URL=https://github.com/kubernetes-sigs/cri-tools
-ARG CRI_REPO_TAG=v1.32.0
+ARG CRI_REPO_BRANCH=master
 
-RUN git clone --depth 1 --branch $CRI_REPO_TAG $CRI_REPO_URL .
+RUN git clone --depth 1 --branch $CRI_REPO_BRANCH $CRI_REPO_URL .
 
 # Build
-RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} VERSION=$CRI_REPO_TAG make
+RUN GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} VERSION="latest" make
 RUN cp ./build/bin/${TARGETOS}/${TARGETARCH}/crictl .
 
 # Use the fedora minimal image to reduce the size of the final image but still
