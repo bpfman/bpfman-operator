@@ -19,27 +19,30 @@ package internal
 import "fmt"
 
 const (
-	K8sHostLabel             = "kubernetes.io/hostname"
-	DiscoveredLabel          = "bpfman.io/discoveredProgram"
-	UuidMetadataKey          = "bpfman.io/uuid"
-	ProgramNameKey           = "bpfman.io/ProgramName"
-	BpfmanNamespace          = "bpfman"
-	BpfmanOperatorName       = "bpfman-operator"
-	BpfmanDsName             = "bpfman-daemon"
-	BpfmanConfigName         = "bpfman-config"
-	BpfmanCsiDriverName      = "csi.bpfman.io"
-	BpfmanRestrictedSccName  = "bpfman-restricted"
-	BpfmanContainerName      = "bpfman"
-	BpfmanAgentContainerName = "bpfman-agent"
-	BpfmanDaemonManifestPath = "./config/bpfman-deployment/daemonset.yaml"
-	BpfmanCsiDriverPath      = "./config/bpfman-deployment/csidriverinfo.yaml"
-	BpfmanRestrictedSCCPath  = "./config/openshift/restricted-scc.yaml"
-	DefaultType              = "tcp"
-	DefaultPath              = "/run/bpfman-sock/bpfman.sock"
-	DefaultPort              = 50051
-	DefaultEnabled           = true
-	BpfAppStateOwner         = "bpfman.io/ownedByProgram"
-	NetNsPath                = "/run/netns"
+	K8sHostLabel                = "kubernetes.io/hostname"
+	DiscoveredLabel             = "bpfman.io/discoveredProgram"
+	UuidMetadataKey             = "bpfman.io/uuid"
+	ProgramNameKey              = "bpfman.io/ProgramName"
+	BpfmanNamespace             = "bpfman"
+	BpfmanOperatorName          = "bpfman-operator"
+	BpfmanDsName                = "bpfman-daemon"
+	BpfmanMetricsProxyDsName    = "bpfman-metrics-proxy"
+	BpfmanConfigName            = "bpfman-config"
+	BpfmanCsiDriverName         = "csi.bpfman.io"
+	BpfmanRestrictedSccName     = "bpfman-restricted"
+	BpfmanContainerName         = "bpfman"
+	BpfmanAgentContainerName    = "bpfman-agent"
+	BpfmanMetricsProxyContainer = "metrics-proxy"
+	BpfmanDaemonManifestPath    = "./config/bpfman-deployment/daemonset.yaml"
+	BpfmanMetricsProxyPath      = "./config/bpfman-deployment/metrics-proxy-daemonset.yaml"
+	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
+	BpfmanRestrictedSCCPath     = "./config/openshift/restricted-scc.yaml"
+	DefaultType                 = "tcp"
+	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
+	DefaultPort                 = 50051
+	DefaultEnabled              = true
+	BpfAppStateOwner            = "bpfman.io/ownedByProgram"
+	NetNsPath                   = "/run/netns"
 )
 
 // -----------------------------------------------------------------------------

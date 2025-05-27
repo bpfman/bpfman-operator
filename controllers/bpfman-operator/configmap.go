@@ -49,10 +49,11 @@ import (
 
 type BpfmanConfigReconciler struct {
 	ClusterApplicationReconciler
-	BpfmanStandardDeployment string
-	CsiDriverDeployment      string
-	RestrictedSCC            string
-	IsOpenshift              bool
+	BpfmanStandardDeployment     string
+	BpfmanMetricsProxyDeployment string
+	CsiDriverDeployment          string
+	RestrictedSCC                string
+	IsOpenshift                  bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -68,6 +69,9 @@ func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(
 			&appsv1.DaemonSet{},
 			builder.WithPredicates(bpfmanDaemonPredicate())).
+		Owns(
+			&appsv1.DaemonSet{},
+			builder.WithPredicates(bpfmanMetricsProxyPredicate())).
 		Complete(r)
 }
 
@@ -167,6 +171,21 @@ func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req 
 			}
 		}
 
+		// Delete metrics-proxy daemonset if it exists
+		metricsProxyDeployment := &appsv1.DaemonSet{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanMetricsProxyDsName}, metricsProxyDeployment); err == nil {
+			r.Logger.Info("Deleting Metrics Proxy daemon")
+			controllerutil.RemoveFinalizer(metricsProxyDeployment, internal.BpfmanOperatorFinalizer)
+			if err := r.Update(ctx, metricsProxyDeployment); err != nil {
+				r.Logger.Error(err, "failed removing bpfman-operator finalizer from metrics proxy DS")
+				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+			}
+			if err = r.Delete(ctx, metricsProxyDeployment); err != nil {
+				r.Logger.Error(err, "failed deleting metrics proxy DS")
+				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+			}
+		}
+
 		if err = r.Delete(ctx, bpfmanDeployment); err != nil {
 			r.Logger.Error(err, "failed deleting bpfman DS")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
@@ -206,6 +225,31 @@ func (r *BpfmanConfigReconciler) ReconcileBpfmanConfig(ctx context.Context, req 
 		}
 	}
 
+	// Reconcile metrics-proxy daemonset
+	metricsProxyDeployment := &appsv1.DaemonSet{}
+	staticMetricsProxyDeployment := LoadAndConfigureMetricsProxyDs(bpfmanConfig, r.BpfmanMetricsProxyDeployment, r.IsOpenshift)
+	r.Logger.V(1).Info("StaticMetricsProxyDeployment", "DS", staticMetricsProxyDeployment)
+	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfmanConfig.Namespace, Name: internal.BpfmanMetricsProxyDsName}, metricsProxyDeployment); err != nil {
+		if errors.IsNotFound(err) {
+			r.Logger.Info("Creating Metrics Proxy Daemon")
+			// Causes Requeue
+			if err := r.Create(ctx, staticMetricsProxyDeployment); err != nil {
+				r.Logger.Error(err, "Failed to create Metrics Proxy Daemon")
+				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+			}
+		} else {
+			r.Logger.Error(err, "Failed to get metrics proxy daemon")
+		}
+	} else if !reflect.DeepEqual(staticMetricsProxyDeployment.Spec, metricsProxyDeployment.Spec) {
+		r.Logger.Info("Reconciling metrics proxy")
+
+		// Causes Requeue
+		if err := r.Update(ctx, staticMetricsProxyDeployment); err != nil {
+			r.Logger.Error(err, "failed reconciling metrics proxy deployment")
+			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -223,6 +267,24 @@ func bpfmanDaemonPredicate() predicate.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return e.Object.GetName() == internal.BpfmanDsName
+		},
+	}
+}
+
+// Only reconcile on bpfman-metrics-proxy Daemonset events.
+func bpfmanMetricsProxyPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Object.GetName() == internal.BpfmanMetricsProxyDsName
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Object.GetName() == internal.BpfmanMetricsProxyDsName
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetName() == internal.BpfmanMetricsProxyDsName
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return e.Object.GetName() == internal.BpfmanMetricsProxyDsName
 		},
 	}
 }
@@ -307,7 +369,6 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 	bpfmanLogLevel := config.Data["bpfman.log.level"]
 	bpfmanAgentLogLevel := config.Data["bpfman.agent.log.level"]
 	bpfmanHealthProbeAddr := config.Data["bpfman.agent.healthprobe.addr"]
-	bpfmanMetricAddr := config.Data["bpfman.agent.metric.addr"]
 	bpfmanConfigs := config.Data["bpfman.toml"]
 
 	// Annotate the log level on the ds so we get automatic restarts on changes.
@@ -318,7 +379,6 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.loglevel"] = bpfmanLogLevel
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.loglevel"] = bpfmanAgentLogLevel
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.healthprobeaddr"] = bpfmanHealthProbeAddr
-	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.metricaddr"] = bpfmanMetricAddr
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.toml"] = bpfmanConfigs
 	staticBpfmanDeployment.Name = internal.BpfmanDsName
 	staticBpfmanDeployment.Namespace = config.Namespace
@@ -336,77 +396,84 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 							"--health-probe-bind-address=" + bpfmanHealthProbeAddr
 					}
 				}
-				if bpfmanMetricAddr != "" {
-					if strings.Contains(arg, "metrics-bind-address") {
-						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] =
-							"--metrics-bind-address=" + bpfmanMetricAddr
-					}
-				}
 			}
-		}
-	}
-
-	if isOpenshift {
-		if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
-			staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-		}
-
-		staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = "agent-metrics-tls"
-
-		staticBpfmanDeployment.Spec.Template.Spec.Volumes = append(staticBpfmanDeployment.Spec.Template.Spec.Volumes, corev1.Volume{
-			Name: "agent-metrics-tls",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: "agent-metrics-tls",
-				},
-			},
-		})
-
-		for i, container := range staticBpfmanDeployment.Spec.Template.Spec.Containers {
-			if container.Name != internal.BpfmanAgentContainerName {
-				continue
-			}
-
-			volumeMount := corev1.VolumeMount{
-				Name:      "agent-metrics-tls",
-				MountPath: "/tmp/k8s-webhook-server/serving-certs",
-				ReadOnly:  true,
-			}
-
-			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts = append(
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].VolumeMounts,
-				volumeMount,
-			)
-
-			metricsPort := corev1.ContainerPort{
-				ContainerPort: 8443,
-				Name:          "https-metrics",
-				Protocol:      corev1.ProtocolTCP,
-			}
-
-			staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports = append(
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Ports,
-				metricsPort,
-			)
-
-			hasCertDir := false
-			for _, arg := range staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args {
-				if strings.HasPrefix(arg, "--cert-dir=") {
-					hasCertDir = true
-					break
-				}
-			}
-			if !hasCertDir {
-				staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args = append(
-					staticBpfmanDeployment.Spec.Template.Spec.Containers[i].Args,
-					"--cert-dir=/tmp/k8s-webhook-server/serving-certs",
-				)
-			}
-			break
 		}
 	}
 
 	controllerutil.AddFinalizer(staticBpfmanDeployment, internal.BpfmanOperatorFinalizer)
 
 	return staticBpfmanDeployment
+}
+
+func LoadAndConfigureMetricsProxyDs(config *corev1.ConfigMap, path string, isOpenshift bool) *appsv1.DaemonSet {
+	// Load static metrics-proxy deployment from disk
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, _ := decode(b, nil, nil)
+
+	staticMetricsProxyDeployment := obj.(*appsv1.DaemonSet)
+
+	// Runtime Configurable fields
+	bpfmanAgentImage := config.Data["bpfman.agent.image"]
+
+	// Set the name and namespace from the config
+	staticMetricsProxyDeployment.Name = internal.BpfmanMetricsProxyDsName
+	staticMetricsProxyDeployment.Namespace = config.Namespace
+	staticMetricsProxyDeployment.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	// Configure the metrics-proxy container image
+	for cindex, container := range staticMetricsProxyDeployment.Spec.Template.Spec.Containers {
+		if container.Name == internal.BpfmanMetricsProxyContainer {
+			staticMetricsProxyDeployment.Spec.Template.Spec.Containers[cindex].Image = bpfmanAgentImage
+		}
+	}
+
+	// Add OpenShift-specific TLS configuration
+	if isOpenshift {
+		// Add serving certificate annotation
+		if staticMetricsProxyDeployment.Spec.Template.Annotations == nil {
+			staticMetricsProxyDeployment.Spec.Template.Annotations = make(map[string]string)
+		}
+		staticMetricsProxyDeployment.Spec.Template.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = "agent-metrics-tls"
+
+		// Add TLS volume mount to container
+		for cindex, container := range staticMetricsProxyDeployment.Spec.Template.Spec.Containers {
+			if container.Name == internal.BpfmanMetricsProxyContainer {
+				staticMetricsProxyDeployment.Spec.Template.Spec.Containers[cindex].VolumeMounts = append(
+					staticMetricsProxyDeployment.Spec.Template.Spec.Containers[cindex].VolumeMounts,
+					corev1.VolumeMount{
+						Name:      "agent-metrics-tls",
+						MountPath: "/tmp/k8s-webhook-server/serving-certs",
+						ReadOnly:  true,
+					},
+				)
+			}
+		}
+
+		// Add TLS volume
+		staticMetricsProxyDeployment.Spec.Template.Spec.Volumes = append(
+			staticMetricsProxyDeployment.Spec.Template.Spec.Volumes,
+			corev1.Volume{
+				Name: "agent-metrics-tls",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "agent-metrics-tls",
+					},
+				},
+			},
+		)
+	}
+
+	controllerutil.AddFinalizer(staticMetricsProxyDeployment, internal.BpfmanOperatorFinalizer)
+
+	return staticMetricsProxyDeployment
 }

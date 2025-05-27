@@ -107,6 +107,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *corev1.Co
 	r := &BpfmanConfigReconciler{
 		ClusterApplicationReconciler: cpr,
 		BpfmanStandardDeployment:     resolveConfigPath(internal.BpfmanDaemonManifestPath),
+		BpfmanMetricsProxyDeployment: resolveConfigPath(internal.BpfmanMetricsProxyPath),
 		CsiDriverDeployment:          resolveConfigPath(internal.BpfmanCsiDriverPath),
 		IsOpenshift:                  isOpenShift,
 	}

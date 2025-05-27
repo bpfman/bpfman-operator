@@ -38,4 +38,5 @@ resources:
   - ../bpfman-deployment
   - rbac.yaml
   - prometheus-rolebinding.yaml
+  - prometheus-metrics-reader-binding.yaml
   - ../prometheus
