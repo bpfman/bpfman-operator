@@ -18,12 +18,12 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -41,17 +41,22 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	//+kubebuilder:scaffold:imports
 )
 
-const buffersLength = 50
+const (
+	buffersLength = 50
+
+	// Internal metrics socket path for metrics-proxy
+	// communication.
+	internalMetricsSocketPath = "/var/run/bpfman-metrics/metrics.sock"
+)
 
 var (
 	scheme   = runtime.NewScheme()
@@ -66,14 +71,12 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
 	var probeAddr string
 	var opts zap.Options
 	var enableHTTP2, enableInterfacesDiscovery bool
 	var pprofAddr string
 	var certDir string
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to. Use \"0\" to disable.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.StringVar(&pprofAddr, "profiling-bind-address", "", "The address the profiling endpoint binds to, such as ':6060'. Leave unset to disable profiling.")
@@ -104,32 +107,10 @@ func main() {
 		}
 	}
 
-	disableHTTP2 := func(c *tls.Config) {
-		if enableHTTP2 {
-			return
-		}
-		c.NextProtos = []string{"http/1.1"}
-	}
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	metricsOptions := server.Options{
-		BindAddress:    metricsAddr,
-		SecureServing:  true,
-		CertDir:        certDir,
-		TLSOpts:        []func(*tls.Config){disableHTTP2},
-		FilterProvider: filters.WithAuthenticationAndAuthorization,
-	}
-
-	certWatcher := setupCertWatcher(certDir, &metricsOptions.TLSOpts)
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:  scheme,
-		Metrics: metricsOptions,
-		WebhookServer: webhook.NewServer(webhook.Options{
-			Port:    9443,
-			TLSOpts: []func(*tls.Config){disableHTTP2},
-		}),
+		Scheme:                 scheme,
 		PprofBindAddress:       pprofAddr,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         false,
@@ -144,14 +125,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Add the certificate watcher to the manager if it was
-	// created. This ensures proper certificate rotation.
-	if certWatcher != nil {
-		if err := mgr.Add(certWatcher); err != nil {
-			setupLog.Error(err, "unable to add certificate watcher to manager")
-			os.Exit(1)
-		}
-	}
+	// Start custom Unix socket metrics server
+	go startUnixMetricsServer(internalMetricsSocketPath)
 
 	// Set up a connection to bpfman, block until bpfman is up.
 	setupLog.Info("Waiting for active connection to bpfman")
@@ -236,26 +211,34 @@ func main() {
 	}
 }
 
-// setupCertWatcher creates and configures a certificate watcher.
-// Returns the watcher or nil if creation failed.
-func setupCertWatcher(certDir string, tlsOpts *[]func(*tls.Config)) *certwatcher.CertWatcher {
-	certPath := filepath.Join(certDir, "tls.crt")
-	keyPath := filepath.Join(certDir, "tls.key")
+func startUnixMetricsServer(socketPath string) {
+	// Remove existing socket file if it exists
+	os.Remove(socketPath)
 
-	certWatcher, err := certwatcher.New(certPath, keyPath)
+	// Create Unix socket listener
+	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
-		setupLog.Error(err, "Unable to create certificate watcher", "certPath", certPath, "keyPath", keyPath)
-		// Don't exit on failure - controller-runtime will
-		// handle certificates if the watcher fails.
-		return nil
+		setupLog.Error(err, "failed to create Unix socket listener for metrics")
+		return
+	}
+	defer listener.Close()
+
+	// Set permissions so metrics-proxy can access
+	if err := os.Chmod(socketPath, 0666); err != nil {
+		setupLog.Error(err, "failed to set socket permissions")
+		return
 	}
 
-	*tlsOpts = append(*tlsOpts, func(c *tls.Config) {
-		c.GetCertificate = certWatcher.GetCertificate
-	})
+	// Create HTTP server with metrics handler
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}))
 
-	setupLog.Info("Certificate watcher configured for metrics TLS", "certPath", certPath)
-	return certWatcher
+	server := &http.Server{Handler: mux}
+
+	setupLog.Info("Starting Unix socket metrics server", "socketPath", socketPath)
+	if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+		setupLog.Error(err, "Unix socket metrics server failed")
+	}
 }
 
 func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event, interfaces *sync.Map) {
