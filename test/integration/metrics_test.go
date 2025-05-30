@@ -82,7 +82,7 @@ func testMetricsEndpointLoad(t *testing.T, port int, path, description, token st
 	t.Logf("Port forward established on port %d", port)
 
 	client := createOptimizedHTTPClient(t, port)
-	url := fmt.Sprintf("https://127.0.0.1:%d%s", port, path)
+	url := fmt.Sprintf("https://localhost:%d%s", port, path)
 
 	const numRequests = 100
 
@@ -316,7 +316,7 @@ func makeHTTPRequest(ctx context.Context, t *testing.T, podName string, port int
 		scheme = "https"
 	}
 
-	url := fmt.Sprintf("%s://127.0.0.1:%d%s", scheme, localPort, path)
+	url := fmt.Sprintf("%s://localhost:%d%s", scheme, localPort, path)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -353,7 +353,7 @@ func makeHTTPRequestToPort(ctx context.Context, t *testing.T, port int, path str
 		scheme = "https"
 	}
 
-	url := fmt.Sprintf("%s://127.0.0.1:%d%s", scheme, port, path)
+	url := fmt.Sprintf("%s://localhost:%d%s", scheme, port, path)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -449,7 +449,7 @@ func setupPortForward(ctx context.Context, t *testing.T, podName string, remoteP
 }
 
 func extractServerCertificate(port int) (*x509.CertPool, error) {
-	conn, err := tls.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port), &tls.Config{InsecureSkipVerify: true})
+	conn, err := tls.Dial("tcp", fmt.Sprintf("localhost:%d", port), &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		return nil, fmt.Errorf("TLS dial failed: %w", err)
 	}
