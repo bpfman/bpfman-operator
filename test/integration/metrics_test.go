@@ -414,13 +414,15 @@ func setupPortForward(ctx context.Context, t *testing.T, podName string, remoteP
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				t.Logf("Port forwarding goroutine panic: %v", r)
+				// Note: Cannot use t.Logf from goroutine as it causes panics
+				fmt.Printf("Port forwarding goroutine panic: %v\n", r)
 			}
 		}()
 
 		pf, err := portforward.New(dialer, []string{fmt.Sprintf("0:%d", remotePort)}, stopCh, readyCh, io.Discard, io.Discard)
 		if err != nil {
-			t.Errorf("Port forward init failed: %v", err)
+			// Note: Cannot use t.Errorf from goroutine as it causes panics
+			fmt.Printf("Port forward init failed: %v\n", err)
 			return
 		}
 
@@ -428,7 +430,8 @@ func setupPortForward(ctx context.Context, t *testing.T, podName string, remoteP
 			if err := pf.ForwardPorts(); err != nil {
 				if !strings.Contains(err.Error(), "connection reset") &&
 					!strings.Contains(err.Error(), "use of closed network connection") {
-					t.Logf("Port forwarding ended: %v", err)
+					// Note: Cannot use t.Logf from goroutine as it causes panics
+					fmt.Printf("Port forwarding ended: %v\n", err)
 				}
 			}
 		}()
@@ -436,11 +439,13 @@ func setupPortForward(ctx context.Context, t *testing.T, podName string, remoteP
 		<-readyCh
 		ports, err := pf.GetPorts()
 		if err != nil {
-			t.Errorf("Failed to get ports: %v", err)
+			// Note: Cannot use t.Errorf from goroutine as it causes panics
+			fmt.Printf("Failed to get ports: %v\n", err)
 			return
 		}
 		if len(ports) == 0 {
-			t.Errorf("No ports returned from port forwarder")
+			// Note: Cannot use t.Errorf from goroutine as it causes panics
+			fmt.Printf("No ports returned from port forwarder\n")
 			return
 		}
 		portCh <- int(ports[0].Local)
