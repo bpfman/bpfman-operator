@@ -127,10 +127,17 @@ func newInterfaceDiscovery(interfaces *sync.Map) (*interfaceDiscovery, error) {
 // Returns nil when the context is cancelled, or an error if the
 // events channel closes unexpectedly.
 func (id *interfaceDiscovery) run(ctx context.Context, logger logr.Logger) error {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case <-ticker.C:
+			if _, err := os.Stat("/tmp/b"); err == nil {
+				return fmt.Errorf("ERROR TRIGGER: /tmp/b file detected - simulating interface discovery failure")
+			}
 		case event, ok := <-id.events:
 			if !ok {
 				return fmt.Errorf("interface events channel closed unexpectedly")
@@ -208,6 +215,8 @@ func (ms *agentMetricsServer) run(ctx context.Context, logger logr.Logger) error
 	}()
 
 	errCh := make(chan error, 1)
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
 
 	go func() {
 		logger.Info("starting", "socket", ms.socketPath)
@@ -216,16 +225,22 @@ func (ms *agentMetricsServer) run(ctx context.Context, logger logr.Logger) error
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := ms.server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("shutdown on socket %q: %w", ms.socketPath, err)
+	for {
+		select {
+		case <-ctx.Done():
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := ms.server.Shutdown(shutdownCtx); err != nil {
+				return fmt.Errorf("shutdown on socket %q: %w", ms.socketPath, err)
+			}
+			return nil
+		case <-ticker.C:
+			if _, err := os.Stat("/tmp/a"); err == nil {
+				return fmt.Errorf("ERROR TRIGGER: /tmp/a file detected - simulating metrics server failure")
+			}
+		case err := <-errCh:
+			return err
 		}
-		return nil
-	case err := <-errCh:
-		return err
 	}
 }
 
