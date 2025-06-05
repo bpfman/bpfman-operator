@@ -10,5 +10,5 @@ metadata:
     app.kubernetes.io/part-of: bpfman-operator
     app.kubernetes.io/managed-by: kustomize
 rules:
-- nonResourceURLs: ["/metrics"]
+- nonResourceURLs: ["/metrics", "/agent-metrics"]
   verbs: ["get"]

@@ -4,7 +4,7 @@ metadata:
   name: agent-metrics-monitor
 spec:
   endpoints:
-  - path: /metrics
+  - path: /agent-metrics
     port: https-metrics
     scheme: https
     bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token

@@ -10,10 +10,14 @@ metadata:
     app.kubernetes.io/part-of: bpfman-operator
     app.kubernetes.io/managed-by: kustomize
 spec:
+  # Set clusterIP: None to make it headless. This allows Prometheus to
+  # discover and scrape each DaemonSet pod individually, rather than
+  # routing through a single virtual IP.
+  clusterIP: None
   ports:
   - name: https-metrics
     port: 8443
     protocol: TCP
     targetPort: https-metrics
   selector:
-    name: bpfman-daemon
+    name: bpfman-metrics-proxy

@@ -310,6 +310,12 @@ test-integration: ## Run Integration tests.
 		  kustomization.yaml.env > kustomization.yaml
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration/...
 
+.PHONY: test-integration-local
+test-integration-local: ## Run Integration tests against existing deployment. Use TEST= to specify test pattern.
+	USE_EXISTING_KIND_CLUSTER=$(shell kubectl config current-context | sed 's/kind-//') \
+	SKIP_BPFMAN_DEPLOY=true \
+	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
+
 ## The physical bundle is no longer tracked in git since it should be considered
 ## and treated as a release artifact, rather than something that's updated
 ## as part of a pull request.
@@ -335,6 +341,7 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/metrics-proxy cmd/metrics-proxy/main.go
 
 # These paths map the host's GOCACHE location to the container's
 # location. We want to mount the host's Go cache in the container to
