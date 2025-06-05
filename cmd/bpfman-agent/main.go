@@ -34,6 +34,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,10 +59,7 @@ const (
 	internalMetricsSocketPath = "/var/run/bpfman-agent/metrics.sock"
 )
 
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -70,35 +68,97 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-// agentMetricsServer provides a minimal HTTP server for exposing
-// Prometheus metrics on a Unix domain socket.
+// agentMetricsServer provides an HTTP server for exposing Prometheus
+// metrics on a Unix domain socket.
 //
-// It wraps a net.Listener and an http.Server, listening on the
-// configured socketPath. The server is expected to be started via the
-// run() method, which handles context-driven shutdown.
-//
-// The socket is created with world-readable permissions (0666) and
-// should be cleaned up by the caller on teardown.
+// It wraps a net.Listener and an http.Server, configured to serve
+// /metrics with Prometheus metrics and return HTTP 404 for all other
+// paths.
 type agentMetricsServer struct {
 	socketPath string
 	listener   net.Listener
 	server     *http.Server
 }
 
-// newAgentMetricsServer initialises an agentMetricsServer that
-// exposes a Prometheus metrics endpoint via a Unix domain socket.
+// interfaceDiscovery monitors network interface creation and deletion
+// events.
 //
-// It first removes any pre-existing socket file at socketPath, then
-// creates and listens on a new Unix socket. The socket file is given
-// 0666 permissions, but access is still subject to directory and
-// security policy constraints.
+// It wraps the netobserv interface watcher and registerer with a
+// subscribed events channel and an interfaces map for tracking
+// discovered interfaces.
+type interfaceDiscovery struct {
+	events     <-chan ifaces.Event
+	interfaces *sync.Map
+}
+
+// newInterfaceDiscovery creates an interfaceDiscovery instance and
+// subscribes to network interface events.
 //
-// The returned server exposes:
-//   - /metrics: Prometheus metrics served via promhttp.
-//   - All other paths return HTTP 404.
+// It creates a netobserv watcher and registerer with the configured
+// buffer length, then subscribes to interface creation and deletion
+// events. The resulting events channel will be used by the run()
+// method to process events.
 //
-// The caller is responsible for invoking run() on the returned server
-// and handling graceful shutdown using the context lifecycle.
+// Returns an error if the subscription to interface events fails.
+func newInterfaceDiscovery(interfaces *sync.Map) (*interfaceDiscovery, error) {
+	informer := ifaces.NewWatcher(buffersLength)
+	registerer := ifaces.NewRegisterer(informer, buffersLength)
+
+	setupCtx := context.Background()
+	ifaceEvents, err := registerer.Subscribe(setupCtx)
+	if err != nil {
+		return nil, fmt.Errorf("subscribing to interface events: %w", err)
+	}
+
+	return &interfaceDiscovery{
+		events:     ifaceEvents,
+		interfaces: interfaces,
+	}, nil
+}
+
+// run processes interface events and updates the interfaces map until
+// the context is cancelled.
+//
+// This is a synchronous function that listens for EventAdded and
+// EventDeleted events on the subscribed channel, adding or removing
+// interfaces from the map accordingly. The function blocks until the
+// provided context is cancelled or the events channel closes.
+//
+// Returns nil when the context is cancelled, or an error if the
+// events channel closes unexpectedly.
+func (id *interfaceDiscovery) run(ctx context.Context, logger logr.Logger) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case event, ok := <-id.events:
+			if !ok {
+				return fmt.Errorf("interface events channel closed unexpectedly")
+			}
+			iface := event.Interface
+			switch event.Type {
+			case ifaces.EventAdded:
+				logger.Info("interface created", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
+				id.interfaces.Store(iface, true)
+			case ifaces.EventDeleted:
+				logger.Info("interface deleted", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
+				id.interfaces.Delete(iface)
+			default:
+			}
+		}
+	}
+}
+
+// newAgentMetricsServer creates an agentMetricsServer that serves
+// Prometheus metrics on a Unix domain socket.
+//
+// It removes any existing socket file at socketPath, creates a new
+// Unix socket listener, and sets the socket file permissions to 0666.
+// The returned server serves /metrics with Prometheus metrics and
+// returns HTTP 404 for all other paths.
+//
+// The server must be started by calling its run() method with a
+// context for shutdown coordination.
 func newAgentMetricsServer(socketPath string) (*agentMetricsServer, error) {
 	if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("removing existing metrics socket %q: %w", socketPath, err)
@@ -129,22 +189,17 @@ func newAgentMetricsServer(socketPath string) (*agentMetricsServer, error) {
 	}, nil
 }
 
-// run starts the HTTP metrics server and blocks until shutdown is
-// triggered.
+// run starts the HTTP server and blocks until the context is
+// cancelled or the server fails.
 //
-// It runs Serve on the configured Unix listener in a goroutine and
-// waits for one of the following conditions:
+// This is a synchronous function that starts the HTTP server in a
+// goroutine and blocks waiting for either context cancellation or a
+// server error. When the context is cancelled, it performs an orderly
+// shutdown with a 5-second timeout. The socket file is removed when
+// the function exits.
 //
-//   - The context is cancelled (e.g. due to signal handling or manager shutdown).
-//   - The HTTP server encounters a non-graceful failure during Serve.
-//
-// If the context is cancelled, run performs an orderly shutdown using
-// server.Shutdown with a timeout. If Serve fails, the error is
-// returned directly. Shutdown is skipped in the failure case since
-// the server has already exited.
-//
-// This function ensures that the Serve goroutine exits before
-// returning and removes the socket file when exiting.
+// Returns nil on successful shutdown, or an error if the server
+// encounters a runtime error during serving.
 func (ms *agentMetricsServer) run(ctx context.Context, logger logr.Logger) error {
 	defer func() {
 		if err := os.Remove(ms.socketPath); err != nil && !os.IsNotExist(err) {
@@ -155,7 +210,7 @@ func (ms *agentMetricsServer) run(ctx context.Context, logger logr.Logger) error
 	errCh := make(chan error, 1)
 
 	go func() {
-		logger.Info("Starting metrics server", "socket", ms.socketPath)
+		logger.Info("starting", "socket", ms.socketPath)
 		if err := ms.server.Serve(ms.listener); err != nil && err != http.ErrServerClosed {
 			errCh <- fmt.Errorf("serve on socket %q: %w", ms.socketPath, err)
 		}
@@ -163,17 +218,91 @@ func (ms *agentMetricsServer) run(ctx context.Context, logger logr.Logger) error
 
 	select {
 	case <-ctx.Done():
-		logger.Info("context cancelled")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := ms.server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("shutdown of metrics server on socket %q: %w", ms.socketPath, err)
+			return fmt.Errorf("shutdown on socket %q: %w", ms.socketPath, err)
 		}
 		return nil
 	case err := <-errCh:
-		logger.Info("server failed")
 		return err
 	}
+}
+
+// runAgent runs the agent runtime components and manages their
+// lifecycle with coordinated shutdown guarantees.
+//
+// Components Started:
+//   - Controller manager (mgr.Start) - always started
+//   - Metrics server (agentMetricsServer) - always started
+//   - Interface discovery (interfaceDiscovery) - optional, if enabled
+//
+// Each component runs in its own goroutine and receives a named
+// logger derived from the provided logger (e.g., "agent.metrics",
+// "agent.interface-discovery").
+//
+// Shutdown Behavior:
+//   - Normal shutdown: External signal (SIGTERM/SIGINT) cancels the context,
+//     all components receive ctx.Done(), exit cleanly, and log shutdown messages
+//   - Error shutdown: Any component failure automatically cancels the context
+//     for all other components via errgroup, ensuring coordinated shutdown
+//
+// Exit Strategy:
+//   - errgroup.Wait() blocks until ALL goroutines complete, whether they
+//     return nil (clean shutdown) or error (component failure)
+//   - Components are guaranteed time to complete their shutdown sequence
+//     and log their final messages before runAgent returns
+//   - No explicit cleanup needed - components handle their own resource
+//     cleanup (socket removal, server shutdown, etc.) via context cancellation
+//
+// Error Handling:
+//   - First component error triggers context cancellation for all others
+//   - All components complete shutdown before the error is returned
+//   - Context cancellation is automatic via errgroup - no manual coordination
+//
+// Returns nil on successful coordinated shutdown, or the first
+// component error encountered. In both cases, all components are
+// guaranteed to have completed their shutdown sequence before return.
+func runAgent(ctx context.Context, mgr ctrl.Manager, metricsServer *agentMetricsServer, ifaceDiscovery *interfaceDiscovery, logger logr.Logger) error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	if ifaceDiscovery != nil {
+		g.Go(func() error {
+			log := logger.WithName("interface-discovery")
+			if err := ifaceDiscovery.run(ctx, log); err != nil {
+				return fmt.Errorf("interface discovery: %w", err)
+			}
+			log.Info("shut down")
+			return nil
+		})
+	}
+
+	g.Go(func() error {
+		log := logger.WithName("metrics")
+		if err := metricsServer.run(ctx, log); err != nil {
+			return fmt.Errorf("metrics server: %w", err)
+		}
+		log.Info("shut down")
+		return nil
+	})
+
+	g.Go(func() error {
+		if err := mgr.Start(ctx); err != nil {
+			return fmt.Errorf("manager: %w", err)
+		}
+		logger.Info("manager shut down")
+		return nil
+	})
+
+	// Wait for all components to complete or for one to fail.
+	// errgroup automatically cancels the context on first error.
+	if err := g.Wait(); err != nil {
+		logger.Error(err, "component failed")
+		return err
+	}
+
+	logger.Info("all components shut down cleanly")
+	return nil
 }
 
 func main() {
@@ -191,7 +320,7 @@ func main() {
 
 	flag.Parse()
 
-	// Get the Log level for bpfman deployment where this pod is running
+	// Get the Log level for bpfman deployment where this pod is running.
 	logLevel := os.Getenv("GO_LOG")
 	switch logLevel {
 	case "info":
@@ -214,6 +343,8 @@ func main() {
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog := ctrl.Log.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -293,56 +424,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Subscribe to signals for terminating the program.
-	signalCtx := ctrl.SetupSignalHandler()
-	ctx, cancel := context.WithCancel(signalCtx)
-
+	var ifaceDiscovery *interfaceDiscovery
 	if enableInterfacesDiscovery {
-		informer := ifaces.NewWatcher(buffersLength)
-		registerer := ifaces.NewRegisterer(informer, buffersLength)
-
-		ifaceEvents, err := registerer.Subscribe(ctx)
+		ifaceDiscovery, err = newInterfaceDiscovery(commonApp.Interfaces)
 		if err != nil {
-			setupLog.Error(err, "instantiating interfaces' informer")
+			setupLog.Error(err, "failed to set up interface discovery")
 			os.Exit(1)
 		}
-		go interfaceListener(ctx, ifaceEvents, commonApp.Interfaces)
 	}
-
-	go func() {
-		log := ctrl.Log.WithName("agent").WithName("metrics-server")
-		if err := metricsServer.run(ctx, log); err != nil {
-			log.Error(err, "run failed")
-		}
-		// Cancel if shutdown isn't in progress.
-		if ctx.Err() == nil {
-			cancel()
-		}
-	}()
 
 	setupLog.Info("starting Bpfman-Agent")
-	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+	if err := runAgent(ctrl.SetupSignalHandler(), mgr, metricsServer, ifaceDiscovery, ctrl.Log.WithName("agent")); err != nil {
+		setupLog.Error(err, "agent runtime failed, exiting")
 		os.Exit(1)
 	}
-}
 
-func interfaceListener(ctx context.Context, ifaceEvents <-chan ifaces.Event, interfaces *sync.Map) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case event := <-ifaceEvents:
-			iface := event.Interface
-			switch event.Type {
-			case ifaces.EventAdded:
-				setupLog.Info("interface created", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
-				interfaces.Store(iface, true)
-			case ifaces.EventDeleted:
-				setupLog.Info("interface deleted", "Name", iface.Name, "netns", iface.NSName, "NsHandle", iface.NetNS)
-				interfaces.Delete(iface)
-			default:
-			}
-		}
-	}
+	// Normal shutdown (SIGTERM/SIGINT) exits with status code 0.
 }
