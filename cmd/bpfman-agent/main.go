@@ -100,12 +100,11 @@ type interfaceDiscovery struct {
 // method to process events.
 //
 // Returns an error if the subscription to interface events fails.
-func newInterfaceDiscovery(interfaces *sync.Map) (*interfaceDiscovery, error) {
+func newInterfaceDiscovery(ctx context.Context, interfaces *sync.Map) (*interfaceDiscovery, error) {
 	informer := ifaces.NewWatcher(buffersLength)
 	registerer := ifaces.NewRegisterer(informer, buffersLength)
 
-	setupCtx := context.Background()
-	ifaceEvents, err := registerer.Subscribe(setupCtx)
+	ifaceEvents, err := registerer.Subscribe(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("subscribing to interface events: %w", err)
 	}
@@ -424,9 +423,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx := ctrl.SetupSignalHandler()
+
 	var ifaceDiscovery *interfaceDiscovery
 	if enableInterfacesDiscovery {
-		ifaceDiscovery, err = newInterfaceDiscovery(commonApp.Interfaces)
+		ifaceDiscovery, err = newInterfaceDiscovery(ctx, commonApp.Interfaces)
 		if err != nil {
 			setupLog.Error(err, "failed to set up interface discovery")
 			os.Exit(1)
@@ -434,7 +435,7 @@ func main() {
 	}
 
 	setupLog.Info("starting Bpfman-Agent")
-	if err := runAgent(ctrl.SetupSignalHandler(), mgr, metricsServer, ifaceDiscovery, ctrl.Log.WithName("agent")); err != nil {
+	if err := runAgent(ctx, mgr, metricsServer, ifaceDiscovery, ctrl.Log.WithName("agent")); err != nil {
 		setupLog.Error(err, "agent runtime failed, exiting")
 		os.Exit(1)
 	}
