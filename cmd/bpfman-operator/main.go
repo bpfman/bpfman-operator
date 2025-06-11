@@ -222,6 +222,7 @@ func main() {
 	if err = (&bpfmanoperator.BpfmanConfigReconciler{
 		ClusterApplicationReconciler: commonClusterApp,
 		BpfmanStandardDeployment:     internal.BpfmanDaemonManifestPath,
+		BpfmanMetricsProxyDeployment: internal.BpfmanMetricsProxyPath,
 		CsiDriverDeployment:          internal.BpfmanCsiDriverPath,
 		RestrictedSCC:                internal.BpfmanRestrictedSCCPath,
 		IsOpenshift:                  isOpenshift,

@@ -1,0 +1,79 @@
+## This is part of the payload deployed by the bpfman-operator NOT kustomize.
+---
+## Metrics proxy daemonset - runs WITHOUT hostNetwork to avoid port conflicts
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: metrics-proxy
+  namespace: kube-system
+  labels:
+    k8s-app: bpfman-metrics-proxy
+spec:
+  selector:
+    matchLabels:
+      name: bpfman-metrics-proxy
+  template:
+    metadata:
+      labels:
+        name: bpfman-metrics-proxy
+      annotations: {}
+    spec:
+      serviceAccountName: bpfman-daemon
+      tolerations:
+        # Allow scheduling on control plane nodes
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: metrics-proxy
+          image: quay.io/bpfman/bpfman-agent:latest
+          command: ["/metrics-proxy"]
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          args:
+            - --metrics-bind-address=:8443
+            - --socket=/var/run/bpfman-agent/metrics.sock
+            - --cert-dir=/tmp/k8s-webhook-server/serving-certs
+          ports:
+            - containerPort: 8443
+              name: https-metrics
+              protocol: TCP
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+          volumeMounts:
+            - name: bpfman-metrics
+              mountPath: /var/run/bpfman-agent
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+              scheme: HTTP
+            initialDelaySeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+              scheme: HTTP
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: bpfman-metrics
+          hostPath:
+            path: /var/run/bpfman-agent
+            type: DirectoryOrCreate
