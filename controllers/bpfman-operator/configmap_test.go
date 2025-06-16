@@ -171,7 +171,7 @@ func projectRootPredicate(dir string) bool {
 	return true
 }
 
-func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
+func TestBpfmanConfigReconcileLifecycle(t *testing.T) {
 	for _, tc := range []struct {
 		isOpenShift bool
 	}{
@@ -190,15 +190,11 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reconcile: (%v)", err)
 			}
-
-			// Require no requeue
 			require.False(t, res.Requeue)
 
 			// Check the Object was created successfully
 			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNamespace}, bpfmanConfig)
 			require.NoError(t, err)
-
-			// Check the bpfman-operator finalizer was successfully added
 			require.Contains(t, bpfmanConfig.GetFinalizers(), internal.BpfmanOperatorFinalizer)
 
 			// Second reconcile will create bpfman daemonset and, when isOpenshift holds true, a SCC.
@@ -206,17 +202,12 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reconcile: (%v)", err)
 			}
-
-			// Require no requeue
 			require.False(t, res.Requeue)
 
 			// Check the bpfman daemonset was created successfully
 			actualBpfmanDs := &appsv1.DaemonSet{}
-
 			err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: expectedBpfmanDs.Namespace}, actualBpfmanDs)
 			require.NoError(t, err)
-
-			// Check the bpfman daemonset was created with the correct configuration.
 			require.True(t, reflect.DeepEqual(actualBpfmanDs.Spec, expectedBpfmanDs.Spec))
 
 			if tc.isOpenShift {
@@ -225,32 +216,66 @@ func TestBpfmanConfigReconcileAndDeleteNEW(t *testing.T) {
 				expectedRestrictedSCC := LoadRestrictedSecurityContext(resolveConfigPath(internal.BpfmanRestrictedSCCPath))
 				err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll}, actualRestrictedSCC)
 				require.NoError(t, err)
+
 				// Match ResourceVersion's as that is the only expected difference (0 versus 1).
 				expectedRestrictedSCC.ResourceVersion = actualRestrictedSCC.ResourceVersion
 				require.True(t, reflect.DeepEqual(actualRestrictedSCC, expectedRestrictedSCC))
 			}
 
-			// Delete the bpfman configmap
+			// Delete the bpfman configmap (this just marks it for deletion).
 			err = cl.Delete(ctx, bpfmanConfig)
 			require.NoError(t, err)
 
-			// Third reconcile will delete bpfman daemonset
+			// === TEARDOWN PROCESS ===
+
+			// First teardown reconcile - Will delete the DaemonSet and return retry.
 			res, err = r.Reconcile(ctx, req)
 			if err != nil {
 				t.Fatalf("reconcile: (%v)", err)
 			}
+			require.True(t, res.Requeue, "First teardown reconcile should requeue")
 
-			// Require no requeue
-			require.False(t, res.Requeue)
-
+			// DaemonSet should be gone (or marked for deletion).
 			err = cl.Get(ctx, types.NamespacedName{Name: expectedBpfmanDs.Name, Namespace: expectedBpfmanDs.Namespace}, actualBpfmanDs)
-			require.True(t, errors.IsNotFound(err))
+			require.True(t, errors.IsNotFound(err), "DaemonSet should be deleted after first teardown reconcile")
 
-			err = cl.Get(ctx, types.NamespacedName{Name: bpfmanConfig.Name, Namespace: bpfmanConfig.Namespace}, bpfmanConfig)
-			require.True(t, errors.IsNotFound(err))
+			// Second teardown reconcile - Will delete the CSIDriver and return retry.
+			res, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile: (%v)", err)
+			}
+			require.True(t, res.Requeue, "Second teardown reconcile should requeue")
 
-			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll}, &osv1.SecurityContextConstraints{})
-			require.True(t, errors.IsNotFound(err))
+			// CSIDriver should be gone.
+			csiDriver := &storagev1.CSIDriver{}
+			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName, Namespace: corev1.NamespaceAll}, csiDriver)
+			require.True(t, errors.IsNotFound(err), "CSIDriver should be deleted after second teardown reconcile")
+
+			// For OpenShift, we need an additional reconcile for the SCC.
+			if tc.isOpenShift {
+				// Third teardown reconcile - Will delete the SCC and return retry.
+				res, err = r.Reconcile(ctx, req)
+				if err != nil {
+					t.Fatalf("reconcile: (%v)", err)
+				}
+				require.True(t, res.Requeue, "Third teardown reconcile should requeue for OpenShift")
+
+				// SCC should be gone.
+				scc := &osv1.SecurityContextConstraints{}
+				err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll}, scc)
+				require.True(t, errors.IsNotFound(err), "SCC should be deleted after third teardown reconcile")
+			}
+
+			// Final teardown reconcile - All resources gone, will remove finalizer.
+			res, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile: (%v)", err)
+			}
+			require.False(t, res.Requeue, "Final teardown reconcile should not requeue")
+
+			// ConfigMap should now be gone (finalizer removed).
+			err = cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNamespace}, bpfmanConfig)
+			require.True(t, errors.IsNotFound(err), "ConfigMap should be gone after finalizer removal")
 		})
 	}
 }
