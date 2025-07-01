@@ -1,0 +1,23 @@
+apiVersion: bpfman.io/v1alpha1
+kind: ClusterBpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterbpfapplication
+  name: xdp-pass-all-nodes
+spec:
+  nodeSelector: {}
+  byteCode:
+    image:
+      url: quay.io/bpfman-bytecode/xdp_pass:latest
+      # For private images, specify an imagePullSecret:
+      # imagePullSecret:
+      #   name: regcred
+      #   namespace: bpfman
+  programs:
+    - name: pass
+      type: XDP
+      xdp:
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
