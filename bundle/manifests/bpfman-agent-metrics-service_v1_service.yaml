@@ -13,12 +13,13 @@ metadata:
     app.kubernetes.io/part-of: bpfman-operator
   name: bpfman-agent-metrics-service
 spec:
+  clusterIP: None
   ports:
   - name: https-metrics
     port: 8443
     protocol: TCP
     targetPort: https-metrics
   selector:
-    name: bpfman-daemon
+    name: bpfman-metrics-proxy
 status:
   loadBalancer: {}

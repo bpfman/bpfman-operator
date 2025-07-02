@@ -116,7 +116,6 @@ spec:
           command: [/bpfman-agent]
           args:
             - --health-probe-bind-address=:8175
-            - --metrics-bind-address=:8443
             - --profiling-bind-address=:6060
           image: quay.io/bpfman/bpfman-agent:latest
           securityContext:
@@ -135,6 +134,8 @@ spec:
           volumeMounts:
             - name: bpfman-sock
               mountPath: /run/bpfman-sock
+            - name: bpfman-metrics
+              mountPath: /var/run/bpfman-agent
             ## The following five mounts are used by crictl for attaching
             ## uprobes in user containers
             - mountPath: /run/containerd/containerd.sock
@@ -182,6 +183,10 @@ spec:
       volumes:
         - name: bpfman-sock
           emptyDir: {}
+        - name: bpfman-metrics
+          hostPath:
+            path: /var/run/bpfman-agent
+            type: DirectoryOrCreate
         - name: runtime
           hostPath:
             path: /run/bpfman

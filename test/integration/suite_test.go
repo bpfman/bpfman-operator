@@ -39,6 +39,7 @@ var (
 	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
 	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
 	keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
+	skipBpfmanDeploy     = func() bool { return os.Getenv("SKIP_BPFMAN_DEPLOY") == "true" }()
 
 	cleanup = []func(context.Context) error{}
 )
@@ -100,17 +101,21 @@ func TestMain(m *testing.M) {
 	}
 
 	// deploy the BPFMAN Operator and relevant CRDs.
-	fmt.Println("INFO: deploying bpfman operator to test cluster")
-	exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfmanKustomize))
-	if !keepKustomizeDeploys {
-		addCleanup(func(context.Context) error {
-			cleanupLog("delete bpfman configmap to cleanup bpfman daemon")
-			env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Delete(ctx, internal.BpfmanConfigName, metav1.DeleteOptions{})
-			clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfmanConfigMap)
-			waitForBpfmanConfigDelete(ctx, env)
-			cleanupLog("deleting bpfman namespace")
-			return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfmanNamespace, metav1.DeleteOptions{})
-		})
+	if !skipBpfmanDeploy {
+		fmt.Println("INFO: deploying bpfman operator to test cluster")
+		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfmanKustomize))
+		if !keepKustomizeDeploys {
+			addCleanup(func(context.Context) error {
+				cleanupLog("delete bpfman configmap to cleanup bpfman daemon")
+				env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Delete(ctx, internal.BpfmanConfigName, metav1.DeleteOptions{})
+				clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfmanConfigMap)
+				waitForBpfmanConfigDelete(ctx, env)
+				cleanupLog("deleting bpfman namespace")
+				return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfmanNamespace, metav1.DeleteOptions{})
+			})
+		}
+	} else {
+		fmt.Println("INFO: skipping bpfman deployment (SKIP_BPFMAN_DEPLOY=true)")
 	}
 
 	bpfmanClient = bpfmanHelpers.GetClientOrDie()
