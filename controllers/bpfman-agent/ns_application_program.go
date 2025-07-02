@@ -659,7 +659,7 @@ func (r *NsBpfApplicationReconciler) getLoadRequest() (*gobpfman.LoadRequest, er
 func (r *NsBpfApplicationReconciler) load(ctx context.Context) error {
 	loadRequest, err := r.getLoadRequest()
 	if err != nil {
-		return fmt.Errorf("failed to get LoadRequest")
+		return fmt.Errorf("failed to get LoadRequest: %w", err)
 	}
 
 	loadResponse, err := r.BpfmanClient.Load(ctx, loadRequest)
