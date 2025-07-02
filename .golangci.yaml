@@ -1,0 +1,23 @@
+version: "2"
+run:
+  allow-parallel-runners: true
+linters:
+  enable:
+    - loggercheck
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - staticcheck
+        text: "QF1008:"
+      # Exclude `lll` issues for long lines with `go:generate`.
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax

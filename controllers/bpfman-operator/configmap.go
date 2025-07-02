@@ -324,11 +324,11 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 	staticBpfmanDeployment.Namespace = config.Namespace
 	staticBpfmanDeployment.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
 	for cindex, container := range staticBpfmanDeployment.Spec.Template.Spec.Containers {
-		if container.Name == internal.BpfmanContainerName {
+		switch container.Name {
+		case internal.BpfmanContainerName:
 			staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Image = bpfmanImage
-		} else if container.Name == internal.BpfmanAgentContainerName {
+		case internal.BpfmanAgentContainerName:
 			staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Image = bpfmanAgentImage
-
 			for aindex, arg := range container.Args {
 				if bpfmanHealthProbeAddr != "" {
 					if strings.Contains(arg, "health-probe-bind-address") {
@@ -343,6 +343,8 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string, isOpenshift
 					}
 				}
 			}
+		default:
+			// Do nothing
 		}
 	}
 
