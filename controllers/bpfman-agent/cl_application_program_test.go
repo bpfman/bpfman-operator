@@ -37,6 +37,55 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+func TestClBpfApplicationReconcilerGetBpfAppState(t *testing.T) {
+	s := scheme.Scheme
+	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplication{})
+	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationState{})
+	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationStateList{})
+
+	// Create a mock ClusterBpfApplicationState that will be
+	// found.
+	mockAppState := &bpfmaniov1alpha1.ClusterBpfApplicationState{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-app-state",
+			Labels: map[string]string{
+				internal.BpfAppStateOwner: "test-app",
+				internal.K8sHostLabel:     "test-node",
+			},
+		},
+	}
+
+	objs := []runtime.Object{mockAppState}
+	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	cli := agenttestutils.NewBpfmanClientFake()
+
+	rc := ReconcilerCommon{
+		Client:       cl,
+		Scheme:       s,
+		BpfmanClient: cli,
+		NodeName:     "test-node",
+	}
+
+	r := &ClBpfApplicationReconciler{
+		ReconcilerCommon: rc,
+	}
+
+	// Set currentApp (required for getBpfAppState).
+	r.currentApp = &bpfmaniov1alpha1.ClusterBpfApplication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-app",
+		},
+	}
+
+	// Test getBpfAppState when currentAppState is nil.
+	ctx := context.Background()
+	result, err := r.getBpfAppState(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, "test-app-state", result.Name)
+}
+
 func TestClBpfApplicationControllerCreate(t *testing.T) {
 	var (
 		// global config
