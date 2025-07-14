@@ -547,8 +547,7 @@ func (r *ClBpfApplicationReconciler) getBpfAppState(ctx context.Context) (*bpfma
 
 	switch len(appProgramList.Items) {
 	case 1:
-		// We got exactly one BpfApplicationState, so update r.currentAppState
-		r.Logger.V(1).Info("Found BpfApplicationState", "Name", r.currentAppState.Name)
+		r.Logger.V(1).Info("Found BpfApplicationState", "Name", appProgramList.Items[0].Name)
 		return &appProgramList.Items[0], nil
 	case 0:
 		// No BpfApplicationState found, so return nil
