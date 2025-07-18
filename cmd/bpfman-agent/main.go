@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	//+kubebuilder:scaffold:imports
@@ -349,7 +350,11 @@ func main() {
 		Scheme:                 scheme,
 		PprofBindAddress:       pprofAddr,
 		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         false,
+		Metrics: metricsserver.Options{
+			// Disable controller-runtime metrics server.
+			BindAddress: "0",
+		},
+		LeaderElection: false,
 		// Specify that Secrets's should not be cached.
 		Client: client.Options{
 			Cache: &client.CacheOptions{
