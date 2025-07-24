@@ -116,7 +116,7 @@ spec:
           command: [/bpfman-agent]
           args:
             - --health-probe-bind-address=:8175
-            - --profiling-bind-address=:6060
+            # - --profiling-bind-address=:6060
           image: quay.io/bpfman/bpfman-agent:latest
           securityContext:
             privileged: true
