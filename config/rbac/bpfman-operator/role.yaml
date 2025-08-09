@@ -87,17 +87,25 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
-  - configmaps/finalizers
+  - configs
   verbs:
+  - delete
+  - get
+  - list
+  - patch
   - update
+  - watch
 - apiGroups:
   - ""
   resources:
   - configmaps
   verbs:
   - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -116,6 +124,8 @@ rules:
   - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - storage.k8s.io
@@ -126,6 +136,8 @@ rules:
   - delete
   - get
   - list
+  - patch
+  - update
   - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1

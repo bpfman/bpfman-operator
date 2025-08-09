@@ -41,3 +41,7 @@ type ClusterBpfApplicationListerExpansion interface{}
 // ClusterBpfApplicationStateListerExpansion allows custom methods to be added to
 // ClusterBpfApplicationStateLister.
 type ClusterBpfApplicationStateListerExpansion interface{}
+
+// ConfigListerExpansion allows custom methods to be added to
+// ConfigLister.
+type ConfigListerExpansion interface{}
