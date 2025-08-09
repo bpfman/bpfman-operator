@@ -32,6 +32,7 @@ type BpfmanV1alpha1Interface interface {
 	BpfApplicationStatesGetter
 	ClusterBpfApplicationsGetter
 	ClusterBpfApplicationStatesGetter
+	ConfigsGetter
 }
 
 // BpfmanV1alpha1Client is used to interact with features provided by the bpfman.io group.
@@ -53,6 +54,10 @@ func (c *BpfmanV1alpha1Client) ClusterBpfApplications() ClusterBpfApplicationInt
 
 func (c *BpfmanV1alpha1Client) ClusterBpfApplicationStates() ClusterBpfApplicationStateInterface {
 	return newClusterBpfApplicationStates(c)
+}
+
+func (c *BpfmanV1alpha1Client) Configs() ConfigInterface {
+	return newConfigs(c)
 }
 
 // NewForConfig creates a new BpfmanV1alpha1Client for the given config.

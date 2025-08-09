@@ -44,6 +44,10 @@ func (c *FakeBpfmanV1alpha1) ClusterBpfApplicationStates() v1alpha1.ClusterBpfAp
 	return &FakeClusterBpfApplicationStates{c}
 }
 
+func (c *FakeBpfmanV1alpha1) Configs() v1alpha1.ConfigInterface {
+	return &FakeConfigs{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeBpfmanV1alpha1) RESTClient() rest.Interface {
