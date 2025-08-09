@@ -25,3 +25,5 @@ type BpfApplicationStateExpansion interface{}
 type ClusterBpfApplicationExpansion interface{}
 
 type ClusterBpfApplicationStateExpansion interface{}
+
+type ConfigExpansion interface{}
