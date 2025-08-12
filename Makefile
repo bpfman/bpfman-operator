@@ -451,7 +451,7 @@ destroy-kind: ## Destroy Kind cluster
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
-deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
+deploy: install ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 	cd config/bpfman-deployment && \
 	 $(SED)  -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
@@ -461,8 +461,8 @@ deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specifi
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	kubectl delete --ignore-not-found=$(ignore-not-found) cm bpfman-config -n bpfman
-	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
+	kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config -n bpfman
+	kubectl wait --for=delete configs.bpfman.io/bpfman-config -n bpfman --timeout=60s
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images
@@ -471,12 +471,12 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart deployment bpfman-operator -n bpfman
 
 .PHONY: run-on-kind
-run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
+run-on-kind: kustomize setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
 
 ##@ Openshift Deployment
 
 .PHONY: deploy-openshift
-deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
+deploy-openshift: install ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 	cd config/bpfman-deployment && \
 	  $(SED) -e 's@bpfman\.image=.*@bpfman.image=$(BPFMAN_IMG)@' \
@@ -486,8 +486,8 @@ deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift
 
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	kubectl delete --ignore-not-found=$(ignore-not-found) cm bpfman-config -n bpfman
-	kubectl wait --for=delete configmap/bpfman-config -n bpfman --timeout=60s
+	kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config -n bpfman
+	kubectl wait --for=delete configs.bpfman.io/bpfman-config -n bpfman --timeout=60s
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 # Deploy the catalog.
