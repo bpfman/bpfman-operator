@@ -6,6 +6,7 @@ resources:
   - bases/bpfman.io_clusterbpfapplications.yaml
   - bases/bpfman.io_bpfapplicationstates.yaml
   - bases/bpfman.io_clusterbpfapplicationstates.yaml
+  - bases/bpfman.io_configs.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

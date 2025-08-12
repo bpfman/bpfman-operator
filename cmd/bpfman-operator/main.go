@@ -168,7 +168,7 @@ func main() {
 		Cache: cache.Options{
 			ByObject: map[client.Object]cache.ByObject{
 				&corev1.ConfigMap{}: {
-					Field: fields.SelectorFromSet(fields.Set{"metadata.name": internal.BpfmanConfigName}),
+					Field: fields.SelectorFromSet(fields.Set{"metadata.name": internal.BpfmanCmName}),
 				},
 			},
 		},
@@ -221,9 +221,9 @@ func main() {
 
 	if err = (&bpfmanoperator.BpfmanConfigReconciler{
 		ClusterApplicationReconciler: commonClusterApp,
-		BpfmanStandardDeployment:     internal.BpfmanDaemonManifestPath,
-		BpfmanMetricsProxyDeployment: internal.BpfmanMetricsProxyPath,
-		CsiDriverDeployment:          internal.BpfmanCsiDriverPath,
+		BpfmanStandardDS:             internal.BpfmanDaemonManifestPath,
+		BpfmanMetricsProxyDS:         internal.BpfmanMetricsProxyPath,
+		CsiDriverDS:                  internal.BpfmanCsiDriverPath,
 		RestrictedSCC:                internal.BpfmanRestrictedSCCPath,
 		IsOpenshift:                  isOpenshift,
 	}).SetupWithManager(mgr); err != nil {
