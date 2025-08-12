@@ -12,12 +12,13 @@ metadata:
     workload.openshift.io/allowed: management
   name: system
 ---
-apiVersion: v1
-kind: ConfigMap
+apiVersion: bpfman.io/v1alpha1
+kind: Config
 metadata:
   name: config
-  namespace: kube-system
-data:
+spec:
   ## Can be configured at runtime
-  bpfman.log.level: info
-  bpfman.agent.log.level: info
+  namespace: bpfman
+  logLevel: info
+  agent:
+    logLevel: info
