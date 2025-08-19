@@ -59,6 +59,9 @@ const (
 	// BpfmanOperatorFinalizer is the finalizer that holds a *Program from
 	// deletion until cleanup can be performed.
 	BpfmanOperatorFinalizer = "bpfman.io.operator/finalizer"
+	// BpfmanConfigFinalizer is the finalizer that holds a Config from
+	// deletion until cleanup can be performed and prevents race conditions during deletion.
+	BpfmanConfigFinalizer = "bpfman.io/config-finalizer"
 	// ClBpfApplicationControllerFinalizer is the finalizer that holds a ClusterBpfApplication
 	ClBpfApplicationControllerFinalizer = "bpfman.io.clbpfapplicationcontroller/finalizer"
 	// NsBpfApplicationControllerFinalizer is the finalizer that holds a BpfApplication
