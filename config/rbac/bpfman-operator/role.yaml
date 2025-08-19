@@ -96,6 +96,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - bpfman.io
+  resources:
+  - configs/finalizers
+  verbs:
+  - update
+- apiGroups:
   - ""
   resources:
   - configmaps

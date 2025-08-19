@@ -34,6 +34,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -49,6 +50,7 @@ import (
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
 
 type BpfmanConfigReconciler struct {
 	ClusterApplicationReconciler
@@ -101,6 +103,25 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	// Check if Config is being deleted first to prevent race
+	// conditions.
+	if !bpfmanConfig.DeletionTimestamp.IsZero() {
+		return r.handleDeletion(ctx, bpfmanConfig)
+	}
+
+	// Ensure finalizer exists to prevent race conditions during
+	// deletion.
+	if !controllerutil.ContainsFinalizer(bpfmanConfig, internal.BpfmanConfigFinalizer) {
+		r.Logger.Info("Adding finalizer to Config", "name", bpfmanConfig.Name)
+		controllerutil.AddFinalizer(bpfmanConfig, internal.BpfmanConfigFinalizer)
+		if err := r.Update(ctx, bpfmanConfig); err != nil {
+			r.Logger.Error(err, "Failed to add finalizer to Config")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Normal reconciliation - safe to create/update resources.
 	if err := r.reconcileCM(ctx, bpfmanConfig); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -370,6 +391,26 @@ func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconci
 	}
 
 	return nil
+}
+
+// handleDeletion manages the safe deletion of Config resources by
+// removing the finalizer to allow Kubernetes garbage collection to
+// proceed via owner references.
+func (r *BpfmanConfigReconciler) handleDeletion(ctx context.Context, config *v1alpha1.Config) (ctrl.Result, error) {
+	r.Logger.Info("Config deletion requested, allowing Kubernetes garbage collection to proceed",
+		"name", config.Name)
+
+	// No custom cleanup needed - all resources are managed via
+	// owner references. Remove finalizer to trigger cascading
+	// deletion of owned resources.
+	controllerutil.RemoveFinalizer(config, internal.BpfmanConfigFinalizer)
+	if err := r.Update(ctx, config); err != nil {
+		r.Logger.Error(err, "Failed to remove finalizer from Config during deletion", "name", config.Name)
+		return ctrl.Result{}, err
+	}
+
+	r.Logger.Info("Finalizer removed from Config, deletion will proceed", "name", config.Name)
+	return ctrl.Result{}, nil
 }
 
 func healthProbeAddress(healthProbePort int) string {
