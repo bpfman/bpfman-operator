@@ -71,10 +71,16 @@ func TestReconcile(t *testing.T) {
 			err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, bpfmanConfig)
 			require.NoError(t, err)
 
-			t.Log("Running reconcile")
+			t.Log("Running initial reconcile (adds finalizer)")
 			_, err = r.Reconcile(ctx, req)
 			if err != nil {
 				t.Fatalf("initial reconcile failed: %v", err)
+			}
+
+			t.Log("Running second reconcile (creates resources)")
+			_, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("second reconcile failed: %v", err)
 			}
 
 			t.Log("Making sure that all objects are present")
