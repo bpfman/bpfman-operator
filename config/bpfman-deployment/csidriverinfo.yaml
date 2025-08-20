@@ -8,3 +8,7 @@ spec:
   podInfoOnMount: true
   volumeLifecycleModes:
     - Ephemeral
+  storageCapacity: false
+  fsGroupPolicy: "ReadWriteOnceWithFSType"
+  requiresRepublish: false
+  seLinuxMount: false

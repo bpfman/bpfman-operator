@@ -19,6 +19,10 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: bpfman-daemon
+      serviceAccount: bpfman-daemon
+      automountServiceAccountToken: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
         # remove them if your control plane nodes should not run pods
@@ -51,7 +55,9 @@ spec:
             runAsUser: 0
             capabilities:
               add: [CAP_BPF, CAP_NET_ADMIN]
+          terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: FallbackToLogsOnError
+          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: default-bpf-fs
               mountPath: /sys/fs/bpf
@@ -60,9 +66,11 @@ spec:
         - name: bpfman
           image: quay.io/bpfman/bpfman:latest
           args: [--csi-support]
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
-          imagePullPolicy: IfNotPresent
           env:
             - name: RUST_LOG
               valueFrom:
@@ -72,6 +80,7 @@ spec:
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: spec.nodeName
           volumeMounts:
             - name: bpfman-sock
@@ -118,13 +127,16 @@ spec:
             - --health-probe-bind-address=:8175
             # - --profiling-bind-address=:6060
           image: quay.io/bpfman/bpfman-agent:latest
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
-          imagePullPolicy: IfNotPresent
           env:
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
+                  apiVersion: v1
                   fieldPath: spec.nodeName
             - name: GO_LOG
               valueFrom:
@@ -156,6 +168,8 @@ spec:
               mountPropagation: HostToContainer
         - name: node-driver-registrar
           image: quay.io/bpfman/csi-node-driver-registrar:v2.13.0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
           imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
@@ -190,16 +204,20 @@ spec:
         - name: runtime
           hostPath:
             path: /run/bpfman
+            type: ""
         - name: bpfman-config
           configMap:
             name: bpfman-config
+            defaultMode: 420
             optional: false
         - name: host-debug
           hostPath:
             path: /sys/kernel/debug
+            type: ""
         - name: bpfman-content-store
           hostPath:
             path: /var/lib/bpfman
+            type: ""
         - name: default-bpf-fs
           hostPath:
             path: /sys/fs/bpf
@@ -228,25 +246,39 @@ spec:
           name: tmp-dir
         - hostPath:
             path: /proc
+            type: ""
           name: host-proc
         - hostPath:
             path: /run/netns
+            type: ""
           name: host-netns
         - hostPath:
             path: /var/run/netns
+            type: ""
           name: var-run-netns
         - hostPath:
             path: /run/containerd/containerd.sock
+            type: ""
           name: host-containerd
         - hostPath:
             path: /run/crio/crio.sock
+            type: ""
           name: host-crio
         - hostPath:
             path: /var/run/dockershim.sock
+            type: ""
           name: host-dockershim
         - hostPath:
             path: /var/run/cri-dockerd.sock
+            type: ""
           name: host-dockerd
         - hostPath:
             path: /etc/crictl.yaml
+            type: ""
           name: host-crictl-config
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  revisionHistoryLimit: 10
