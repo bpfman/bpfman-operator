@@ -337,6 +337,11 @@ bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests a
 build-release-yamls: generate kustomize ## Generate the crd install bundle for a specific release version.
 	VERSION=$(VERSION) ./hack/build-release-yamls.sh
 
+.PHONY: run-local
+run-local: build ## Run the bpfman-operator locally for development purposes.
+	kubectl scale deployment -n bpfman bpfman-operator --replicas=0
+	GO_LOG=debug bin/bpfman-operator
+
 ##@ Build
 
 .PHONY: build
