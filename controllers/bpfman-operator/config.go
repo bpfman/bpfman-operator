@@ -27,6 +27,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -155,7 +156,9 @@ func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *
 			internal.BpfmanLogLevel:      bpfmanConfig.Spec.LogLevel,
 		},
 	}
-	return assureResource(ctx, r, bpfmanConfig, cm)
+	return assureResource(ctx, r, bpfmanConfig, cm, func(existing, desired *corev1.ConfigMap) bool {
+		return !equality.Semantic.DeepEqual(existing.Data, desired.Data)
+	})
 }
 
 func (r *BpfmanConfigReconciler) reconcileCSIDriver(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
@@ -165,7 +168,9 @@ func (r *BpfmanConfigReconciler) reconcileCSIDriver(ctx context.Context, bpfmanC
 	if err != nil {
 		return err
 	}
-	return assureResource(ctx, r, bpfmanConfig, csiDriver)
+	return assureResource(ctx, r, bpfmanConfig, csiDriver, func(existing, desired *storagev1.CSIDriver) bool {
+		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
+	})
 }
 
 func (r *BpfmanConfigReconciler) reconcileSCC(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
@@ -180,7 +185,13 @@ func (r *BpfmanConfigReconciler) reconcileSCC(ctx context.Context, bpfmanConfig 
 		if err != nil {
 			return err
 		}
-		return assureResource(ctx, r, bpfmanConfig, bpfmanRestrictedSCC)
+		return assureResource(ctx, r, bpfmanConfig, bpfmanRestrictedSCC, func(existing, desired *osv1.SecurityContextConstraints) bool {
+			existingCopy := existing.DeepCopy()
+			desiredCopy := desired.DeepCopy()
+			existingCopy.ObjectMeta = metav1.ObjectMeta{}
+			desiredCopy.ObjectMeta = metav1.ObjectMeta{}
+			return !equality.Semantic.DeepEqual(existingCopy, desiredCopy)
+		})
 	}
 	return nil
 }
@@ -193,7 +204,9 @@ func (r *BpfmanConfigReconciler) reconcileStandardDS(ctx context.Context, bpfman
 		return err
 	}
 	configureBpfmanDs(bpfmanDS, bpfmanConfig)
-	return assureResource(ctx, r, bpfmanConfig, bpfmanDS)
+	return assureResource(ctx, r, bpfmanConfig, bpfmanDS, func(existing, desired *appsv1.DaemonSet) bool {
+		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
+	})
 }
 
 func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
@@ -205,7 +218,9 @@ func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bp
 		return err
 	}
 	configureMetricsProxyDs(metricsProxyDS, bpfmanConfig, r.IsOpenshift)
-	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS)
+	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS, func(existing, desired *appsv1.DaemonSet) bool {
+		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
+	})
 }
 
 // resourcePredicate creates a predicate that filters events based on resource name.
@@ -317,7 +332,8 @@ func configureMetricsProxyDs(staticMetricsProxyDS *appsv1.DaemonSet, config *v1a
 				Name: "agent-metrics-tls",
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: "agent-metrics-tls",
+						SecretName:  "agent-metrics-tls",
+						DefaultMode: ptr.To(int32(420)),
 					},
 				},
 			},
@@ -354,7 +370,7 @@ func load[T client.Object](t T, path, name string) (T, error) {
 // assureResource ensures a Kubernetes resource exists and is up to date.
 // Creates the resource if it doesn't exist, otherwise updates it to match the desired state.
 func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconciler,
-	bpfmanConfig *v1alpha1.Config, resource T) error {
+	bpfmanConfig *v1alpha1.Config, resource T, needsUpdate func(existing T, desired T) bool) error {
 	if err := ctrl.SetControllerReference(bpfmanConfig, resource, r.Scheme); err != nil {
 		return err
 	}
@@ -379,15 +395,15 @@ func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconci
 		return err
 	}
 
-	r.Logger.Info("Reconciling bpfman object",
-		"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-	// Let the Kubernetes API server determine what needs updating.
-	// DeepEqual comparison is unreliable due to server-side default field mutations.
-	resource.SetResourceVersion(existingResource.GetResourceVersion())
-	if err := r.Update(ctx, resource); err != nil {
-		r.Logger.Error(err, "Failed reconciling object",
+	if needsUpdate(existingResource, resource) {
+		r.Logger.Info("Updating object",
 			"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-		return err
+		resource.SetResourceVersion(existingResource.GetResourceVersion())
+		if err := r.Update(ctx, resource); err != nil {
+			r.Logger.Error(err, "Failed updating object",
+				"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+			return err
+		}
 	}
 
 	return nil

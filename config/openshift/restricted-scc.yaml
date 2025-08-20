@@ -13,6 +13,7 @@ allowPrivilegeEscalation: false
 allowPrivilegedContainer: false
 allowedCapabilities: null
 defaultAddCapabilities: null
+users: []
 groups: []
 priority: null
 readOnlyRootFilesystem: false
