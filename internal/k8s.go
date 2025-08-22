@@ -17,6 +17,8 @@ limitations under the License.
 package internal
 
 import (
+	"github.com/go-logr/logr"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
@@ -59,4 +61,28 @@ func DiscoveredBpfProgramPredicate() predicate.Funcs {
 			return ok
 		},
 	}
+}
+
+// Returns true if the current platform is Openshift.
+func IsOpenShift(client discovery.DiscoveryInterface, setupLog logr.Logger) (bool, error) {
+	k8sVersion, err := client.ServerVersion()
+	if err != nil {
+		setupLog.Info("issue occurred while fetching ServerVersion")
+		return false, err
+	}
+
+	setupLog.Info("detected platform version", "PlatformVersion", k8sVersion)
+	apiList, err := client.ServerGroups()
+	if err != nil {
+		setupLog.Info("issue occurred while fetching ServerGroups")
+		return false, err
+	}
+
+	for _, v := range apiList.Groups {
+		if v.Name == "route.openshift.io" {
+			setupLog.Info("route.openshift.io found in apis, platform is OpenShift")
+			return true, nil
+		}
+	}
+	return false, nil
 }

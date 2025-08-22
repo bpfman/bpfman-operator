@@ -316,6 +316,10 @@ test-integration-local: ## Run Integration tests against existing deployment. Us
 	SKIP_BPFMAN_DEPLOY=true \
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
 
+.PHONY: test-lifecycle-local
+test-lifecycle-local: ## Run lifecycle tests against existing deployment.
+	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/lifecycle
+
 ## The physical bundle is no longer tracked in git since it should be considered
 ## and treated as a release artifact, rather than something that's updated
 ## as part of a pull request.

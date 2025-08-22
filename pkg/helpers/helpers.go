@@ -104,7 +104,7 @@ var log = ctrl.Log.WithName("bpfman-helpers")
 
 // getk8sConfig gets a kubernetes config automatically detecting if it should
 // be the in or out of cluster config. If this step fails panic.
-func getk8sConfigOrDie() *rest.Config {
+func GetK8sConfigOrDie() *rest.Config {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		kubeConfig :=
@@ -125,13 +125,13 @@ func getk8sConfigOrDie() *rest.Config {
 // GetClientOrDie gets the bpfman Kubernetes Client dynamically switching between in cluster and out of
 // cluster config setup.
 func GetClientOrDie() *bpfmanclientset.Clientset {
-	return bpfmanclientset.NewForConfigOrDie(getk8sConfigOrDie())
+	return bpfmanclientset.NewForConfigOrDie(GetK8sConfigOrDie())
 }
 
 // IsBpfmanDeployed is used to check for the existence of bpfman in a Kubernetes cluster. Specifically it checks for
 // the existence of the bpfman.io CRD api group within the apiserver. If getting the k8s config fails this will panic.
 func IsBpfmanDeployed() bool {
-	config := getk8sConfigOrDie()
+	config := GetK8sConfigOrDie()
 
 	client, err := discovery.NewDiscoveryClientForConfig(config)
 	if err != nil {

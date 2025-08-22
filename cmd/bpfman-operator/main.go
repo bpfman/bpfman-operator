@@ -35,7 +35,6 @@ import (
 	"k8s.io/client-go/discovery"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -58,30 +57,6 @@ func init() {
 	utilruntime.Must(bpfmaniov1alpha1.Install(scheme))
 	utilruntime.Must(osv1.Install(scheme))
 	//+kubebuilder:scaffold:scheme
-}
-
-// Returns true if the current platform is Openshift.
-func isOpenshift(client discovery.DiscoveryInterface, _ *rest.Config) (bool, error) {
-	k8sVersion, err := client.ServerVersion()
-	if err != nil {
-		setupLog.Info("issue occurred while fetching ServerVersion")
-		return false, err
-	}
-
-	setupLog.Info("detected platform version", "PlatformVersion", k8sVersion)
-	apiList, err := client.ServerGroups()
-	if err != nil {
-		setupLog.Info("issue occurred while fetching ServerGroups")
-		return false, err
-	}
-
-	for _, v := range apiList.Groups {
-		if v.Name == "route.openshift.io" {
-			setupLog.Info("route.openshift.io found in apis, platform is OpenShift")
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func main() {
@@ -212,7 +187,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	isOpenshift, err := isOpenshift(dc, mgr.GetConfig())
+	isOpenshift, err := internal.IsOpenShift(dc, setupLog)
 	if err != nil {
 		setupLog.Error(err, "unable to determine platform")
 		os.Exit(1)
