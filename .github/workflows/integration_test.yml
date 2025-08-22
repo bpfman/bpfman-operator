@@ -9,12 +9,19 @@ on:
 
 jobs:
   kubernetes-integration-tests:
-    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }})
+    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }} - ${{ matrix.command }})
     runs-on: ubuntu-24.04
     strategy:
       matrix:
         go: ["1.24"]
         oci_bin: ["docker", "podman"]
+        command: [
+          "integration",
+          "lifecycle"
+        ]
+        exclude:
+          - oci_bin: podman
+            command: "lifecycle"
     env:
       BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
       BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
@@ -64,9 +71,15 @@ jobs:
 
       # Run integration tests only if OCI_BIN is Docker.
       - name: Run integration tests
-        if: ${{ matrix.oci_bin == 'docker' }}
+        if: ${{ (matrix.oci_bin == 'docker') && (matrix.command == 'integration') }}
         run: |
           make test-integration
+
+      # Run lifecycle tests only if OCI_BIN is Docker.
+      - name: Run lifecycle tests
+        if: ${{ (matrix.oci_bin == 'docker') && (matrix.command == 'lifecycle') }}
+        run: |
+          make run-on-kind && make test-lifecycle-local
 
       - name: Check disk space
         run: df -h
