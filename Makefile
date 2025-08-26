@@ -461,9 +461,11 @@ deploy: install patch-image-references ## Deploy bpfman-operator to the K8s clus
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config
-	kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s
-	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
+		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
+		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
+	fi
+	-$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images
 kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
@@ -481,9 +483,11 @@ deploy-openshift: install patch-image-references ## Deploy bpfman-operator to th
 
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config
-	kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s
-	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
+		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
+		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
+	fi
+	-$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 # Deploy the catalog.
 .PHONY: catalog-deploy
