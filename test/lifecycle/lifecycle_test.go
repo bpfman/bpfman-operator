@@ -6,6 +6,7 @@ package lifecycle
 import (
 	"context"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -108,7 +110,9 @@ func TestLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get current config: %q", err)
 	}
-	originalConfig.ResourceVersion = ""
+	if originalConfig != nil {
+		originalConfig.ResourceVersion = ""
+	}
 
 	// After this test run, we want to restore to the original configuration.
 	defer func() {
@@ -149,6 +153,13 @@ func TestLifecycle(t *testing.T) {
 	t.Logf("Running: TestConfigRecreationWithModifiedSettings")
 	if err := testConfigCreation(ctx, t, newConfig); err != nil {
 		t.Fatalf("Failed config recreation: %q", err)
+	}
+
+	// Test config stuck deletion scenario - this should be run
+	// after we have a working Config.
+	t.Logf("Running: TestConfigStuckDeletion")
+	if err := testConfigStuckDeletion(ctx, t); err != nil {
+		t.Fatalf("Failed config stuck deletion test: %q", err)
 	}
 }
 
@@ -652,4 +663,110 @@ func waitUntilCondition(ctx context.Context, conditionFunc func() (bool, error))
 			}
 		}
 	}
+}
+
+// testConfigStuckDeletion verifies that bpfman can handle scenarios
+// where owned DaemonSets get stuck in deletion due to finalizers, and
+// that the system can recover when those finalizers are removed. This
+// simulates real-world scenarios like stuck pods, finalizer
+// conflicts, or external dependencies blocking deletion.
+func testConfigStuckDeletion(ctx context.Context, t *testing.T) error {
+	const blockingFinalizer = "test.example.com/block-deletion"
+
+	ds := &appsv1.DaemonSet{}
+	dsKey := types.NamespacedName{Name: internal.BpfmanDsName, Namespace: internal.BpfmanNamespace}
+	if err := runtimeClient.Get(ctx, dsKey, ds); err != nil {
+		return fmt.Errorf("failed to get DaemonSet before blocking: %w", err)
+	}
+
+	// Ensure we clean up our test finalizer even if the test
+	// fails This is critical for the main TestLifecycle defer
+	// cleanup to work.
+	defer func() {
+		ds := &appsv1.DaemonSet{}
+		if runtimeClient.Get(ctx, dsKey, ds) == nil {
+			if slices.Contains(ds.Finalizers, blockingFinalizer) {
+				t.Logf("Cleaning up test finalizer on test completion")
+				controllerutil.RemoveFinalizer(ds, blockingFinalizer)
+				runtimeClient.Update(ctx, ds)
+			}
+		}
+	}()
+
+	t.Logf("Adding blocking finalizer to DaemonSet to simulate stuck deletion")
+	controllerutil.AddFinalizer(ds, blockingFinalizer)
+	if err := runtimeClient.Update(ctx, ds); err != nil {
+		return fmt.Errorf("failed to add blocking finalizer to DaemonSet: %w", err)
+	}
+
+	t.Logf("Deleting Config resource - DaemonSet should remain due to blocking finalizer")
+	config := &v1alpha1.Config{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: internal.BpfmanConfigName,
+		},
+	}
+	if err := runtimeClient.Delete(ctx, config); err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to delete Config: %w", err)
+	}
+
+	t.Logf("Verifying Config is deleted and DaemonSet remains stuck")
+	if err := waitUntilCondition(ctx, func() (bool, error) {
+		config := &v1alpha1.Config{}
+		err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, config)
+		if err != nil && !errors.IsNotFound(err) {
+			return false, err
+		}
+		configGone := errors.IsNotFound(err)
+
+		ds := &appsv1.DaemonSet{}
+		if err := runtimeClient.Get(ctx, dsKey, ds); err != nil {
+			if errors.IsNotFound(err) {
+				return false, fmt.Errorf("DaemonSet should still exist but was deleted despite blocking finalizer")
+			}
+			return false, err
+		}
+
+		daemonSetStuck := !ds.DeletionTimestamp.IsZero() && slices.Contains(ds.Finalizers, blockingFinalizer)
+
+		if configGone && daemonSetStuck {
+			t.Logf("Config deleted and DaemonSet stuck in deletion due to blocking finalizer")
+			return true, nil
+		}
+
+		t.Logf("Waiting for stuck state: Config gone=%v, DaemonSet stuck=%v", configGone, daemonSetStuck)
+		return false, nil
+	}); err != nil {
+		return fmt.Errorf("Expected Config to be deleted and DaemonSet to be stuck: %w", err)
+	}
+
+	t.Logf("Removing blocking finalizer to allow DaemonSet deletion")
+	if err := runtimeClient.Get(ctx, dsKey, ds); err != nil {
+		return fmt.Errorf("failed to get DaemonSet for unblocking: %w", err)
+	}
+
+	controllerutil.RemoveFinalizer(ds, blockingFinalizer)
+	if err := runtimeClient.Update(ctx, ds); err != nil {
+		return fmt.Errorf("failed to remove blocking finalizer: %w", err)
+	}
+
+	t.Logf("Verifying DaemonSet deletion completes after removing finalizer")
+	if err := waitUntilCondition(ctx, func() (bool, error) {
+		ds := &appsv1.DaemonSet{}
+		err := runtimeClient.Get(ctx, dsKey, ds)
+		if errors.IsNotFound(err) {
+			t.Logf("DaemonSet successfully deleted after removing blocking finalizer")
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+
+		t.Logf("DaemonSet still exists, waiting for deletion...")
+		return false, nil
+	}); err != nil {
+		return fmt.Errorf("DaemonSet should be deleted after removing finalizer: %w", err)
+	}
+
+	t.Logf("Config stuck deletion test completed successfully")
+	return nil
 }
