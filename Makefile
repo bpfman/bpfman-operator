@@ -437,7 +437,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 ##@ Image Patching
 
 .PHONY: patch-image-references
-patch-image-references: ## Update all image references with environment variables
+patch-image-references: kustomize ## Update all image references with environment variables
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 	cd config/bpfman-deployment && \
 	  $(SED) -e 's@quay.io/bpfman/bpfman:latest@$(BPFMAN_IMG)@g' \
@@ -460,7 +460,7 @@ deploy: install patch-image-references ## Deploy bpfman-operator to the K8s clus
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
-undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+undeploy: kustomize ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
 		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
@@ -482,7 +482,7 @@ deploy-openshift: install patch-image-references ## Deploy bpfman-operator to th
 	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
 
 .PHONY: undeploy-openshift
-undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
 		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
