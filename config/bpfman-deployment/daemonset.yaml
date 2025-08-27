@@ -78,22 +78,25 @@ spec:
               mountPath: /run/bpfman-sock
             - name: runtime
               mountPath: /run/bpfman
-              mountPropagation: Bidirectional
+              # Changed from Bidirectional to HostToContainer to prevent mount leak DoS
+              mountPropagation: HostToContainer
             # This mount is needed to attach tracepoint programs
             - name: host-debug
               mountPath: /sys/kernel/debug
             # Needed to ensure images are persisted to disk across restarts
             - name: bpfman-content-store
               mountPath: /var/lib/bpfman
-              mountPropagation: Bidirectional
+              mountPropagation: HostToContainer
             # Needed for the aya PIN_BY_NAME feature to function correctly
             - name: default-bpf-fs
               mountPath: /sys/fs/bpf
               mountPropagation: Bidirectional
             - mountPath: /run/bpfman/csi
               name: socket-dir
+              # CSI operations work with HostToContainer - no bidirectional needed
+              mountPropagation: HostToContainer
             - mountPath: /var/lib/kubelet/pods
-              mountPropagation: Bidirectional
+              mountPropagation: HostToContainer
               name: mountpoint-dir
             - mountPath: /tmp
               name: tmp-dir
