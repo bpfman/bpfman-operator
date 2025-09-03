@@ -94,6 +94,8 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	r.Logger.Info("Running the reconciler")
 
 	bpfmanConfig := &v1alpha1.Config{}
+	// We must use types.NamespacedName{Name: req.NamespacedName.Name} instead of req.NamespacedName. Otherwise, the
+	// mocks in config_test.go fail as they populate the namespace in the reconciler.
 	if err := r.Get(ctx, types.NamespacedName{Name: req.NamespacedName.Name}, bpfmanConfig); err != nil {
 		// If the resource is not found then it usually means that it was deleted or not created
 		// In this way, we will stop the reconciliation
