@@ -339,7 +339,7 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 
 .PHONY: run-local
 run-local: build ## Run the bpfman-operator locally for development purposes.
-	kubectl scale deployment -n bpfman bpfman-operator --replicas=0
+	kubectl scale deployment -n bpfman bpfman-operator --replicas=0 || true
 	GO_LOG=debug bin/bpfman-operator
 
 ##@ Build
