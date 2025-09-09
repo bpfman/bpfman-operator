@@ -18,6 +18,12 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.conditions[?(@.type=='Progressing')].status
+      name: Progressing
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Available')].status
+      name: Available
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -86,6 +92,25 @@ spec:
           status:
             description: status reflects the status of the bpfman-operator configuration.
             properties:
+              componentStatuses:
+                description: componentStatuses stores the status of all components.
+                properties:
+                  configMap:
+                    description: configMap stores the status of the ConfigMap.
+                    type: string
+                  csiDriver:
+                    description: csiDriver stores the status of the CsiDriver.
+                    type: string
+                  daemonSet:
+                    description: daemonSet stores the status of the DaemonSet.
+                    type: string
+                  metricsProxyDaemonSet:
+                    description: metricsProxyDaemonSet stores the status of the MetricsProxyDaemonSet.
+                    type: string
+                  scc:
+                    description: scc stores the status of the Scc.
+                    type: string
+                type: object
               conditions:
                 description: conditions store the status conditions of the bpfman-operator.
                 items:
