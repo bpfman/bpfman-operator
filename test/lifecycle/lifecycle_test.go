@@ -127,7 +127,7 @@ func TestLifecycle(t *testing.T) {
 
 	// Make sure that all resources are there at the start.
 	t.Logf("Running: TestEnsureResources")
-	if err := waitForResourceCreation(ctx, t); err != nil {
+	if err := waitForResourceCreation(ctx); err != nil {
 		t.Fatalf("Failed to ensure resources: %q", err)
 	}
 
@@ -222,7 +222,7 @@ func testResourceDeletion(ctx context.Context, t *testing.T) error {
 		if err := runtimeClient.Delete(ctx, obj); err != nil {
 			return fmt.Errorf("could not delete obj %v, err: %w", obj, err)
 		}
-		if err := waitForResourceCreation(ctx, t); err != nil {
+		if err := waitForResourceCreation(ctx); err != nil {
 			return err
 		}
 	}
@@ -494,7 +494,7 @@ func testConfigCreation(ctx context.Context, t *testing.T, newConfig *v1alpha1.C
 	}
 
 	// Wait for resources to be recreated with new configuration.
-	if err := waitForResourceCreation(ctx, t); err != nil {
+	if err := waitForResourceCreation(ctx); err != nil {
 		return fmt.Errorf("failed to wait for resource creation: %v", err)
 	}
 
@@ -537,7 +537,7 @@ func testOperatorPodHealthy(ctx context.Context) error {
 // waitForResourceCreation polls for all required bpfman resources to be created and ready.
 // Checks for CSI driver, ConfigMap, and both DaemonSets (bpfman and metrics proxy).
 // Returns error if timeout is reached or if context is cancelled.
-func waitForResourceCreation(ctx context.Context, t *testing.T) error {
+func waitForResourceCreation(ctx context.Context) error {
 	return waitUntilCondition(ctx, func() (bool, error) {
 		// Check CSI driver exists.
 		csiDriver := &storagev1.CSIDriver{}
