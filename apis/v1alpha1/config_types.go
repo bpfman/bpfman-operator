@@ -28,6 +28,8 @@ import (
 
 // Config holds the configuration for bpfman-operator.
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Progressing",type="string",JSONPath=".status.conditions[?(@.type=='Progressing')].status"
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.conditions[?(@.type=='Available')].status"
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -79,12 +81,16 @@ type AgentSpec struct {
 
 // status reflects the status of the bpfman-operator configuration.
 type ConfigStatus struct {
-	// conditions store the status conditions of the bpfman-operator.
+	// conditions store the status conditions of the bpfman-operator components.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+
+	// components stores the status of all components.
+	// +optional
+	Components map[string]ConfigComponentStatus `json:"components,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -94,3 +100,11 @@ type ConfigList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Config `json:"items"`
 }
+
+type ConfigComponentStatus string
+
+const (
+	ConfigStatusUnknown     ConfigComponentStatus = "Unknown"
+	ConfigStatusProgressing ConfigComponentStatus = "Progressing"
+	ConfigStatusReady       ConfigComponentStatus = "Ready"
+)
