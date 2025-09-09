@@ -18,6 +18,12 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.conditions[?(@.type=='Progressing')].status
+      name: Progressing
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Available')].status
+      name: Available
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -86,8 +92,14 @@ spec:
           status:
             description: status reflects the status of the bpfman-operator configuration.
             properties:
+              components:
+                additionalProperties:
+                  type: string
+                description: components stores the status of all components.
+                type: object
               conditions:
-                description: conditions store the status conditions of the bpfman-operator.
+                description: conditions store the status conditions of the bpfman-operator
+                  components.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for
