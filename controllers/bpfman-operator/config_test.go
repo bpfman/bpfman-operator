@@ -18,6 +18,7 @@ package bpfmanoperator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,6 +44,7 @@ import (
 
 	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/test/testutil"
 )
 
 const (
@@ -62,7 +65,8 @@ func TestReconcile(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("isOpenShift: %v", tc.isOpenShift), func(t *testing.T) {
 			t.Log("Setting up test environment")
-			r, bpfmanConfig, req, ctx, cl := setupTestEnvironment(tc.isOpenShift)
+			fakeRecorder := record.NewFakeRecorder(100)
+			r, bpfmanConfig, req, ctx, cl := setupTestEnvironment(tc.isOpenShift, fakeRecorder)
 
 			t.Log("Checking the restricted SCC name")
 			require.Equal(t, tc.isOpenShift, r.RestrictedSCC != "",
@@ -78,6 +82,12 @@ func TestReconcile(t *testing.T) {
 				t.Fatalf("initial reconcile failed: %v", err)
 			}
 
+			t.Log("Checking status (should be unknown)")
+			err = testStatusSet(ctx, cl, internal.BpfmanConfigName, tc.isOpenShift, "unknown")
+			if err != nil {
+				t.Fatalf("unexpected status on config %q: %q", internal.BpfmanConfigName, err)
+			}
+
 			t.Log("Running second reconcile (creates resources)")
 			_, err = r.Reconcile(ctx, req)
 			if err != nil {
@@ -88,6 +98,30 @@ func TestReconcile(t *testing.T) {
 			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift)
 			if err != nil {
 				t.Fatalf("not all objects present after initial reconcile: %q", err)
+			}
+
+			t.Log("Checking status (should be progressing)")
+			err = testStatusSet(ctx, cl, internal.BpfmanConfigName, tc.isOpenShift, "progressing")
+			if err != nil {
+				t.Fatalf("unexpected status on config %q: %q", internal.BpfmanConfigName, err)
+			}
+
+			t.Log("Marking DaemonSets as ready")
+			err = testReconcileDaemonSets(ctx, cl)
+			if err != nil {
+				t.Fatalf("couldn't reconcile DaemonSets, %q", err)
+			}
+
+			t.Log("Running third reconcile (flips status to available)")
+			_, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("second reconcile failed: %v", err)
+			}
+
+			t.Log("Checking status (should be available)")
+			err = testStatusSet(ctx, cl, internal.BpfmanConfigName, tc.isOpenShift, "available")
+			if err != nil {
+				t.Fatalf("unexpected status on config %q: %q", internal.BpfmanConfigName, err)
 			}
 
 			// Delete objects one by one to test restoration.
@@ -175,7 +209,7 @@ func TestReconcile(t *testing.T) {
 //   - reconcile.Request: Mock reconcile request for testing
 //   - context.Context: Test context
 //   - client.Client: Fake Kubernetes client for API interactions
-func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.Config, reconcile.Request,
+func setupTestEnvironment(isOpenShift bool, recorder record.EventRecorder) (*BpfmanConfigReconciler, *v1alpha1.Config, reconcile.Request,
 	context.Context, client.Client) {
 	// A configMap for bpfman with metadata and spec.
 	bpfmanConfig := &v1alpha1.Config{
@@ -208,7 +242,10 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 	s.AddKnownTypes(osv1.GroupVersion, &osv1.SecurityContextConstraints{})
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	// For WithStatusSubresource see:
+	// * https://github.com/kubernetes-sigs/controller-runtime/issues/2362#issuecomment-1837270195
+	// * https://stackoverflow.com/questions/77489441/go-k8s-controller-runtime-upgrade-fake-client-lacks-functionality
+	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).WithStatusSubresource(bpfmanConfig).Build()
 
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
@@ -230,6 +267,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 		BpfmanMetricsProxyDS:         resolveConfigPath(internal.BpfmanMetricsProxyPath),
 		CsiDriverDS:                  resolveConfigPath(internal.BpfmanCsiDriverPath),
 		IsOpenshift:                  isOpenShift,
+		Recorder:                     recorder,
 	}
 	if isOpenShift {
 		r.RestrictedSCC = resolveConfigPath(internal.BpfmanRestrictedSCCPath)
@@ -576,5 +614,141 @@ func verifyCM(cm *corev1.ConfigMap, requiredFields map[string]*string) error {
 			}
 		}
 	}
+	return nil
+}
+
+// testStatusSet validates that the Config's status.conditions and status.componentStatuses
+// match the expected state (unknown, progressing, or available) based on the test scenario.
+func testStatusSet(ctx context.Context, cl client.Client, configName string, isOpenShift bool, expected string) error {
+	bpfmanConfig := &v1alpha1.Config{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: configName}, bpfmanConfig); err != nil {
+		return err
+	}
+
+	var expectedComponentStatuses map[string]v1alpha1.ConfigComponentStatus
+	var progressingCondition metav1.Condition
+	var availableCondition metav1.Condition
+
+	switch expected {
+	case "available":
+		expectedComponentStatuses = map[string]v1alpha1.ConfigComponentStatus{
+			"ConfigMap":             v1alpha1.ConfigStatusReady,
+			"DaemonSet":             v1alpha1.ConfigStatusReady,
+			"MetricsProxyDaemonSet": v1alpha1.ConfigStatusReady,
+			"CsiDriver":             v1alpha1.ConfigStatusReady,
+		}
+		if isOpenShift {
+			expectedComponentStatuses["Scc"] = v1alpha1.ConfigStatusReady
+		}
+		progressingCondition = metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+		availableCondition = metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+	case "progressing":
+		expectedComponentStatuses = map[string]v1alpha1.ConfigComponentStatus{
+			"ConfigMap":             v1alpha1.ConfigStatusReady,
+			"DaemonSet":             v1alpha1.ConfigStatusProgressing,
+			"MetricsProxyDaemonSet": v1alpha1.ConfigStatusProgressing,
+			"CsiDriver":             v1alpha1.ConfigStatusReady,
+		}
+		if isOpenShift {
+			expectedComponentStatuses["Scc"] = v1alpha1.ConfigStatusReady
+		}
+		progressingCondition = metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		}
+		availableCondition = metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		}
+	default:
+		expectedComponentStatuses = map[string]v1alpha1.ConfigComponentStatus{
+			"ConfigMap":             v1alpha1.ConfigStatusUnknown,
+			"DaemonSet":             v1alpha1.ConfigStatusUnknown,
+			"MetricsProxyDaemonSet": v1alpha1.ConfigStatusUnknown,
+			"CsiDriver":             v1alpha1.ConfigStatusUnknown,
+		}
+		if isOpenShift {
+			expectedComponentStatuses["Scc"] = v1alpha1.ConfigStatusUnknown
+		}
+		progressingCondition = metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		}
+		availableCondition = metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		}
+	}
+
+	if bpfmanConfig.Status.Components == nil ||
+		!internal.CCSEquals(bpfmanConfig.Status.Components, expectedComponentStatuses) {
+		got := fmt.Sprintf("%v", bpfmanConfig.Status.Components)
+		want := fmt.Sprintf("%v", expectedComponentStatuses)
+		if b, err := json.Marshal(bpfmanConfig.Status.Components); err == nil {
+			got = string(b)
+		}
+		if b, err := json.Marshal(expectedComponentStatuses); err == nil {
+			want = string(b)
+		}
+		return fmt.Errorf("unexpected config.status.componentStatuses, got: %v, expected: %v", got, want)
+	}
+	if !testutil.ContainsCondition(bpfmanConfig.Status.Conditions, progressingCondition) {
+		return fmt.Errorf("conditions %v does not contain condition %v",
+			bpfmanConfig.Status.Conditions, progressingCondition)
+	}
+	if !testutil.ContainsCondition(bpfmanConfig.Status.Conditions, availableCondition) {
+		return fmt.Errorf("conditions %v does not contain condition %v",
+			bpfmanConfig.Status.Conditions, availableCondition)
+	}
+	return nil
+}
+
+// testReconcileDaemonSets simulates DaemonSets becoming ready by setting their status
+// fields to indicate all desired pods are ready and scheduled.
+func testReconcileDaemonSets(ctx context.Context, cl client.Client) error {
+	bpfmanDs := &appsv1.DaemonSet{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanDsName, Namespace: internal.BpfmanNamespace},
+		bpfmanDs); err != nil {
+		return err
+	}
+	bpfmanDs.Status.DesiredNumberScheduled = 1
+	bpfmanDs.Status.UpdatedNumberScheduled = bpfmanDs.Status.DesiredNumberScheduled
+	bpfmanDs.Status.NumberAvailable = bpfmanDs.Status.DesiredNumberScheduled
+	bpfmanDs.Status.NumberReady = bpfmanDs.Status.DesiredNumberScheduled
+	if err := cl.Status().Update(ctx, bpfmanDs); err != nil {
+		return err
+	}
+
+	metricsProxyDs := &appsv1.DaemonSet{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace},
+		metricsProxyDs); err != nil {
+		return err
+	}
+	metricsProxyDs.Status.DesiredNumberScheduled = 1
+	metricsProxyDs.Status.UpdatedNumberScheduled = metricsProxyDs.Status.DesiredNumberScheduled
+	metricsProxyDs.Status.NumberAvailable = metricsProxyDs.Status.DesiredNumberScheduled
+	metricsProxyDs.Status.NumberReady = metricsProxyDs.Status.DesiredNumberScheduled
+	if err := cl.Status().Update(ctx, metricsProxyDs); err != nil {
+		return err
+	}
+
 	return nil
 }
