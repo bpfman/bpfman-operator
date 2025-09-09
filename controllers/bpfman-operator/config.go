@@ -29,9 +29,11 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +53,9 @@ import (
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=bpfman.io,resources=configs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 type BpfmanConfigReconciler struct {
 	ClusterApplicationReconciler
@@ -60,6 +64,7 @@ type BpfmanConfigReconciler struct {
 	CsiDriverDS          string
 	RestrictedSCC        string
 	IsOpenshift          bool
+	Recorder             record.EventRecorder
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -106,6 +111,14 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	// If we haven't added any conditions, yet, set them to unknown.
+	if len(bpfmanConfig.Status.Conditions) == 0 {
+		r.Logger.Info("Adding initial status conditions", "name", bpfmanConfig.Name)
+		if err := r.setStatusConditions(ctx, bpfmanConfig); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Check if Config is being deleted first to prevent race
 	// conditions.
 	if !bpfmanConfig.DeletionTimestamp.IsZero() {
@@ -121,7 +134,7 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			r.Logger.Error(err, "Failed to add finalizer to Config")
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, r.setStatusConditions(ctx, bpfmanConfig)
 	}
 
 	// Normal reconciliation - safe to create/update resources.
@@ -145,7 +158,7 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.setStatusConditions(ctx, bpfmanConfig)
 }
 
 func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
@@ -223,6 +236,158 @@ func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bp
 	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS, func(existing, desired *appsv1.DaemonSet) bool {
 		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
 	})
+}
+
+// setStatusConditions checks the status of all Config components (ConfigMap, DaemonSets, CSIDriver, SCC)
+// and updates the Config's status.componentStatuses and status.conditions accordingly.
+// It also emits Kubernetes events for status changes and re-fetches the Config object after updating.
+func (r *BpfmanConfigReconciler) setStatusConditions(ctx context.Context, config *v1alpha1.Config) error {
+	if r == nil {
+		return fmt.Errorf("object BpfmanConfigReconciler r is nil")
+	}
+	if config == nil {
+		return fmt.Errorf("object Config config is nil")
+	}
+	if r.Recorder == nil {
+		return fmt.Errorf("object Recorder is nil")
+	}
+
+	// Check each resource and set appropriate status.
+	statuses := v1alpha1.ConfigComponentStatuses{}
+
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, types.NamespacedName{
+		Name: internal.BpfmanCmName, Namespace: config.Spec.Namespace}, cm); err != nil {
+		if errors.IsNotFound(err) {
+			statuses.ConfigMap = ptr.To(v1alpha1.ConfigStatusUnknown)
+		} else {
+			return err
+		}
+	} else {
+		statuses.ConfigMap = ptr.To(v1alpha1.ConfigStatusReady)
+	}
+
+	ds := &appsv1.DaemonSet{}
+	if err := r.Get(ctx, types.NamespacedName{
+		Name: internal.BpfmanDsName, Namespace: config.Spec.Namespace}, ds); err != nil {
+		if errors.IsNotFound(err) {
+			statuses.DaemonSet = ptr.To(v1alpha1.ConfigStatusUnknown)
+		} else {
+			return err
+		}
+	} else {
+		if ds.Status.NumberReady == ds.Status.DesiredNumberScheduled && ds.Status.DesiredNumberScheduled > 0 {
+			statuses.DaemonSet = ptr.To(v1alpha1.ConfigStatusReady)
+		} else {
+			statuses.DaemonSet = ptr.To(v1alpha1.ConfigStatusProgressing)
+		}
+	}
+
+	metricsDS := &appsv1.DaemonSet{}
+	if err := r.Get(ctx, types.NamespacedName{
+		Name: internal.BpfmanMetricsProxyDsName, Namespace: config.Spec.Namespace}, metricsDS); err != nil {
+		if errors.IsNotFound(err) {
+			statuses.MetricsProxyDaemonSet = ptr.To(v1alpha1.ConfigStatusUnknown)
+		} else {
+			return err
+		}
+	} else {
+		if metricsDS.Status.NumberReady == metricsDS.Status.DesiredNumberScheduled &&
+			metricsDS.Status.DesiredNumberScheduled > 0 {
+			statuses.MetricsProxyDaemonSet = ptr.To(v1alpha1.ConfigStatusReady)
+		} else {
+			statuses.MetricsProxyDaemonSet = ptr.To(v1alpha1.ConfigStatusProgressing)
+		}
+	}
+
+	csiDriver := &storagev1.CSIDriver{}
+	if err := r.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName}, csiDriver); err != nil {
+		if errors.IsNotFound(err) {
+			statuses.CsiDriver = ptr.To(v1alpha1.ConfigStatusUnknown)
+		} else {
+			return err
+		}
+	} else {
+		statuses.CsiDriver = ptr.To(v1alpha1.ConfigStatusReady)
+	}
+
+	if r.IsOpenshift {
+		scc := &osv1.SecurityContextConstraints{}
+		if err := r.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName}, scc); err != nil {
+			if errors.IsNotFound(err) {
+				statuses.Scc = ptr.To(v1alpha1.ConfigStatusUnknown)
+			} else {
+				return err
+			}
+		} else {
+			statuses.Scc = ptr.To(v1alpha1.ConfigStatusReady)
+		}
+	}
+
+	// Set component statuses, first.
+	config.Status.ComponentStatuses = &statuses
+
+	// Set conditions, next.
+	switch {
+	case statuses.ConfigMap != nil && *statuses.ConfigMap == v1alpha1.ConfigStatusProgressing ||
+		statuses.DaemonSet != nil && *statuses.DaemonSet == v1alpha1.ConfigStatusProgressing ||
+		statuses.MetricsProxyDaemonSet != nil && *statuses.MetricsProxyDaemonSet == v1alpha1.ConfigStatusProgressing ||
+		statuses.CsiDriver != nil && *statuses.CsiDriver == v1alpha1.ConfigStatusProgressing ||
+		(r.IsOpenshift && statuses.Scc != nil && *statuses.Scc == v1alpha1.ConfigStatusProgressing):
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonProgressing, internal.ConfigMessageProgressing)
+	case statuses.ConfigMap != nil && *statuses.ConfigMap == v1alpha1.ConfigStatusReady &&
+		statuses.DaemonSet != nil && *statuses.DaemonSet == v1alpha1.ConfigStatusReady &&
+		statuses.MetricsProxyDaemonSet != nil && *statuses.MetricsProxyDaemonSet == v1alpha1.ConfigStatusReady &&
+		statuses.CsiDriver != nil && *statuses.CsiDriver == v1alpha1.ConfigStatusReady &&
+		(!r.IsOpenshift || statuses.Scc != nil && *statuses.Scc == v1alpha1.ConfigStatusReady):
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonAvailable, internal.ConfigMessageAvailable)
+	default:
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonUnknown, internal.ConfigMessageUnknown)
+	}
+
+	// Update the status.
+	if err := r.Status().Update(ctx, config); err != nil {
+		return fmt.Errorf("cannot update status for config %q, err: %w", config.Name, err)
+	}
+
+	// Update the object again (config is a pointer).
+	return r.Get(ctx, types.NamespacedName{Name: config.Name}, config)
 }
 
 // resourcePredicate creates a predicate that filters events based on resource name.

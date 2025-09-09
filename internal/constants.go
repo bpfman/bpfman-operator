@@ -248,3 +248,15 @@ func (r ReconcileResult) String() string {
 		return fmt.Sprintf("INVALID RECONCILE RESULT (%d)", r)
 	}
 }
+
+const (
+	ConfigConditionUnknown     = "Unknown"
+	ConfigConditionProgressing = "Progressing"
+	ConfigConditionAvailable   = "Available"
+	ConfigReasonUnknown        = "Startup"
+	ConfigReasonProgressing    = "ReconcileStarted"
+	ConfigReasonAvailable      = "ReconcileComplete"
+	ConfigMessageUnknown       = "Unkown state"
+	ConfigMessageProgressing   = "Reconciliation in progress"
+	ConfigMessageAvailable     = "Reconciliation complete"
+)
