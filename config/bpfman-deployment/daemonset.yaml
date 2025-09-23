@@ -43,7 +43,7 @@ spec:
             - -xc
             - |
               #!/bin/sh
-              if ! /usr/bin/findmnt -n -t bpf /sys/fs/bpf >/dev/null 2>&1; then
+              if ! /usr/bin/findmnt --noheadings --types bpf /sys/fs/bpf >/dev/null 2>&1; then
                 /bin/mount bpffs /sys/fs/bpf -t bpf
               fi
           securityContext:
