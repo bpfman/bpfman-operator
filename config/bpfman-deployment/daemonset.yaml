@@ -47,7 +47,7 @@ spec:
             - -xc
             - |
               #!/bin/sh
-              if ! /bin/mount | /bin/grep -q 'bpffs on /sys/fs/bpf'; then
+              if ! /usr/bin/findmnt --noheadings --types bpf /sys/fs/bpf >/dev/null 2>&1; then
                 /bin/mount bpffs /sys/fs/bpf -t bpf
               fi
           securityContext:
