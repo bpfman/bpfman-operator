@@ -79,6 +79,50 @@ spec:
                   Namespace holds the namespace where bpfman-operator resources shall be
                   deployed.
                 type: string
+              overrides:
+                description: |-
+                  overrides is list of overides for components that are managed by
+                  the operator. Marking a component unmanaged will prevent
+                  the operator from creating or updating the object.
+                items:
+                  description: ComponentOverride allows overriding the operator's
+                    behavior for a component.
+                  properties:
+                    group:
+                      description: group identifies the API group that the kind is
+                        in.
+                      type: string
+                    kind:
+                      description: kind indentifies which object to override.
+                      type: string
+                    name:
+                      description: name is the component's name.
+                      type: string
+                    namespace:
+                      description: |-
+                        namespace is the component's namespace. If the resource is cluster
+                        scoped, the namespace should be empty.
+                      type: string
+                    unmanaged:
+                      description: |-
+                        unmanaged controls if cluster version operator should stop managing the
+                        resources in this cluster.
+                        Default: false
+                      type: boolean
+                  required:
+                  - group
+                  - kind
+                  - name
+                  - namespace
+                  - unmanaged
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - kind
+                - group
+                - namespace
+                - name
+                x-kubernetes-list-type: map
             required:
             - configuration
             - image
