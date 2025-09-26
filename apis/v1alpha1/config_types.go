@@ -66,7 +66,7 @@ type AgentSpec struct {
 	// +kubebuilder:default=8175
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
-	HealthProbePort int `json:"healthProbeAddr"`
+	HealthProbePort int `json:"healthProbePort"`
 	// Image holds the image for the bpfman agent.
 	// +required
 	// +kubebuilder:validation:Required

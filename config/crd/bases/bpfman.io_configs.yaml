@@ -46,7 +46,7 @@ spec:
               agent:
                 description: Agent holds the configuration for the bpfman agent.
                 properties:
-                  healthProbeAddr:
+                  healthProbePort:
                     default: 8175
                     description: HealthProbePort holds the health probe bind port
                       for the bpfman agent.
