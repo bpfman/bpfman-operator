@@ -19,30 +19,36 @@ package internal
 import "fmt"
 
 const (
-	K8sHostLabel                = "kubernetes.io/hostname"
-	DiscoveredLabel             = "bpfman.io/discoveredProgram"
-	UuidMetadataKey             = "bpfman.io/uuid"
-	ProgramNameKey              = "bpfman.io/ProgramName"
-	BpfmanNamespace             = "bpfman"
-	BpfmanOperatorName          = "bpfman-operator"
-	BpfmanDsName                = "bpfman-daemon"
-	BpfmanMetricsProxyDsName    = "bpfman-metrics-proxy"
-	BpfmanConfigName            = "bpfman-config"
-	BpfmanCsiDriverName         = "csi.bpfman.io"
-	BpfmanRestrictedSccName     = "bpfman-restricted"
-	BpfmanContainerName         = "bpfman"
-	BpfmanAgentContainerName    = "bpfman-agent"
-	BpfmanMetricsProxyContainer = "metrics-proxy"
-	BpfmanDaemonManifestPath    = "./config/bpfman-deployment/daemonset.yaml"
-	BpfmanMetricsProxyPath      = "./config/bpfman-deployment/metrics-proxy-daemonset.yaml"
-	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
-	BpfmanRestrictedSCCPath     = "./config/openshift/restricted-scc.yaml"
-	DefaultType                 = "tcp"
-	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
-	DefaultPort                 = 50051
-	DefaultEnabled              = true
-	BpfAppStateOwner            = "bpfman.io/ownedByProgram"
-	NetNsPath                   = "/run/netns"
+	K8sHostLabel                  = "kubernetes.io/hostname"
+	DiscoveredLabel               = "bpfman.io/discoveredProgram"
+	UuidMetadataKey               = "bpfman.io/uuid"
+	ProgramNameKey                = "bpfman.io/ProgramName"
+	BpfmanNamespace               = "bpfman"
+	BpfmanOperatorName            = "bpfman-operator"
+	BpfmanDsName                  = "bpfman-daemon"
+	BpfmanMetricsProxyDsName      = "bpfman-metrics-proxy"
+	BpfmanConfigName              = "bpfman-config"
+	BpfmanCmName                  = "bpfman-config"
+	BpfmanCsiDriverName           = "csi.bpfman.io"
+	BpfmanRestrictedSccName       = "bpfman-restricted"
+	BpfmanContainerName           = "bpfman"
+	BpfmanAgentContainerName      = "bpfman-agent"
+	BpfmanMetricsProxyContainer   = "metrics-proxy"
+	BpfmanDaemonManifestPath      = "./config/bpfman-deployment/daemonset.yaml"
+	BpfmanMetricsProxyPath        = "./config/bpfman-deployment/metrics-proxy-daemonset.yaml"
+	BpfmanCsiDriverPath           = "./config/bpfman-deployment/csidriverinfo.yaml"
+	BpfmanRestrictedSCCPath       = "./config/openshift/restricted-scc.yaml"
+	DefaultType                   = "tcp"
+	DefaultPath                   = "/run/bpfman-sock/bpfman.sock"
+	DefaultPort                   = 50051
+	DefaultEnabled                = true
+	BpfAppStateOwner              = "bpfman.io/ownedByProgram"
+	NetNsPath                     = "/run/netns"
+	BpfmanTOML                    = "bpfman.toml"
+	BpfmanLogLevel                = "bpfman.log.level"
+	BpfmanAgentLogLevel           = "bpfman.agent.log.level"
+	BpfmanAgentHealthProbeAddress = "bpfman.agent.healthprobeaddr"
+	APIPrefix                     = "bpfman.io"
 )
 
 // -----------------------------------------------------------------------------
@@ -53,6 +59,9 @@ const (
 	// BpfmanOperatorFinalizer is the finalizer that holds a *Program from
 	// deletion until cleanup can be performed.
 	BpfmanOperatorFinalizer = "bpfman.io.operator/finalizer"
+	// BpfmanConfigFinalizer is the finalizer that holds a Config from
+	// deletion until cleanup can be performed and prevents race conditions during deletion.
+	BpfmanConfigFinalizer = "bpfman.io/config-finalizer"
 	// ClBpfApplicationControllerFinalizer is the finalizer that holds a ClusterBpfApplication
 	ClBpfApplicationControllerFinalizer = "bpfman.io.clbpfapplicationcontroller/finalizer"
 	// NsBpfApplicationControllerFinalizer is the finalizer that holds a BpfApplication

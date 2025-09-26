@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	"github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
@@ -42,11 +45,37 @@ var (
 	skipBpfmanDeploy     = func() bool { return os.Getenv("SKIP_BPFMAN_DEPLOY") == "true" }()
 
 	cleanup = []func(context.Context) error{}
+
+	bpfmanConfig = v1alpha1.Config{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: internal.BpfmanConfigName,
+		},
+		Spec: v1alpha1.ConfigSpec{
+			Namespace: "bpfman",
+			Image:     "quay.io/bpfman/bpfman:latest",
+			LogLevel:  "bpfman=debug",
+			Configuration: `[database]
+max_retries = 30
+millisec_delay = 10000
+[signing]
+allow_unsigned = true
+verify_enabled = true`,
+			Agent: v1alpha1.AgentSpec{
+				Image:           "CHANGEME",
+				LogLevel:        "info",
+				HealthProbePort: 8175,
+			},
+		},
+	}
 )
 
 const (
-	bpfmanKustomize = "../../config/test"
-	bpfmanConfigMap = "../../config/bpfman-deployment/config.yaml"
+	bpfmanCRD              = "../../config/crd"
+	bpfmanKustomize        = "../../config/test"
+	bpfmanKustomizationEnv = "kustomization.yaml.env"
+	bpfmanConfigMap        = "../../config/bpfman-deployment/config.yaml"
+	newImageName           = "NEW_IMAGE_NAME"
+	newImageTag            = "NEW_IMAGE_TAG"
 )
 
 func TestMain(m *testing.M) {
@@ -71,6 +100,7 @@ func TestMain(m *testing.M) {
 
 	// to use the provided bpfman-agent, and bpfman-operator images we will need to add
 	// them as images to load in the test cluster via an addon.
+	fmt.Println("INFO: Loading images")
 	loadImages, err := loadimagearchive.NewBuilder(ociBin).WithImage(bpfmanAgentImage)
 	exitOnErr(err)
 	loadImages, err = loadImages.WithImage(bpfmanOperatorImage)
@@ -100,26 +130,39 @@ func TestMain(m *testing.M) {
 		})
 	}
 
+	fmt.Println("INFO: Get the bpfman client")
+	bpfmanClient = bpfmanHelpers.GetClientOrDie()
+
 	// deploy the BPFMAN Operator and relevant CRDs.
 	if !skipBpfmanDeploy {
+		// Install the CRDs, RBAC and operator-deployment first.
 		fmt.Println("INFO: deploying bpfman operator to test cluster")
+		exitOnErr(generateKustomization(bpfmanKustomize, bpfmanKustomizationEnv, bpfmanOperatorImage))
 		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfmanKustomize))
+		// Then, deploy the Config resource.
+		bpfmanConfig.Spec.Agent.Image = bpfmanAgentImage
+		_, err := bpfmanClient.BpfmanV1alpha1().Configs().Create(ctx, &bpfmanConfig, metav1.CreateOptions{})
+		exitOnErr(err)
 		if !keepKustomizeDeploys {
 			addCleanup(func(context.Context) error {
-				cleanupLog("delete bpfman configmap to cleanup bpfman daemon")
-				env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Delete(ctx, internal.BpfmanConfigName, metav1.DeleteOptions{})
-				clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfmanConfigMap)
-				waitForBpfmanConfigDelete(ctx, env)
+				ctxTimeout, cancelFunc := context.WithTimeout(ctx, 5*time.Minute)
+				defer cancelFunc()
+
+				cleanupLog("delete bpfman Config to cleanup bpfman daemon")
+				bpfmanClient.BpfmanV1alpha1().Configs().Delete(ctxTimeout, internal.BpfmanConfigName, metav1.DeleteOptions{})
+				waitForBpfmanConfigDelete(ctxTimeout, env)
 				cleanupLog("deleting bpfman namespace")
-				return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfmanNamespace, metav1.DeleteOptions{})
+				return env.Cluster().Client().CoreV1().Namespaces().Delete(ctxTimeout, internal.BpfmanNamespace, metav1.DeleteOptions{})
 			})
 		}
 	} else {
 		fmt.Println("INFO: skipping bpfman deployment (SKIP_BPFMAN_DEPLOY=true)")
 	}
 
-	bpfmanClient = bpfmanHelpers.GetClientOrDie()
-	exitOnErr(waitForBpfmanReadiness(ctx, env))
+	// Make sure bpfman resources are up.
+	ctxTimeout, cancelFunc := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancelFunc()
+	exitOnErr(waitForBpfmanReadiness(ctxTimeout, env))
 
 	exit := m.Run()
 	// If there's any errors in e2e tests dump diagnostics
@@ -229,14 +272,86 @@ func waitForBpfmanConfigDelete(ctx context.Context, env environments.Environment
 		default:
 			fmt.Println("INFO: waiting for bpfman config deletion")
 
-			_, err := env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Get(ctx, internal.BpfmanConfigName, metav1.GetOptions{})
-			if err != nil {
-				if errors.IsNotFound(err) {
-					fmt.Println("INFO: bpfman configmap deleted successfully")
-					return nil
+			checks := []struct {
+				check func() error
+				msg   string
+			}{
+				{
+					check: func() error {
+						_, err := env.Cluster().Client().StorageV1().CSIDrivers().Get(ctx,
+							internal.BpfmanCsiDriverName, metav1.GetOptions{})
+						return err
+					},
+					msg: "INFO: bpfman csidriver deleted successfully",
+				},
+				{
+					check: func() error {
+						_, err := env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfmanNamespace).Get(ctx,
+							internal.BpfmanConfigName, metav1.GetOptions{})
+						return err
+					},
+					msg: "INFO: bpfman configmap deleted successfully",
+				},
+				{
+					check: func() error {
+						_, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfmanNamespace).Get(ctx,
+							internal.BpfmanDsName, metav1.GetOptions{})
+						return err
+					},
+					msg: "INFO: bpfman daemon daemonset deleted successfully",
+				},
+				{
+					check: func() error {
+						_, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfmanNamespace).Get(ctx,
+							internal.BpfmanMetricsProxyDsName, metav1.GetOptions{})
+						return err
+					},
+					msg: "INFO: bpfman metrics proxy daemonset deleted successfully",
+				},
+			}
+
+			deleteCount := 0
+			for _, c := range checks {
+				if err := c.check(); err != nil {
+					if !errors.IsNotFound(err) {
+						return err
+					}
+					fmt.Println(c.msg)
+					deleteCount++
 				}
-				return err
+			}
+			if deleteCount == len(checks) {
+				return nil
 			}
 		}
 	}
+}
+
+func generateKustomization(kustomizeDir, templateFile, operatorImage string) error {
+	// Check if image contains SHA digest
+	if strings.Contains(operatorImage, "@sha256:") {
+		return fmt.Errorf("image with SHA digest not supported: %s", operatorImage)
+	}
+
+	// Read kustomization.yaml.env template and replace placeholders
+	envData, err := os.ReadFile(filepath.Join(kustomizeDir, templateFile))
+	if err != nil {
+		return err
+	}
+
+	// Split operatorImage into name and tag
+	imageParts := strings.Split(operatorImage, ":")
+	imageName := imageParts[0]
+	imageTag := "latest"
+	if len(imageParts) > 1 {
+		imageTag = imageParts[1]
+	}
+
+	// Replace placeholders
+	kustomizationContent := string(envData)
+	kustomizationContent = strings.ReplaceAll(kustomizationContent, newImageName, imageName)
+	kustomizationContent = strings.ReplaceAll(kustomizationContent, newImageTag, imageTag)
+
+	// Write to kustomization.yaml
+	return os.WriteFile(filepath.Join(kustomizeDir, "kustomization.yaml"), []byte(kustomizationContent), 0644)
 }

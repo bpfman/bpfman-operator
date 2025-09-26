@@ -32,6 +32,8 @@ type Interface interface {
 	ClusterBpfApplications() ClusterBpfApplicationInformer
 	// ClusterBpfApplicationStates returns a ClusterBpfApplicationStateInformer.
 	ClusterBpfApplicationStates() ClusterBpfApplicationStateInformer
+	// Configs returns a ConfigInformer.
+	Configs() ConfigInformer
 }
 
 type version struct {
@@ -63,4 +65,9 @@ func (v *version) ClusterBpfApplications() ClusterBpfApplicationInformer {
 // ClusterBpfApplicationStates returns a ClusterBpfApplicationStateInformer.
 func (v *version) ClusterBpfApplicationStates() ClusterBpfApplicationStateInformer {
 	return &clusterBpfApplicationStateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Configs returns a ConfigInformer.
+func (v *version) Configs() ConfigInformer {
+	return &configInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

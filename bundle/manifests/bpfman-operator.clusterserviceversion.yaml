@@ -989,12 +989,30 @@ metadata:
             ],
             "updateCount": 2
           }
+        },
+        {
+          "apiVersion": "bpfman.io/v1alpha1",
+          "kind": "Config",
+          "metadata": {
+            "name": "bpfman-config",
+            "namespace": "bpfman"
+          },
+          "spec": {
+            "agent": {
+              "image": "quay.io/bpfman/bpfman-agent:latest",
+              "logLevel": "info"
+            },
+            "configuration": "[database]\nmax_retries = 30\nmillisec_delay = 10000\n[signing]\nallow_unsigned = true\nverify_enabled = true\n",
+            "image": "quay.io/bpfman/bpfman:latest",
+            "logLevel": "info",
+            "namespace": "bpfman"
+          }
         }
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2025-06-03T12:16:50Z"
+    createdAt: "2025-08-19T21:12:21Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1062,6 +1080,9 @@ spec:
       displayName: Cluster Bpf Application State
       kind: ClusterBpfApplicationState
       name: clusterbpfapplicationstates.bpfman.io
+      version: v1alpha1
+    - kind: Config
+      name: configs.bpfman.io
       version: v1alpha1
   description: "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
@@ -1467,7 +1488,18 @@ spec:
         - apiGroups:
           - bpfman.io
           resources:
-          - configmaps/finalizers
+          - configs
+          verbs:
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - configs/finalizers
           verbs:
           - update
         - apiGroups:
@@ -1476,8 +1508,11 @@ spec:
           - configmaps
           verbs:
           - create
+          - delete
           - get
           - list
+          - patch
+          - update
           - watch
         - apiGroups:
           - ""
@@ -1496,6 +1531,8 @@ spec:
           - delete
           - get
           - list
+          - patch
+          - update
           - watch
         - apiGroups:
           - storage.k8s.io
@@ -1506,6 +1543,8 @@ spec:
           - delete
           - get
           - list
+          - patch
+          - update
           - watch
         serviceAccountName: bpfman-operator
       deployments:

@@ -19,6 +19,13 @@ spec:
       annotations: {}
     spec:
       serviceAccountName: bpfman-daemon
+      serviceAccount: bpfman-daemon
+      automountServiceAccountToken: true
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
       tolerations:
         # Allow scheduling on control plane nodes
         - key: node-role.kubernetes.io/control-plane
@@ -62,7 +69,9 @@ spec:
               port: health
               scheme: HTTP
             initialDelaySeconds: 2
+            timeoutSeconds: 1
             periodSeconds: 10
+            successThreshold: 1
             failureThreshold: 3
           readinessProbe:
             httpGet:
@@ -70,10 +79,20 @@ spec:
               port: health
               scheme: HTTP
             initialDelaySeconds: 2
+            timeoutSeconds: 1
             periodSeconds: 5
+            successThreshold: 1
             failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
       volumes:
         - name: bpfman-metrics
           hostPath:
             path: /var/run/bpfman-agent
             type: DirectoryOrCreate
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  revisionHistoryLimit: 10
