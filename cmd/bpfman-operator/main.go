@@ -201,6 +201,7 @@ func main() {
 		CsiDriverDS:                  internal.BpfmanCsiDriverPath,
 		RestrictedSCC:                internal.BpfmanRestrictedSCCPath,
 		IsOpenshift:                  isOpenshift,
+		Recorder:                     mgr.GetEventRecorderFor("config-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create bpfmanConfig controller")
 		os.Exit(1)

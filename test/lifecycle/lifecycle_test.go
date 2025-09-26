@@ -126,9 +126,12 @@ func TestLifecycle(t *testing.T) {
 	}()
 
 	// Make sure that all resources are there at the start.
-	t.Logf("Running: TestEnsureResources")
+	t.Logf("Running: waitForResourceCreation and waitForAvailable")
 	if err := waitForResourceCreation(ctx); err != nil {
 		t.Fatalf("Failed to ensure resources: %q", err)
+	}
+	if err := waitForAvailable(ctx); err != nil {
+		t.Fatalf("Config never reported status available: %q", err)
 	}
 
 	// Test deleting resources.
@@ -769,4 +772,49 @@ func testConfigStuckDeletion(ctx context.Context, t *testing.T) error {
 
 	t.Logf("Config stuck deletion test completed successfully")
 	return nil
+}
+
+// waitForAvailable waits until the bpfman Config shows "Available" status conditions,
+// indicating that all components are ready and reconciliation is complete.
+func waitForAvailable(ctx context.Context) error {
+	return waitUntilCondition(ctx, func() (bool, error) {
+		bpfmanConfig := &v1alpha1.Config{}
+		if err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, bpfmanConfig); err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		progressingCondition := metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+		availableCondition := metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+		if !containsCondition(bpfmanConfig.Status.Conditions, progressingCondition) {
+			return false, nil
+		}
+		return containsCondition(bpfmanConfig.Status.Conditions, availableCondition), nil
+	})
+}
+
+// containsCondition checks if the given condition exists in the conditions slice
+// by comparing type, status, reason, and message fields.
+func containsCondition(conditions []metav1.Condition, condition metav1.Condition) bool {
+	for _, c := range conditions {
+		if c.Type == condition.Type &&
+			c.Status == condition.Status &&
+			c.Reason == condition.Reason &&
+			c.Message == condition.Message {
+			return true
+		}
+	}
+
+	return false
 }

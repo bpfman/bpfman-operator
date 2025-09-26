@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // +genclient
@@ -28,6 +29,8 @@ import (
 
 // Config holds the configuration for bpfman-operator.
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Progressing",type="string",JSONPath=".status.conditions[?(@.type=='Progressing')].status"
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.conditions[?(@.type=='Available')].status"
 type Config struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -85,6 +88,10 @@ type ConfigStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+
+	// componentStatuses stores the status of all components.
+	// +optional
+	ComponentStatuses *ConfigComponentStatuses `json:"componentStatuses,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -93,4 +100,39 @@ type ConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Config `json:"items"`
+}
+
+type ConfigComponentStatus string
+
+const (
+	ConfigStatusUnknown     ConfigComponentStatus = "Unknown"
+	ConfigStatusProgressing ConfigComponentStatus = "Progressing"
+	ConfigStatusReady       ConfigComponentStatus = "Ready"
+)
+
+type ConfigComponentStatuses struct {
+	// configMap stores the status of the ConfigMap.
+	// +optional
+	ConfigMap *ConfigComponentStatus `json:"configMap,omitempty"`
+	// daemonSet stores the status of the DaemonSet.
+	// +optional
+	DaemonSet *ConfigComponentStatus `json:"daemonSet,omitempty"`
+	// metricsProxyDaemonSet stores the status of the MetricsProxyDaemonSet.
+	// +optional
+	MetricsProxyDaemonSet *ConfigComponentStatus `json:"metricsProxyDaemonSet,omitempty"`
+	// csiDriver stores the status of the CsiDriver.
+	// +optional
+	CsiDriver *ConfigComponentStatus `json:"csiDriver,omitempty"`
+	// scc stores the status of the Scc.
+	// +optional
+	Scc *ConfigComponentStatus `json:"scc,omitempty"`
+}
+
+// Equals compares two ConfigComponentStatuses instances for equality.
+func (ccs ConfigComponentStatuses) Equals(c ConfigComponentStatuses) bool {
+	return ptr.Equal(ccs.ConfigMap, c.ConfigMap) &&
+		ptr.Equal(ccs.DaemonSet, c.DaemonSet) &&
+		ptr.Equal(ccs.MetricsProxyDaemonSet, c.MetricsProxyDaemonSet) &&
+		ptr.Equal(ccs.CsiDriver, c.CsiDriver) &&
+		ptr.Equal(ccs.Scc, c.Scc)
 }
