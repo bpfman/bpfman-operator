@@ -38,57 +38,59 @@ type Config struct {
 	Status ConfigStatus `json:"status,omitempty"`
 }
 
-// Spec defines the desired state of the bpfman-operator.
+// spec defines the desired state of the bpfman-operator.
 type ConfigSpec struct {
-	// Agent holds the configuration for the bpfman agent.
+	// agent specifies the configuration for the bpfman agent DaemonSet.
 	// +required
-	Agent AgentSpec `json:"agent,omitempty"`
-	// Configuration holds the content of bpfman.toml.
+	Agent AgentSpec `json:"agent"`
+	// configuration specifies the content of bpfman.toml configuration file used by the bpfman DaemonSet.
 	// +required
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Configuration string `json:"configuration"`
-	// Image holds the image of the bpfman DaemonSets.
+	// image specifies the container image for the bpfman DaemonSet.
 	// +required
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	Image string `json:"image"`
-	// LogLevel holds the log level for the bpfman-operator.
+	// logLevel specifies the log level for the bpfman DaemonSet via the RUST_LOG environment variable.
+	// The RUST_LOG environment variable controls logging with the syntax: RUST_LOG=[target][=][level][,...].
+	// For further information, see https://docs.rs/env_logger/latest/env_logger/.
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
-	// Namespace holds the namespace where bpfman-operator resources shall be
-	// deployed.
+	// namespace specifies the namespace where bpfman-operator resources will be deployed.
+	// If not specified, resources will be deployed in the default bpfman namespace.
+	// +optional
 	Namespace string `json:"namespace,omitempty"`
 }
 
 // AgentSpec defines the desired state of the bpfman agent.
 type AgentSpec struct {
-	// HealthProbePort holds the health probe bind port for the bpfman agent.
+	// healthProbePort specifies the port on which the bpfman agent's health probe endpoint will listen.
+	// If unspecified, the default port will be used.
 	// +optional
-	// +kubebuilder:default=8175
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65535
-	HealthProbePort int `json:"healthProbePort"`
-	// Image holds the image for the bpfman agent.
+	HealthProbePort int32 `json:"healthProbePort,omitempty"`
+	// image specifies the container image for the bpfman agent DaemonSet.
 	// +required
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
 	Image string `json:"image"`
-	// LogLevel holds the log level for the bpfman agent.
+	// logLevel specifies the verbosity of logs produced by the bpfman agent.
+	// Valid values are: "", "info", "debug", "trace".
 	// +optional
+	// +kubebuilder:validation:Enum="";info;debug;trace
 	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // status reflects the status of the bpfman-operator configuration.
 type ConfigStatus struct {
-	// conditions store the status conditions of the bpfman-operator components.
+	// conditions represents the current state conditions of the bpfman-operator and its components.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 
-	// components stores the status of all components.
+	// components represents the operational status of each individual bpfman-operator component such as the deployed
+	// DaemonSets.
 	// +optional
 	Components map[string]ConfigComponentStatus `json:"components,omitempty"`
 }
@@ -101,10 +103,14 @@ type ConfigList struct {
 	Items           []Config `json:"items"`
 }
 
+// ConfigComponentStatus holds the status of a single Config component.
 type ConfigComponentStatus string
 
 const (
-	ConfigStatusUnknown     ConfigComponentStatus = "Unknown"
+	// ConfigStatusUnknown indicates the component state cannot be determined.
+	ConfigStatusUnknown ConfigComponentStatus = "Unknown"
+	// ConfigStatusProgressing indicates the component is being updated or reconciled.
 	ConfigStatusProgressing ConfigComponentStatus = "Progressing"
-	ConfigStatusReady       ConfigComponentStatus = "Ready"
+	// ConfigStatusReady indicates the component is fully operational and ready.
+	ConfigStatusReady ConfigComponentStatus = "Ready"
 )
