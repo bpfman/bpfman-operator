@@ -613,9 +613,12 @@ func (r *BpfmanConfigReconciler) handleDeletion(ctx context.Context, config *v1a
 	return ctrl.Result{}, nil
 }
 
-func healthProbeAddress(healthProbePort int) string {
-	if healthProbePort <= 0 || healthProbePort > 65535 {
+func healthProbeAddress(healthProbePort int32) string {
+	if healthProbePort < 0 || healthProbePort > 65535 {
 		return ""
+	}
+	if healthProbePort == 0 {
+		healthProbePort = internal.DefaultHealthProbePort
 	}
 	return fmt.Sprintf(":%d", healthProbePort)
 }
