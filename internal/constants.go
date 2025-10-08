@@ -48,6 +48,7 @@ const (
 	BpfmanLogLevel                = "bpfman.log.level"
 	BpfmanAgentLogLevel           = "bpfman.agent.log.level"
 	BpfmanAgentHealthProbeAddress = "bpfman.agent.healthprobeaddr"
+	DefaultHealthProbePort        = 8175
 	APIPrefix                     = "bpfman.io"
 )
 
