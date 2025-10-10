@@ -162,7 +162,7 @@ func main() {
 		}
 	}
 
-	commonApp := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList]{
+	commonApp := bpfmanoperator.ReconcilerCommon{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}
@@ -171,7 +171,7 @@ func main() {
 		ReconcilerCommon: commonApp,
 	}
 
-	commonNsApp := bpfmanoperator.ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]{
+	commonNsApp := bpfmanoperator.ReconcilerCommon{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}

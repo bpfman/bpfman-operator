@@ -478,7 +478,7 @@ func (r *NsBpfApplicationReconciler) getBpfAppState(ctx context.Context) (*bpfma
 
 	opts := []client.ListOption{
 		client.MatchingLabels{
-			internal.BpfAppStateOwner: r.currentApp.GetName(),
+			internal.BpfAppStateOwner: r.currentApp.Name,
 			internal.K8sHostLabel:     r.NodeName,
 		},
 	}
@@ -510,7 +510,7 @@ func (r *NsBpfApplicationReconciler) initBpfAppState() error {
 			Namespace:  r.currentApp.Namespace,
 			Finalizers: []string{r.finalizer},
 			Labels: map[string]string{
-				internal.BpfAppStateOwner: r.currentApp.GetName(),
+				internal.BpfAppStateOwner: r.currentApp.Name,
 				internal.K8sHostLabel:     r.NodeName,
 			},
 		},

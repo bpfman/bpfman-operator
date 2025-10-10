@@ -18,8 +18,6 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1types "k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // +union
@@ -210,32 +208,4 @@ type ClusterBpfApplicationStateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterBpfApplicationState `json:"items"`
-}
-
-func (an ClusterBpfApplicationState) GetName() string {
-	return an.Name
-}
-
-func (an ClusterBpfApplicationState) GetUID() metav1types.UID {
-	return an.UID
-}
-
-func (an ClusterBpfApplicationState) GetAnnotations() map[string]string {
-	return an.Annotations
-}
-
-func (an ClusterBpfApplicationState) GetLabels() map[string]string {
-	return an.Labels
-}
-
-func (an ClusterBpfApplicationState) GetConditions() []metav1.Condition {
-	return an.Status.Conditions
-}
-
-func (an ClusterBpfApplicationState) GetClientObject() client.Object {
-	return &an
-}
-
-func (anl ClusterBpfApplicationStateList) GetItems() []ClusterBpfApplicationState {
-	return anl.Items
 }

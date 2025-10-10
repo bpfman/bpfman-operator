@@ -55,23 +55,23 @@ type BpfProgListOper[T any] interface {
 	GetItems() []T
 }
 
-type ReconcilerCommon[T BpfProgOper, TL BpfProgListOper[T]] struct {
+type ReconcilerCommon struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Logger logr.Logger
 }
 
 // ApplicationReconciler defines a k8s reconciler which can program bpfman.
-type ApplicationReconciler[T BpfProgOper, TL BpfProgListOper[T]] interface {
+type ApplicationReconciler interface {
 	// BPF Cluster of Namespaced Reconciler
 	getAppStateList(ctx context.Context,
 		appName string,
 		appNamespace string,
-	) (*TL, error)
-	containsFinalizer(bpfApplication *T, finalizer string) bool
+	) (client.ObjectList, error)
+	containsFinalizer(bpfApplication client.Object, finalizer string) bool
 
 	// *Program Reconciler
-	getRecCommon() *ReconcilerCommon[T, TL]
+	getRecCommon() *ReconcilerCommon
 	updateStatus(ctx context.Context,
 		namespace string,
 		name string,
@@ -80,9 +80,23 @@ type ApplicationReconciler[T BpfProgOper, TL BpfProgListOper[T]] interface {
 	getFinalizer() string
 }
 
-func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
+// ValidReconciler encompasses BpfApplicationReconciler and BpfNSApplicationReconciler.
+type ValidReconciler interface {
+	ValidReconcilerMethods
+	*BpfApplicationReconciler | *BpfNsApplicationReconciler
+}
+
+type ValidReconcilerMethods interface {
+	getRecCommon() *ReconcilerCommon
+	getAppStateList(ctx context.Context, appName string, appNamespace string) (client.ObjectList, error)
+	updateStatus(ctx context.Context, namespace string, name string, cond bpfmaniov1alpha1.BpfApplicationConditionType, message string) (ctrl.Result, error)
+	containsFinalizer(bpfApplication client.Object, finalizer string) bool
+	getFinalizer() string
+}
+
+func reconcileBpfApplication[T ValidReconciler](
 	ctx context.Context,
-	rec ApplicationReconciler[T, TL],
+	rec T,
 	app client.Object,
 ) (ctrl.Result, error) {
 	r := rec.getRecCommon()
@@ -103,6 +117,12 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
 	}
+	var bpfAppStateList []client.Object
+	_ = meta.EachListItem(bpfAppStateObjs, func(obj runtime.Object) error {
+		appState := obj.(client.Object)
+		bpfAppStateList = append(bpfAppStateList, appState)
+		return nil
+	})
 
 	// List all nodes since a BpfApplicationState object will always be created for each
 	nodes := &corev1.NodeList{}
@@ -116,7 +136,7 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 	if app.GetDeletionTimestamp().IsZero() {
 		for _, node := range nodes.Items {
 			nodeFound := false
-			for _, appState := range (*bpfAppStateObjs).GetItems() {
+			for _, appState := range bpfAppStateList {
 				bpfProgramState := appState.GetLabels()[internal.K8sHostLabel]
 				if node.Name == bpfProgramState {
 					nodeFound = true
@@ -133,13 +153,15 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 	failedBpfApplications := []string{}
 	finalApplied := []string{}
 	// Make sure no BpfApplications had any issues in the loading or unloading process
-	for _, bpfAppState := range (*bpfAppStateObjs).GetItems() {
-
-		if rec.containsFinalizer(&bpfAppState, rec.getFinalizer()) {
+	for _, bpfAppState := range bpfAppStateList {
+		if rec.containsFinalizer(bpfAppState, rec.getFinalizer()) {
 			finalApplied = append(finalApplied, bpfAppState.GetName())
 		}
 
-		conditions := bpfAppState.GetConditions()
+		conditions, err := getBpfApplicationConditions(bpfAppState)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		if bpfmanHelpers.IsBpfAppStateConditionFailure(conditions) {
 			failedBpfApplications = append(failedBpfApplications, bpfAppState.GetName())
 		} else if bpfmanHelpers.IsBpfAppStateConditionPending(conditions) {
@@ -169,7 +191,18 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 	return rec.updateStatus(ctx, appNamespace, appName, bpfmaniov1alpha1.BpfAppCondSuccess, "")
 }
 
-func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, bpfApp client.Object, finalizer string) (ctrl.Result, error) {
+func getBpfApplicationConditions(bpfAppState client.Object) ([]metav1.Condition, error) {
+	switch v := bpfAppState.(type) {
+	case *bpfmaniov1alpha1.ClusterBpfApplicationState:
+		return v.Status.Conditions, nil
+	case *bpfmaniov1alpha1.BpfApplicationState:
+		return v.Status.Conditions, nil
+	}
+	return nil, fmt.Errorf("this error should never be triggered as only " +
+		"*BpfApplicationReconciler | *BpfNsApplicationReconciler are valid types for rec")
+}
+
+func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, bpfApp client.Object, finalizer string) (ctrl.Result, error) {
 	r.Logger.Info("Calling KubeAPI to delete Program Finalizer", "Type", bpfApp.GetObjectKind().GroupVersionKind().Kind, "Name", bpfApp.GetName())
 
 	if changed := controllerutil.RemoveFinalizer(bpfApp, finalizer); changed {
@@ -183,7 +216,7 @@ func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, bpfApp cl
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, app client.Object, finalizer string) (ctrl.Result, error) {
+func (r *ReconcilerCommon) addFinalizer(ctx context.Context, app client.Object, finalizer string) (ctrl.Result, error) {
 	controllerutil.AddFinalizer(app, finalizer)
 
 	r.Logger.Info("Calling KubeAPI to add Program Finalizer", "Type", app.GetObjectKind().GroupVersionKind().Kind, "Name", app.GetName())
@@ -196,7 +229,7 @@ func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, app client.O
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcilerCommon[T, TL]) updateCondition(
+func (r *ReconcilerCommon) updateCondition(
 	ctx context.Context,
 	obj client.Object,
 	conditions *[]metav1.Condition,
