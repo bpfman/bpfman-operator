@@ -18,8 +18,6 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metav1types "k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // +union
@@ -159,32 +157,4 @@ type BpfApplicationStateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BpfApplicationState `json:"items"`
-}
-
-func (an BpfApplicationState) GetName() string {
-	return an.Name
-}
-
-func (an BpfApplicationState) GetUID() metav1types.UID {
-	return an.UID
-}
-
-func (an BpfApplicationState) GetAnnotations() map[string]string {
-	return an.Annotations
-}
-
-func (an BpfApplicationState) GetLabels() map[string]string {
-	return an.Labels
-}
-
-func (an BpfApplicationState) GetConditions() []metav1.Condition {
-	return an.Status.Conditions
-}
-
-func (an BpfApplicationState) GetClientObject() client.Object {
-	return &an
-}
-
-func (anl BpfApplicationStateList) GetItems() []BpfApplicationState {
-	return anl.Items
 }

@@ -178,7 +178,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(app).WithRuntimeObjects(objs...).Build()
 
-	rc := ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList]{
+	rc := ReconcilerCommon{
 		Client: cl,
 		Scheme: s,
 	}

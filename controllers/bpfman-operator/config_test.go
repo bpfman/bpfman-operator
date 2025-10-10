@@ -250,7 +250,7 @@ func setupTestEnvironment(isOpenShift bool, recorder record.EventRecorder) (*Bpf
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	rc := ReconcilerCommon[v1alpha1.ClusterBpfApplicationState, v1alpha1.ClusterBpfApplicationStateList]{
+	rc := ReconcilerCommon{
 		Client: cl,
 		Scheme: s,
 	}
