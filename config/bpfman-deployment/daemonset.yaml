@@ -90,10 +90,6 @@ spec:
             # This mount is needed to attach tracepoint programs
             - name: host-debug
               mountPath: /sys/kernel/debug
-            # Needed to ensure images are persisted to disk across restarts
-            - name: bpfman-content-store
-              mountPath: /var/lib/bpfman
-              mountPropagation: Bidirectional
             # Needed for the aya PIN_BY_NAME feature to function correctly
             - name: default-bpf-fs
               mountPath: /sys/fs/bpf
@@ -213,10 +209,6 @@ spec:
         - name: host-debug
           hostPath:
             path: /sys/kernel/debug
-            type: ""
-        - name: bpfman-content-store
-          hostPath:
-            path: /var/lib/bpfman
             type: ""
         - name: default-bpf-fs
           hostPath:
