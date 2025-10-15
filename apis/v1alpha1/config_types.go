@@ -57,6 +57,17 @@ type ConfigSpec struct {
 	// Namespace holds the namespace where bpfman-operator resources shall be
 	// deployed.
 	Namespace string `json:"namespace,omitempty"`
+
+	// overrides is list of overides for components that are managed by
+	// the operator. Marking a component unmanaged will prevent
+	// the operator from creating or updating the object.
+	// +listType=map
+	// +listMapKey=kind
+	// +listMapKey=group
+	// +listMapKey=namespace
+	// +listMapKey=name
+	// +optional
+	Overrides []ComponentOverride `json:"overrides,omitempty"`
 }
 
 // AgentSpec defines the desired state of the bpfman agent.
@@ -93,4 +104,29 @@ type ConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Config `json:"items"`
+}
+
+// ComponentOverride allows overriding the operator's behavior for a component.
+// +k8s:deepcopy-gen=true
+type ComponentOverride struct {
+	// kind indentifies which object to override.
+	// +required
+	Kind string `json:"kind"`
+	// group identifies the API group that the kind is in.
+	// +required
+	Group string `json:"group"`
+
+	// namespace is the component's namespace. If the resource is cluster
+	// scoped, the namespace should be empty.
+	// +required
+	Namespace string `json:"namespace"`
+	// name is the component's name.
+	// +required
+	Name string `json:"name"`
+
+	// unmanaged controls if cluster version operator should stop managing the
+	// resources in this cluster.
+	// Default: false
+	// +required
+	Unmanaged bool `json:"unmanaged"`
 }

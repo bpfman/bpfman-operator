@@ -48,6 +48,14 @@ const (
 	logLevel = "FAKE"
 )
 
+type clusterObjects struct {
+	cm        *corev1.ConfigMap
+	csiDriver *storagev1.CSIDriver
+	ds        *appsv1.DaemonSet
+	metricsDs *appsv1.DaemonSet
+	scc       *osv1.SecurityContextConstraints
+}
+
 // TestReconcile tests the BpfmanConfigReconciler's ability to create, update, and restore
 // Kubernetes resources (ConfigMap, CSIDriver, DaemonSets, and OpenShift SCC).
 // It verifies proper owner reference setup for cascading deletion - the Kubernetes API
@@ -142,7 +150,7 @@ func TestReconcile(t *testing.T) {
 			}
 
 			t.Log("Making invalid changes to objects")
-			if err := modifyObjects(ctx, cl, tc.isOpenShift); err != nil {
+			if _, err := modifyObjects(ctx, cl, tc.isOpenShift); err != nil {
 				t.Fatalf("failed to modify objects for restoration test: %v", err)
 			}
 
@@ -156,6 +164,29 @@ func TestReconcile(t *testing.T) {
 			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift)
 			if err != nil {
 				t.Fatalf("objects not properly restored after modification: %v", err)
+			}
+
+			t.Log("Setting overrides")
+			if err := setOverrides(ctx, cl); err != nil {
+				t.Fatalf("failed to modify objects for restoration test: %v", err)
+			}
+
+			t.Log("Making invalid changes to objects")
+			cos, err := modifyObjects(ctx, cl, tc.isOpenShift)
+			if err != nil {
+				t.Fatalf("failed to modify objects for restoration test: %v", err)
+			}
+
+			t.Log("Running reconcile - should not change anything (overrides in place)")
+			_, err = r.Reconcile(ctx, req)
+			if err != nil {
+				t.Fatalf("reconcile failed after modifying objects: %v", err)
+			}
+
+			t.Log("Making sure that all objects are unchanged")
+			err = testObjectsUnchanged(ctx, cl, tc.isOpenShift, cos)
+			if err != nil {
+				t.Fatalf("objects not as expected (should be unchanged) after reconcile: %v", err)
 			}
 		})
 	}
@@ -467,29 +498,30 @@ func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *
 }
 
 // modifyObjects intentionally corrupts various Kubernetes objects with invalid data
-// to test that the reconciler properly restores them to the expected state.
+// to test that the reconciler properly restores them to the expected state (or not in the case of overrides).
 // Modifies ConfigMap data, DaemonSet security context, container images, and OpenShift SCC settings.
-func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) error {
+// Returns the modified objects.
+func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) (clusterObjects, error) {
+	var co clusterObjects
+
 	// ConfigMap.
 	bpfmanCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      internal.BpfmanCmName,
 			Namespace: internal.BpfmanNamespace,
 		},
-		Data: map[string]string{
-			"this was": "all deleted",
-		},
 	}
 	if err := cl.Get(ctx, types.NamespacedName{Name: bpfmanCM.Name, Namespace: bpfmanCM.Namespace},
 		bpfmanCM); err != nil {
-		return err
+		return co, err
 	}
 	bpfmanCM.Data = map[string]string{
 		"this was": "all deleted",
 	}
 	if err := cl.Update(ctx, bpfmanCM); err != nil {
-		return err
+		return co, err
 	}
+	co.cm = bpfmanCM
 
 	// CSI Driver.
 	csiDriver := &storagev1.CSIDriver{
@@ -498,7 +530,7 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) erro
 		},
 	}
 	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName}, csiDriver); err != nil {
-		return err
+		return co, err
 	}
 	if csiDriver.Spec.AttachRequired == nil || !*csiDriver.Spec.AttachRequired {
 		csiDriver.Spec.AttachRequired = ptr.To(true)
@@ -506,8 +538,9 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) erro
 		csiDriver.Spec.AttachRequired = ptr.To(false)
 	}
 	if err := cl.Update(ctx, csiDriver); err != nil {
-		return err
+		return co, err
 	}
+	co.csiDriver = csiDriver
 
 	// Bpfman DaemonSet.
 	bpfmanDs := &appsv1.DaemonSet{
@@ -518,13 +551,14 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) erro
 	}
 	if err := cl.Get(ctx, types.NamespacedName{Name: bpfmanDs.Name, Namespace: bpfmanDs.Namespace},
 		bpfmanDs); err != nil {
-		return err
+		return co, err
 	}
 	// Set invalid supplemental group ID to test reconciler restoration
 	bpfmanDs.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{12345}
 	if err := cl.Update(ctx, bpfmanDs); err != nil {
-		return err
+		return co, err
 	}
+	co.ds = bpfmanDs
 
 	// Modify the metrics proxy daemonset for restoration testing.
 	metricsDs := &appsv1.DaemonSet{
@@ -535,16 +569,17 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) erro
 	}
 	if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
 		metricsDs); err != nil {
-		return err
+		return co, err
 	}
 	if len(metricsDs.Spec.Template.Spec.Containers) == 0 {
-		return fmt.Errorf("metrics DaemonSet has no containers configured")
+		return co, fmt.Errorf("metrics DaemonSet has no containers configured")
 	}
 	// Set invalid container image to test reconciler restoration
 	metricsDs.Spec.Template.Spec.Containers[0].Image = "invalid image"
 	if err := cl.Update(ctx, metricsDs); err != nil {
-		return err
+		return co, err
 	}
+	co.metricsDs = metricsDs
 
 	if isOpenShift {
 		// Check the SCC was created with the correct configuration.
@@ -555,14 +590,15 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) erro
 		}
 		if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll},
 			restrictedSCC); err != nil {
-			return err
+			return co, err
 		}
 		restrictedSCC.AllowHostPorts = false
 		if err := cl.Update(ctx, restrictedSCC); err != nil {
-			return err
+			return co, err
 		}
+		co.scc = restrictedSCC
 	}
-	return nil
+	return co, nil
 }
 
 func verifyCM(cm *corev1.ConfigMap, requiredFields map[string]*string) error {
@@ -576,5 +612,138 @@ func verifyCM(cm *corev1.ConfigMap, requiredFields map[string]*string) error {
 			}
 		}
 	}
+	return nil
+}
+
+func setOverrides(ctx context.Context, cl client.Client) error {
+	bpfmanConfig := &v1alpha1.Config{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, bpfmanConfig); err != nil {
+		return err
+	}
+
+	bpfmanConfig.Spec.Overrides = []v1alpha1.ComponentOverride{
+		{
+			Kind:      "ConfigMap",
+			Group:     "",
+			Namespace: "bpfman",
+			Name:      "bpfman-config",
+			Unmanaged: true,
+		},
+		{
+			Kind:      "DaemonSet",
+			Group:     "apps",
+			Namespace: "bpfman",
+			Name:      "bpfman-daemon",
+			Unmanaged: true,
+		},
+		{
+			Kind:      "DaemonSet",
+			Group:     "apps",
+			Namespace: "bpfman",
+			Name:      "bpfman-metrics-proxy",
+			Unmanaged: true,
+		},
+		{
+			Kind:      "CSIDriver",
+			Group:     "storage.k8s.io",
+			Namespace: "",
+			Name:      "csi.bpfman.io",
+			Unmanaged: true,
+		},
+		{
+			Kind:      "SecurityContextConstraints",
+			Group:     "security.openshift.io",
+			Namespace: "",
+			Name:      "bpfman-restricted",
+			Unmanaged: true,
+		},
+	}
+
+	if err := cl.Update(ctx, bpfmanConfig); err != nil {
+		return err
+	}
+	return nil
+}
+
+// testObjectsUnchanged verifies that objects marked as unmanaged in overrides
+// remain unchanged after reconciliation by comparing their current state
+// against their previously captured state.
+func testObjectsUnchanged(ctx context.Context, cl client.Client, isOpenShift bool, cos clusterObjects) error {
+	bpfmanCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanCmName,
+			Namespace: internal.BpfmanNamespace,
+		},
+		Data: map[string]string{
+			"this was": "all deleted",
+		},
+	}
+	if err := cl.Get(ctx, types.NamespacedName{Name: bpfmanCM.Name, Namespace: bpfmanCM.Namespace},
+		bpfmanCM); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(bpfmanCM, cos.cm) {
+		return fmt.Errorf("deep equal failed for CM, got: %+v, expected: %+v", bpfmanCM, cos.cm)
+	}
+
+	// CSI Driver.
+	csiDriver := &storagev1.CSIDriver{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: internal.BpfmanCsiDriverName,
+		},
+	}
+	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName}, csiDriver); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(csiDriver, cos.csiDriver) {
+		return fmt.Errorf("deep equal failed for CSI Driver, got: %+v, expected: %+v", csiDriver, cos.csiDriver)
+	}
+
+	// Bpfman DaemonSet.
+	bpfmanDs := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanDsName,
+			Namespace: internal.BpfmanNamespace,
+		},
+	}
+	if err := cl.Get(ctx, types.NamespacedName{Name: bpfmanDs.Name, Namespace: bpfmanDs.Namespace},
+		bpfmanDs); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(bpfmanDs, cos.ds) {
+		return fmt.Errorf("deep equal failed for Bpfman DS, got: %+v, expected: %+v", bpfmanDs, cos.ds)
+	}
+
+	// Metrics proxy DaemonSet.
+	metricsDs := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanMetricsProxyDsName,
+			Namespace: internal.BpfmanNamespace,
+		},
+	}
+	if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
+		metricsDs); err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(metricsDs, cos.metricsDs) {
+		return fmt.Errorf("deep equal failed for Metrics DS, got: %+v, expected: %+v", metricsDs, cos.metricsDs)
+	}
+
+	if isOpenShift {
+		// SCC.
+		restrictedSCC := &osv1.SecurityContextConstraints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanRestrictedSccName,
+			},
+		}
+		if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanRestrictedSccName, Namespace: corev1.NamespaceAll},
+			restrictedSCC); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(restrictedSCC, cos.scc) {
+			return fmt.Errorf("deep equal failed for SCC, got: %+v, expected: %+v", restrictedSCC, cos.scc)
+		}
+	}
+
 	return nil
 }
