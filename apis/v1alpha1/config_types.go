@@ -99,6 +99,7 @@ type ConfigStatus struct {
 	// +patchStrategy=merge
 	// +listType=map
 	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=1023
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 
 	// components represents the operational status of each individual bpfman-operator component such as the deployed
