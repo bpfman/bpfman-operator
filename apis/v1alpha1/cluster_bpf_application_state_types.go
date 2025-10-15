@@ -71,7 +71,7 @@ type ClBpfApplicationProgramState struct {
 	// +unionDiscriminator
 	// +required
 	// +kubebuilder:validation:Enum:="FEntry";"FExit";"KProbe";"KRetProbe";"TC";"TCX";"TracePoint";"UProbe";"URetProbe";"XDP"
-	Type EBPFProgType `json:"type"`
+	Type EBPFProgType `json:"type,omitempty"`
 
 	// xdp contains the attachment data for an XDP program when type is set to XDP.
 	// +unionMember
@@ -132,15 +132,32 @@ type ClBpfApplicationProgramState struct {
 }
 
 type ClBpfApplicationStateStatus struct {
-	// UpdateCount tracks the number of times the BpfApplicationState object has
+	// conditions contains the summary state of the ClusterBpfApplication for the
+	// given Kubernetes node. If one or more programs failed to load or attach to
+	// the designated attachment point, the condition will report the error. If
+	// more than one error has occurred, condition will contain the first error
+	// encountered.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	// +optional
+	// +kubebuilder:validation:MaxItems=1023
+	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	// updateCount tracks the number of times the BpfApplicationState object has
 	// been updated. The bpfman agent initializes it to 1 when it creates the
 	// object, and then increments it before each subsequent update. It serves
 	// as a lightweight sequence number to verify that the API server is serving
 	// the most recent version of the object before beginning a new Reconcile
 	// operation.
-	UpdateCount int64 `json:"updateCount"`
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	UpdateCount int64 `json:"updateCount,omitempty"`
 	// node is the name of the Kubernetes node for this ClusterBpfApplicationState.
-	Node string `json:"node"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +optional
+	Node string `json:"node,omitempty"`
 	// appLoadStatus reflects the status of loading the eBPF application on the
 	// given node.
 	//
@@ -160,22 +177,16 @@ type ClBpfApplicationStateStatus struct {
 	//
 	// UnloadError is returned if one or more programs encountered an error when
 	// being unloaded.
-	AppLoadStatus AppLoadStatus `json:"appLoadStatus"`
+	// +optional
+	AppLoadStatus AppLoadStatus `json:"appLoadStatus,omitempty"`
 	// programs is a list of eBPF programs contained in the parent
 	// ClusterBpfApplication instance. Each entry in the list contains the derived
 	// program attributes as well as the attach status for each program on the
 	// given Kubernetes node.
+	// +kubebuilder:validation:MaxItems=1023
+	// +listType=atomic
+	// +optional
 	Programs []ClBpfApplicationProgramState `json:"programs,omitempty"`
-	// conditions contains the summary state of the ClusterBpfApplication for the
-	// given Kubernetes node. If one or more programs failed to load or attach to
-	// the designated attachment point, the condition will report the error. If
-	// more than one error has occurred, condition will contain the first error
-	// encountered.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=type
-	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 }
 
 // +genclient
@@ -192,13 +203,16 @@ type ClBpfApplicationStateStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 type ClusterBpfApplicationState struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the object's metadata.
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// status reflects the status of a ClusterBpfApplication instance for the given
 	// node. appLoadStatus and conditions provide an overall status for the given
 	// node, while each item in the programs list provides a per eBPF program
 	// status for the given node.
+	// +optional
 	Status ClBpfApplicationStateStatus `json:"status,omitempty"`
 }
 
