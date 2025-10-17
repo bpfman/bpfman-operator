@@ -149,9 +149,15 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name:      internal.BpfmanCmName,
-		Namespace: bpfmanConfig.Spec.Namespace},
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanCmName,
+			Namespace: bpfmanConfig.Spec.Namespace,
+		},
 		Data: map[string]string{
 			internal.BpfmanTOML:          bpfmanConfig.Spec.Configuration,
 			internal.BpfmanAgentLogLevel: bpfmanConfig.Spec.Agent.LogLevel,
@@ -164,7 +170,13 @@ func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *
 }
 
 func (r *BpfmanConfigReconciler) reconcileCSIDriver(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
-	csiDriver := &storagev1.CSIDriver{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanCsiDriverName}}
+	csiDriver := &storagev1.CSIDriver{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "CSIDriver",
+			APIVersion: "storage.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanCsiDriverName},
+	}
 	r.Logger.Info("Loading object", "object", csiDriver.Name, "path", r.CsiDriverDS)
 	csiDriver, err := load(csiDriver, r.CsiDriverDS, csiDriver.Name)
 	if err != nil {
@@ -178,6 +190,10 @@ func (r *BpfmanConfigReconciler) reconcileCSIDriver(ctx context.Context, bpfmanC
 func (r *BpfmanConfigReconciler) reconcileSCC(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
 	if r.IsOpenshift {
 		bpfmanRestrictedSCC := &osv1.SecurityContextConstraints{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "SecurityContextConstraints",
+				APIVersion: "security.openshift.io/v1",
+			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: internal.BpfmanRestrictedSccName,
 			},
@@ -190,8 +206,8 @@ func (r *BpfmanConfigReconciler) reconcileSCC(ctx context.Context, bpfmanConfig 
 		return assureResource(ctx, r, bpfmanConfig, bpfmanRestrictedSCC, func(existing, desired *osv1.SecurityContextConstraints) bool {
 			existingCopy := existing.DeepCopy()
 			desiredCopy := desired.DeepCopy()
-			existingCopy.ObjectMeta = metav1.ObjectMeta{}
-			desiredCopy.ObjectMeta = metav1.ObjectMeta{}
+			existingCopy.TypeMeta = desired.TypeMeta
+			existingCopy.ObjectMeta = desired.ObjectMeta
 			return !equality.Semantic.DeepEqual(existingCopy, desiredCopy)
 		})
 	}
@@ -199,7 +215,13 @@ func (r *BpfmanConfigReconciler) reconcileSCC(ctx context.Context, bpfmanConfig 
 }
 
 func (r *BpfmanConfigReconciler) reconcileStandardDS(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
-	bpfmanDS := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+	bpfmanDS := &appsv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DaemonSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName},
+	}
 	r.Logger.Info("Loading object", "object", bpfmanDS.Name, "path", r.BpfmanStandardDS)
 	bpfmanDS, err := load(bpfmanDS, r.BpfmanStandardDS, bpfmanDS.Name)
 	if err != nil {
@@ -213,7 +235,13 @@ func (r *BpfmanConfigReconciler) reconcileStandardDS(ctx context.Context, bpfman
 
 func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
 	// Reconcile metrics-proxy daemonset
-	metricsProxyDS := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanMetricsProxyDsName}}
+	metricsProxyDS := &appsv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DaemonSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanMetricsProxyDsName},
+	}
 	r.Logger.Info("Loading object", "object", metricsProxyDS.Name, "path", r.BpfmanMetricsProxyDS)
 	metricsProxyDS, err := load(metricsProxyDS, r.BpfmanMetricsProxyDS, metricsProxyDS.Name)
 	if err != nil {
@@ -370,39 +398,32 @@ func load[T client.Object](t T, path, name string) (T, error) {
 }
 
 // assureResource ensures a Kubernetes resource exists and is up to date.
-// Creates the resource if it doesn't exist, otherwise updates it to match the desired state.
+// SSA patch creates the resource if it doesn't exist, otherwise updates it to match the desired state.
 func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconciler,
 	bpfmanConfig *v1alpha1.Config, resource T, needsUpdate func(existing T, desired T) bool) error {
 	if err := ctrl.SetControllerReference(bpfmanConfig, resource, r.Scheme); err != nil {
 		return err
 	}
 
-	objectKey := types.NamespacedName{Namespace: resource.GetNamespace(), Name: resource.GetName()}
 	r.Logger.Info("Getting object",
 		"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+	objectKey := types.NamespacedName{Namespace: resource.GetNamespace(), Name: resource.GetName()}
 	existingResource := resource.DeepCopyObject().(T)
+	found := true
 	if err := r.Get(ctx, objectKey, existingResource); err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("Creating object",
+		if !errors.IsNotFound(err) {
+			r.Logger.Error(err, "Failed to get object",
 				"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-			if err := r.Create(ctx, resource); err != nil {
-				r.Logger.Error(err, "Failed to create object",
-					"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-				return err
-			}
-			return nil
+			return err
 		}
-		r.Logger.Error(err, "Failed to get object",
-			"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-		return err
+		found = false
 	}
 
-	if needsUpdate(existingResource, resource) {
-		r.Logger.Info("Updating object",
+	if !found || needsUpdate(existingResource, resource) {
+		r.Logger.Info("Patching object",
 			"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
-		resource.SetResourceVersion(existingResource.GetResourceVersion())
-		if err := r.Update(ctx, resource); err != nil {
-			r.Logger.Error(err, "Failed updating object",
+		if err := r.Patch(ctx, resource, client.Apply, client.ForceOwnership, client.FieldOwner(bpfmanConfig.Name)); err != nil {
+			r.Logger.Error(err, "Failed patching object",
 				"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
 			return err
 		}
