@@ -59,7 +59,7 @@ max_retries = 30
 millisec_delay = 10000
 [signing]
 allow_unsigned = true
-verify_enabled = false`,
+verify_enabled = true`,
 			Agent: v1alpha1.AgentSpec{
 				Image:           "CHANGEME",
 				LogLevel:        "info",
