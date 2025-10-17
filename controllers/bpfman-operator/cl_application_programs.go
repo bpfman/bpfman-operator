@@ -44,7 +44,7 @@ type BpfApplicationReconciler struct {
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
-func (r *BpfApplicationReconciler) getRecCommon() *ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList] {
+func (r *BpfApplicationReconciler) getRecCommon() *ReconcilerCommon {
 	return &r.ClusterApplicationReconciler.ReconcilerCommon
 }
 

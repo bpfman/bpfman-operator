@@ -535,7 +535,7 @@ func (r *ClBpfApplicationReconciler) getBpfAppState(ctx context.Context) (*bpfma
 
 	opts := []client.ListOption{
 		client.MatchingLabels{
-			internal.BpfAppStateOwner: r.currentApp.GetName(),
+			internal.BpfAppStateOwner: r.currentApp.Name,
 			internal.K8sHostLabel:     r.NodeName,
 		},
 	}
@@ -566,7 +566,7 @@ func (r *ClBpfApplicationReconciler) initBpfAppState() error {
 			Name:       generateUniqueName(r.currentApp.Name),
 			Finalizers: []string{r.finalizer},
 			Labels: map[string]string{
-				internal.BpfAppStateOwner: r.currentApp.GetName(),
+				internal.BpfAppStateOwner: r.currentApp.Name,
 				internal.K8sHostLabel:     r.NodeName,
 			},
 		},

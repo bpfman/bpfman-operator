@@ -30,7 +30,7 @@ import (
 )
 
 type ClusterApplicationReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.ClusterBpfApplicationState, bpfmaniov1alpha1.ClusterBpfApplicationStateList]
+	ReconcilerCommon
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
@@ -38,7 +38,7 @@ func (r *ClusterApplicationReconciler) getAppStateList(
 	ctx context.Context,
 	appName string,
 	_appNamespace string,
-) (*bpfmaniov1alpha1.ClusterBpfApplicationStateList, error) {
+) (client.ObjectList, error) {
 
 	appStateList := &bpfmaniov1alpha1.ClusterBpfApplicationStateList{}
 
@@ -57,7 +57,7 @@ func (r *ClusterApplicationReconciler) getAppStateList(
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
 func (r *ClusterApplicationReconciler) containsFinalizer(
-	bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState,
+	bpfAppState client.Object,
 	finalizer string,
 ) bool {
 	return controllerutil.ContainsFinalizer(bpfAppState, finalizer)

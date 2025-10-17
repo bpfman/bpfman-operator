@@ -48,6 +48,7 @@ const (
 	BpfmanLogLevel                = "bpfman.log.level"
 	BpfmanAgentLogLevel           = "bpfman.agent.log.level"
 	BpfmanAgentHealthProbeAddress = "bpfman.agent.healthprobeaddr"
+	DefaultHealthProbePort        = 8175
 	APIPrefix                     = "bpfman.io"
 )
 
@@ -248,3 +249,14 @@ func (r ReconcileResult) String() string {
 		return fmt.Sprintf("INVALID RECONCILE RESULT (%d)", r)
 	}
 }
+
+const (
+	ConfigConditionProgressing = "Progressing"
+	ConfigConditionAvailable   = "Available"
+	ConfigReasonUnknown        = "Startup"
+	ConfigReasonProgressing    = "ReconcileStarted"
+	ConfigReasonAvailable      = "ReconcileComplete"
+	ConfigMessageUnknown       = "Unknown state"
+	ConfigMessageProgressing   = "Reconciliation in progress"
+	ConfigMessageAvailable     = "Reconciliation complete"
+)
