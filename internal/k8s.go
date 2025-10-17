@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -85,4 +86,48 @@ func IsOpenShift(client discovery.DiscoveryInterface, setupLog logr.Logger) (boo
 		}
 	}
 	return false, nil
+}
+
+// CCSEquals compares two map[string]ConfigComponentStatus instances for equality.
+func CCSEquals(ccs, c map[string]v1alpha1.ConfigComponentStatus) bool {
+	if len(ccs) != len(c) {
+		return false
+	}
+	for k, v := range ccs {
+		if c[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
+// CCSAnyComponentProgressing returns true if any component is in the Progressing state.
+func CCSAnyComponentProgressing(ccs map[string]v1alpha1.ConfigComponentStatus, isOpenShift bool) bool {
+	requiredComponents := []string{"ConfigMap", "DaemonSet", "MetricsProxyDaemonSet", "CsiDriver"}
+	if isOpenShift {
+		requiredComponents = append(requiredComponents, "Scc")
+	}
+
+	for _, component := range requiredComponents {
+		if status, ok := ccs[component]; ok && status == v1alpha1.ConfigStatusProgressing {
+			return true
+		}
+	}
+	return false
+}
+
+// CCSAllComponentsReady returns true if all components are in the Ready state.
+func CCSAllComponentsReady(ccs map[string]v1alpha1.ConfigComponentStatus, isOpenShift bool) bool {
+	requiredComponents := []string{"ConfigMap", "DaemonSet", "MetricsProxyDaemonSet", "CsiDriver"}
+	if isOpenShift {
+		requiredComponents = append(requiredComponents, "Scc")
+	}
+
+	for _, component := range requiredComponents {
+		status, ok := ccs[component]
+		if !ok || status != v1alpha1.ConfigStatusReady {
+			return false
+		}
+	}
+	return true
 }
