@@ -149,15 +149,22 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
-	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
-		Name:      internal.BpfmanCmName,
-		Namespace: bpfmanConfig.Spec.Namespace},
+	cm := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanCmName,
+			Namespace: bpfmanConfig.Spec.Namespace,
+		},
 		Data: map[string]string{
 			internal.BpfmanTOML:          bpfmanConfig.Spec.Configuration,
 			internal.BpfmanAgentLogLevel: bpfmanConfig.Spec.Agent.LogLevel,
 			internal.BpfmanLogLevel:      bpfmanConfig.Spec.LogLevel,
 		},
 	}
+
 	return assureResource(ctx, r, bpfmanConfig, cm, func(existing, desired *corev1.ConfigMap) bool {
 		return !equality.Semantic.DeepEqual(existing.Data, desired.Data)
 	})
@@ -373,6 +380,12 @@ func load[T client.Object](t T, path, name string) (T, error) {
 // Creates the resource if it doesn't exist, otherwise updates it to match the desired state.
 func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconciler,
 	bpfmanConfig *v1alpha1.Config, resource T, needsUpdate func(existing T, desired T) bool) error {
+	if isOverridden(resource, bpfmanConfig.Spec.Overrides) {
+		r.Logger.Info("Ignoring object (override in place)",
+			"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+		return nil
+	}
+
 	if err := ctrl.SetControllerReference(bpfmanConfig, resource, r.Scheme); err != nil {
 		return err
 	}
@@ -409,6 +422,20 @@ func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconci
 	}
 
 	return nil
+}
+
+// isOverridden determines if a given object shall be unmanaged.
+func isOverridden(resource client.Object, overrides []v1alpha1.ComponentOverride) bool {
+	for _, override := range overrides {
+		if override.Unmanaged &&
+			override.Kind == resource.GetObjectKind().GroupVersionKind().Kind &&
+			override.Group == resource.GetObjectKind().GroupVersionKind().Group &&
+			override.Namespace == resource.GetNamespace() &&
+			override.Name == resource.GetName() {
+			return true
+		}
+	}
+	return false
 }
 
 // handleDeletion manages the safe deletion of Config resources by
