@@ -18,6 +18,12 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.conditions[?(@.type=='Progressing')].status
+      name: Progressing
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Available')].status
+      name: Available
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -41,53 +47,82 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the desired state of the bpfman-operator.
+            description: spec defines the desired state of the bpfman-operator.
             properties:
               agent:
-                description: Agent holds the configuration for the bpfman agent.
+                description: agent specifies the configuration for the bpfman agent
+                  DaemonSet.
                 properties:
                   healthProbePort:
-                    default: 8175
-                    description: HealthProbePort holds the health probe bind port
-                      for the bpfman agent.
+                    description: |-
+                      healthProbePort specifies the port on which the bpfman agent's health probe endpoint will listen.
+                      If unspecified, the default port will be used.
+                    format: int32
                     maximum: 65535
                     minimum: 1
                     type: integer
                   image:
-                    description: Image holds the image for the bpfman agent.
+                    description: image specifies the container image for the bpfman
+                      agent DaemonSet.
+                    maxLength: 1023
                     minLength: 1
                     type: string
                   logLevel:
-                    description: LogLevel holds the log level for the bpfman agent.
+                    description: |-
+                      logLevel specifies the verbosity of logs produced by the bpfman agent.
+                      Valid values are: "info", "debug", "trace".
+                    enum:
+                    - info
+                    - debug
+                    - trace
+                    maxLength: 256
+                    minLength: 1
                     type: string
-                required:
-                - image
                 type: object
               configuration:
-                description: Configuration holds the content of bpfman.toml.
+                description: configuration specifies the content of bpfman.toml configuration
+                  file used by the bpfman DaemonSet.
+                maxLength: 65536
                 minLength: 1
                 type: string
               image:
-                description: Image holds the image of the bpfman DaemonSets.
+                description: image specifies the container image for the bpfman DaemonSet.
+                maxLength: 1023
                 minLength: 1
                 type: string
               logLevel:
-                description: LogLevel holds the log level for the bpfman-operator.
+                description: |-
+                  logLevel specifies the log level for the bpfman DaemonSet via the RUST_LOG environment variable.
+                  The RUST_LOG environment variable controls logging with the syntax: RUST_LOG=[target][=][level][,...].
+                  For further information, see https://docs.rs/env_logger/latest/env_logger/.
+                maxLength: 1024
+                minLength: 1
                 type: string
               namespace:
                 description: |-
-                  Namespace holds the namespace where bpfman-operator resources shall be
-                  deployed.
+                  namespace specifies the namespace where bpfman-operator resources will be deployed.
+                  If not specified, resources will be deployed in the default bpfman namespace.
+                maxLength: 256
+                minLength: 1
                 type: string
             required:
-            - configuration
-            - image
+            - agent
             type: object
           status:
-            description: status reflects the status of the bpfman-operator configuration.
+            description: status reflects the observed state of the bpfman-operator.
             properties:
+              components:
+                additionalProperties:
+                  description: ConfigComponentStatus holds the status of a single
+                    Config component.
+                  type: string
+                description: |-
+                  components represents the operational status of each individual bpfman-operator component such as the deployed
+                  DaemonSets.
+                type: object
               conditions:
-                description: conditions store the status conditions of the bpfman-operator.
+                description: conditions represents the current state conditions of
+                  the bpfman-operator and its components.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for
@@ -155,11 +190,14 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 1023
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

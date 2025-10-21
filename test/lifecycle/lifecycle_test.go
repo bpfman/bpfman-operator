@@ -21,6 +21,7 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
+	"github.com/bpfman/bpfman-operator/test/testutil"
 	osv1 "github.com/openshift/api/security/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -51,7 +52,7 @@ var (
 		Spec: v1alpha1.ConfigSpec{
 			Namespace: "bpfman",
 			Image:     "quay.io/bpfman/bpfman:latest",
-			LogLevel:  "bpfman=info", // Changed from debug to info
+			LogLevel:  "bpfman=debug", // Changed from info to debug.
 			Configuration: `[database]
 max_retries = 35
 millisec_delay = 10000
@@ -59,9 +60,8 @@ millisec_delay = 10000
 allow_unsigned = true
 verify_enabled = true`,
 			Agent: v1alpha1.AgentSpec{
-				Image:           "quay.io/bpfman/bpfman-agent:latest",
-				LogLevel:        "debug", // Changed from info to debug
-				HealthProbePort: 8175,
+				Image:    "quay.io/bpfman/bpfman-agent:latest",
+				LogLevel: "debug", // Changed from info to debug.
 			},
 		},
 	}
@@ -126,8 +126,14 @@ func TestLifecycle(t *testing.T) {
 	}()
 
 	// Make sure that all resources are there at the start.
-	t.Logf("Running: TestEnsureResources")
+	t.Logf("Running: waitForResourceCreation, waitForAvailable and checkResourcesInDesiredState")
 	if err := waitForResourceCreation(ctx); err != nil {
+		t.Fatalf("Failed to ensure resources: %q", err)
+	}
+	if err := waitForAvailable(ctx, isOpenShift); err != nil {
+		t.Fatalf("Config never reported status available: %q", err)
+	}
+	if err := checkResourcesInDesiredState(ctx); err != nil {
 		t.Fatalf("Failed to ensure resources: %q", err)
 	}
 
@@ -768,5 +774,74 @@ func testConfigStuckDeletion(ctx context.Context, t *testing.T) error {
 	}
 
 	t.Logf("Config stuck deletion test completed successfully")
+	return nil
+}
+
+// podHasContainerArg checks if a DaemonSet has the given argument in any of its containers.
+func podHasContainerArg(ds *appsv1.DaemonSet, arg string) bool {
+	for _, container := range ds.Spec.Template.Spec.Containers {
+		for _, containerArg := range container.Args {
+			if containerArg == arg {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// waitForAvailable waits until the bpfman Config shows "Available" status conditions,
+// indicating that all components are ready and reconciliation is complete.
+func waitForAvailable(ctx context.Context, isOpenShift bool) error {
+	return waitUntilCondition(ctx, func() (bool, error) {
+		bpfmanConfig := &v1alpha1.Config{}
+		if err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, bpfmanConfig); err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		progressingCondition := metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+		availableCondition := metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		}
+		if !testutil.ContainsCondition(bpfmanConfig.Status.Conditions, progressingCondition) {
+			return false, nil
+		}
+		if !testutil.ContainsCondition(bpfmanConfig.Status.Conditions, availableCondition) {
+			return false, nil
+		}
+		componentsReady := bpfmanConfig.Status.Components != nil &&
+			internal.CCSAllComponentsReady(bpfmanConfig.Status.Components, isOpenShift)
+		return componentsReady, nil
+	})
+}
+
+// checkResourcesInDesiredState makes sure that all resources are in the desired state.
+// Right now, the only implemented validation in this function is a check for the health probe port.
+// Returns error if timeout is reached or if context is cancelled.
+func checkResourcesInDesiredState(ctx context.Context) error {
+	// Check DaemonSet is in desired state.
+	ds := &appsv1.DaemonSet{}
+	dsKey := types.NamespacedName{Name: internal.BpfmanDsName, Namespace: internal.BpfmanNamespace}
+	if err := runtimeClient.Get(ctx, dsKey, ds); err != nil && errors.IsNotFound(err) || ds.Status.NumberAvailable == 0 {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	arg := "--health-probe-bind-address=:8175"
+	// Check that the bpfman DaemonSet has the health probe bind address argument.
+	if !podHasContainerArg(ds, arg) {
+		return fmt.Errorf("bpfman DaemonSet missing argument %q", arg)
+	}
+
 	return nil
 }

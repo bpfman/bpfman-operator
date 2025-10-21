@@ -86,6 +86,8 @@ spec:
 
                   UnloadError is returned if one or more programs encountered an error when
                   being unloaded.
+                maxLength: 1023
+                minLength: 1
                 type: string
               conditions:
                 description: |-
@@ -161,12 +163,15 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 1023
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
               node:
-                description: node is the name of the Kubernets node for this BpfApplicationState.
+                description: node is the name of the Kubernetes node for this BpfApplicationState.
+                maxLength: 253
+                minLength: 1
                 type: string
               programs:
                 description: |-
@@ -178,7 +183,9 @@ spec:
                     name:
                       description: |-
                         name is the name of the function that is the entry point for the eBPF
-                        program
+                        program. name must not exceed 64 characters in length.
+                      maxLength: 64
+                      minLength: 1
                       type: string
                     programId:
                       description: |-
@@ -189,7 +196,10 @@ spec:
                     programLinkStatus:
                       description: |-
                         programLinkStatus reflects whether all links requested for the program
-                        are in the correct state.
+                        are in the correct state. Valid values are documented in the
+                        ProgramLinkStatus type definition.
+                      maxLength: 1023
+                      minLength: 1
                       type: string
                     tc:
                       description: tc contains the attachment data for a TC program
@@ -214,7 +224,9 @@ spec:
                               interfaceName:
                                 description: |-
                                   interfaceName is the name of the interface the TC program should be
-                                  attached.
+                                  attached. interfaceName must not exceed 63 characters in length.
+                                maxLength: 63
+                                minLength: 1
                                 type: string
                               linkId:
                                 description: |-
@@ -226,12 +238,18 @@ spec:
                               linkStatus:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
-                                  successfully, and if not, why.
+                                  successfully, and if not, why. Valid values are documented in the
+                                  LinkStatus type definition.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               netnsPath:
                                 description: |-
                                   netnsPath is the path to the network namespace inside of which the TC
-                                  program should be attached.
+                                  program should be attached. netnsPath must not exceed 1023 characters in
+                                  length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               priority:
                                 description: |-
@@ -261,26 +279,27 @@ spec:
                                   - Trap
                                   - DispatcherReturn
                                   type: string
+                                maxItems: 1023
                                 type: array
+                                x-kubernetes-list-type: atomic
                               shouldAttach:
                                 description: shouldAttach reflects whether the attachment
                                   should exist.
                                 type: boolean
                               uuid:
-                                description: uuid is an Unique identifier for the
-                                  attach point assigned by bpfman agent.
+                                description: |-
+                                  uuid is an Unique identifier for the attach point assigned by bpfman agent.
+                                  uuid must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                             required:
-                            - direction
-                            - interfaceName
-                            - linkStatus
-                            - netnsPath
                             - priority
-                            - proceedOn
                             - shouldAttach
-                            - uuid
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     tcx:
                       description: tcx contains the attachment data for a TCX program
@@ -305,7 +324,9 @@ spec:
                               interfaceName:
                                 description: |-
                                   interfaceName is the name of the interface the TCX program should be
-                                  attached.
+                                  attached. interfaceName must not exceed 63 characters in length.
+                                maxLength: 63
+                                minLength: 1
                                 type: string
                               linkId:
                                 description: |-
@@ -317,12 +338,18 @@ spec:
                               linkStatus:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
-                                  successfully, and if not, why.
+                                  successfully, and if not, why. Valid values are documented in the
+                                  LinkStatus type definition.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               netnsPath:
                                 description: |-
                                   netnsPath is the path to the network namespace inside of which the TCX
-                                  program should be attached.
+                                  program should be attached. netnsPath must not exceed 1023 characters in
+                                  length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               priority:
                                 description: |-
@@ -338,19 +365,19 @@ spec:
                                   should exist.
                                 type: boolean
                               uuid:
-                                description: uuid is an Unique identifier for the
-                                  attach point assigned by bpfman agent.
+                                description: |-
+                                  uuid is an Unique identifier for the attach point assigned by bpfman agent.
+                                  uuid must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                             required:
-                            - direction
-                            - interfaceName
-                            - linkStatus
-                            - netnsPath
                             - priority
                             - shouldAttach
-                            - uuid
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     type:
                       description: |-
@@ -399,15 +426,19 @@ spec:
                             properties:
                               containerPid:
                                 description: |-
-                                  If containers is provisioned in the BpfApplication instance, containerPid is
-                                  the derived PID of the container the UProbe or URetProbe this attachment
-                                  point is attached.
+                                  containerPid is the derived PID of the container the UProbe or URetProbe
+                                  this attachment point is attached to, if containers is provisioned in the
+                                  BpfApplication instance.
                                 format: int32
+                                maximum: 2147483647
+                                minimum: 1
                                 type: integer
                               function:
                                 description: |-
                                   function is the provisioned name of the user-space function the UProbe
-                                  program should be attached.
+                                  program should be attached. function must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                               linkId:
                                 description: |-
@@ -419,7 +450,10 @@ spec:
                               linkStatus:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
-                                  successfully, and if not, why.
+                                  successfully, and if not, why. Valid values are documented in the
+                                  LinkStatus type definition.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               offset:
                                 default: 0
@@ -442,19 +476,23 @@ spec:
                               target:
                                 description: |-
                                   target is the provisioned user-space library name or the absolute path to a
-                                  binary or library.
+                                  binary or library. target must not exceed 1023 characters in length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               uuid:
-                                description: uuid is an Unique identifier for the
-                                  attach point assigned by bpfman agent.
+                                description: |-
+                                  uuid is an Unique identifier for the attach point assigned by bpfman agent.
+                                  uuid must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                             required:
-                            - linkStatus
                             - shouldAttach
-                            - target
-                            - uuid
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     uretprobe:
                       description: |-
@@ -471,15 +509,19 @@ spec:
                             properties:
                               containerPid:
                                 description: |-
-                                  If containers is provisioned in the BpfApplication instance, containerPid is
-                                  the derived PID of the container the UProbe or URetProbe this attachment
-                                  point is attached.
+                                  containerPid is the derived PID of the container the UProbe or URetProbe
+                                  this attachment point is attached to, if containers is provisioned in the
+                                  BpfApplication instance.
                                 format: int32
+                                maximum: 2147483647
+                                minimum: 1
                                 type: integer
                               function:
                                 description: |-
                                   function is the provisioned name of the user-space function the UProbe
-                                  program should be attached.
+                                  program should be attached. function must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                               linkId:
                                 description: |-
@@ -491,7 +533,10 @@ spec:
                               linkStatus:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
-                                  successfully, and if not, why.
+                                  successfully, and if not, why. Valid values are documented in the
+                                  LinkStatus type definition.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               offset:
                                 default: 0
@@ -514,19 +559,23 @@ spec:
                               target:
                                 description: |-
                                   target is the provisioned user-space library name or the absolute path to a
-                                  binary or library.
+                                  binary or library. target must not exceed 1023 characters in length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               uuid:
-                                description: uuid is an Unique identifier for the
-                                  attach point assigned by bpfman agent.
+                                description: |-
+                                  uuid is an Unique identifier for the attach point assigned by bpfman agent.
+                                  uuid must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                             required:
-                            - linkStatus
                             - shouldAttach
-                            - target
-                            - uuid
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     xdp:
                       description: xdp contains the attachment data for an XDP program
@@ -543,7 +592,9 @@ spec:
                               interfaceName:
                                 description: |-
                                   interfaceName is the name of the interface the XDP program should be
-                                  attached.
+                                  attached. interfaceName must not exceed 63 characters in length.
+                                maxLength: 63
+                                minLength: 1
                                 type: string
                               linkId:
                                 description: |-
@@ -555,12 +606,18 @@ spec:
                               linkStatus:
                                 description: |-
                                   linkStatus reflects whether the attachment has been reconciled
-                                  successfully, and if not, why.
+                                  successfully, and if not, why. Valid values are documented in the
+                                  LinkStatus type definition.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               netnsPath:
                                 description: |-
                                   netnsPath is the path to the network namespace inside of which the XDP
-                                  program should be attached.
+                                  program should be attached. netnsPath must not exceed 1023 characters in
+                                  length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
                               priority:
                                 description: |-
@@ -585,30 +642,28 @@ spec:
                                   - ReDirect
                                   - DispatcherReturn
                                   type: string
+                                maxItems: 1023
                                 type: array
+                                x-kubernetes-list-type: atomic
                               shouldAttach:
                                 description: shouldAttach reflects whether the attachment
                                   should exist.
                                 type: boolean
                               uuid:
-                                description: uuid is an Unique identifier for the
-                                  attach point assigned by bpfman agent.
+                                description: |-
+                                  uuid is an Unique identifier for the attach point assigned by bpfman agent.
+                                  uuid must not exceed 64 characters in length.
+                                maxLength: 64
+                                minLength: 1
                                 type: string
                             required:
-                            - interfaceName
-                            - linkStatus
-                            - netnsPath
                             - priority
-                            - proceedOn
                             - shouldAttach
-                            - uuid
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
-                  required:
-                  - name
-                  - programLinkStatus
-                  - type
                   type: object
                   x-kubernetes-validations:
                   - message: xdp configuration is required when type is xdp, and forbidden
@@ -631,21 +686,20 @@ spec:
                       and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''URetProbe'' ?  has(self.uretprobe)
                       : !has(self.uretprobe)'
+                maxItems: 1023
                 type: array
+                x-kubernetes-list-type: atomic
               updateCount:
                 description: |-
-                  UpdateCount tracks the number of times the BpfApplicationState object has
+                  updateCount tracks the number of times the BpfApplicationState object has
                   been updated. The bpfman agent initializes it to 1 when it creates the
                   object, and then increments it before each subsequent update. It serves
                   as a lightweight sequence number to verify that the API server is serving
                   the most recent version of the object before beginning a new Reconcile
                   operation.
                 format: int64
+                minimum: 1
                 type: integer
-            required:
-            - appLoadStatus
-            - node
-            - updateCount
             type: object
         type: object
     served: true

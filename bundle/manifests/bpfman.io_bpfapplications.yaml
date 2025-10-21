@@ -57,17 +57,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              spec defines the desired state of the BpfApplication. The BpfApplication
-              describes the set of one or more namespace scoped eBPF programs that should
-              be loaded for a given application and attributes for how they should be
-              loaded. eBPF programs that are grouped together under the same
-              BpfApplication instance can share maps and global data between the eBPF
-              programs loaded on the same Kubernetes Node.
+            description: spec defines the desired state of the BpfApplication.
             properties:
               byteCode:
                 description: |-
-                  bytecode is a required field and configures where the eBPF program's
+                  byteCode is a required field and configures where the eBPF program's
                   bytecode should be loaded from. The image must contain one or more
                   eBPF programs.
                 maxProperties: 1
@@ -81,7 +75,7 @@ spec:
                       imagePullPolicy:
                         default: IfNotPresent
                         description: |-
-                          pullPolicy is an optional field that describes a policy for if/when to pull
+                          imagePullPolicy is an optional field that describes a policy for if/when to pull
                           a bytecode image. Defaults to IfNotPresent. Allowed values are:
                             Always, IfNotPresent and Never
 
@@ -109,16 +103,19 @@ spec:
                           name:
                             description: |-
                               name is a required field and is the name of the secret which contains the
-                              credentials to access the image repository.
+                              credentials to access the image repository. name must not exceed 253
+                              characters in length.
+                            maxLength: 253
+                            minLength: 1
                             type: string
                           namespace:
                             description: |-
                               namespace is a required field and is the namespace of the secret which
-                              contains the credentials to access the image repository.
+                              contains the credentials to access the image repository. namespace must not
+                              exceed 253 characters in length.
+                            maxLength: 253
+                            minLength: 1
                             type: string
-                        required:
-                        - name
-                        - namespace
                         type: object
                       url:
                         description: |-
@@ -126,15 +123,16 @@ spec:
                           a remote bytecode image. url must not be an empty string, must not exceed
                           525 characters in length and must be a valid URL.
                         maxLength: 525
+                        minLength: 1
                         pattern: '[a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}'
                         type: string
-                    required:
-                    - url
                     type: object
                   path:
                     description: |-
                       path is an optional field and used to specify a bytecode object file via
-                      filepath on a Kubernetes node.
+                      filepath on a Kubernetes node. The path must be a valid absolute path with no null bytes,
+                      matching the pattern ^(/[^/\0]+)+/?$. path must not exceed 1023 characters in length.
+                    maxLength: 1023
                     pattern: ^(/[^/\0]+)+/?$
                     type: string
                 type: object
@@ -274,7 +272,7 @@ spec:
                         name is a required field and is the name of the function that is the entry
                         point for the eBPF program. name must not be an empty string, must not
                         exceed 64 characters in length, must start with alpha characters and must
-                        only contain alphanumeric characters.
+                        only contain alphanumeric characters and underscores.
                       maxLength: 64
                       minLength: 1
                       pattern: ^[a-zA-Z][a-zA-Z0-9_]+.
@@ -340,9 +338,14 @@ spec:
                                     description: |-
                                       interfaces is an optional field and is a list of network interface names to
                                       attach the eBPF program. The interface names in the list are case-sensitive.
+                                      The list is limited to a maximum of 1023 entries, and each interface name
+                                      must not exceed 63 characters in length.
                                     items:
+                                      maxLength: 63
                                       type: string
+                                    maxItems: 1023
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   interfacesDiscoveryConfig:
                                     description: |-
                                       interfacesDiscoveryConfig is an optional field that is used to control if
@@ -361,10 +364,14 @@ spec:
                                           `/veth*/`, then the entry is considered as a regular expression for
                                           matching. Otherwise, the interface names in the list are case-sensitive.
                                           This field is only taken into consideration if interfaceAutoDiscovery is set
-                                          to true.
+                                          to true. The list is limited to a maximum of 1023 entries, and each
+                                          interface name must not exceed 63 characters in length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       excludeInterfaces:
                                         default:
                                         - lo
@@ -373,16 +380,22 @@ spec:
                                           names that are excluded from interface discovery. The interface names in
                                           the list are case-sensitive. By default, the list contains the loopback
                                           interface, "lo". This field is only taken into consideration if
-                                          interfaceAutoDiscovery is set to true.
+                                          interfaceAutoDiscovery is set to true. The list is limited to a maximum of
+                                          1023 entries, and each interface name must not exceed 63 characters in
+                                          length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       interfaceAutoDiscovery:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
                                           monitors the creation and deletion of interfaces and automatically
                                           attached eBPF programs to the newly discovered interfaces.
+                                          Valid values are "Enabled", "Disabled" (default).
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean
@@ -448,8 +461,6 @@ spec:
                                         type: object
                                     type: object
                                     x-kubernetes-map-type: atomic
-                                required:
-                                - pods
                                 type: object
                               priority:
                                 default: 1000
@@ -495,13 +506,16 @@ spec:
                                   - Trap
                                   - DispatcherReturn
                                   type: string
+                                maxItems: 1023
                                 type: array
+                                x-kubernetes-list-type: atomic
                             required:
-                            - direction
                             - interfaceSelector
                             - networkNamespaces
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     tcx:
                       description: |-
@@ -564,9 +578,14 @@ spec:
                                     description: |-
                                       interfaces is an optional field and is a list of network interface names to
                                       attach the eBPF program. The interface names in the list are case-sensitive.
+                                      The list is limited to a maximum of 1023 entries, and each interface name
+                                      must not exceed 63 characters in length.
                                     items:
+                                      maxLength: 63
                                       type: string
+                                    maxItems: 1023
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   interfacesDiscoveryConfig:
                                     description: |-
                                       interfacesDiscoveryConfig is an optional field that is used to control if
@@ -585,10 +604,14 @@ spec:
                                           `/veth*/`, then the entry is considered as a regular expression for
                                           matching. Otherwise, the interface names in the list are case-sensitive.
                                           This field is only taken into consideration if interfaceAutoDiscovery is set
-                                          to true.
+                                          to true. The list is limited to a maximum of 1023 entries, and each
+                                          interface name must not exceed 63 characters in length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       excludeInterfaces:
                                         default:
                                         - lo
@@ -597,16 +620,22 @@ spec:
                                           names that are excluded from interface discovery. The interface names in
                                           the list are case-sensitive. By default, the list contains the loopback
                                           interface, "lo". This field is only taken into consideration if
-                                          interfaceAutoDiscovery is set to true.
+                                          interfaceAutoDiscovery is set to true. The list is limited to a maximum of
+                                          1023 entries, and each interface name must not exceed 63 characters in
+                                          length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       interfaceAutoDiscovery:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
                                           monitors the creation and deletion of interfaces and automatically
                                           attached eBPF programs to the newly discovered interfaces.
+                                          Valid values are "Enabled", "Disabled" (default).
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean
@@ -672,8 +701,6 @@ spec:
                                         type: object
                                     type: object
                                     x-kubernetes-map-type: atomic
-                                required:
-                                - pods
                                 type: object
                               priority:
                                 default: 1000
@@ -689,11 +716,12 @@ spec:
                                 minimum: 0
                                 type: integer
                             required:
-                            - direction
                             - interfaceSelector
                             - networkNamespaces
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     type:
                       description: |-
@@ -783,10 +811,14 @@ spec:
                                     description: |-
                                       containerNames is an optional field and is a list of container names in a
                                       pod to attach the eBPF program. If no names are  specified, all containers
-                                      in the pod are selected.
+                                      in the pod are selected. The list is limited to a maximum of 1023 entries,
+                                      and each container name must not exceed 253 characters in length.
                                     items:
+                                      maxLength: 253
                                       type: string
+                                    maxItems: 1023
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   pods:
                                     description: |-
                                       pods is a required field and indicates the target pods. To select all pods
@@ -836,8 +868,6 @@ spec:
                                         type: object
                                     type: object
                                     x-kubernetes-map-type: atomic
-                                required:
-                                - pods
                                 type: object
                               function:
                                 description: |-
@@ -867,13 +897,15 @@ spec:
                               target:
                                 description: |-
                                   target is a required field and is the user-space library name or the
-                                  absolute path to a binary or library.
+                                  absolute path to a binary or library. target must not exceed 1023 characters
+                                  in length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
-                            required:
-                            - containers
-                            - target
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     uretprobe:
                       description: |-
@@ -917,10 +949,14 @@ spec:
                                     description: |-
                                       containerNames is an optional field and is a list of container names in a
                                       pod to attach the eBPF program. If no names are  specified, all containers
-                                      in the pod are selected.
+                                      in the pod are selected. The list is limited to a maximum of 1023 entries,
+                                      and each container name must not exceed 253 characters in length.
                                     items:
+                                      maxLength: 253
                                       type: string
+                                    maxItems: 1023
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   pods:
                                     description: |-
                                       pods is a required field and indicates the target pods. To select all pods
@@ -970,8 +1006,6 @@ spec:
                                         type: object
                                     type: object
                                     x-kubernetes-map-type: atomic
-                                required:
-                                - pods
                                 type: object
                               function:
                                 description: |-
@@ -1001,13 +1035,15 @@ spec:
                               target:
                                 description: |-
                                   target is a required field and is the user-space library name or the
-                                  absolute path to a binary or library.
+                                  absolute path to a binary or library. target must not exceed 1023 characters
+                                  in length.
+                                maxLength: 1023
+                                minLength: 1
                                 type: string
-                            required:
-                            - containers
-                            - target
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
                     xdp:
                       description: |-
@@ -1049,9 +1085,14 @@ spec:
                                     description: |-
                                       interfaces is an optional field and is a list of network interface names to
                                       attach the eBPF program. The interface names in the list are case-sensitive.
+                                      The list is limited to a maximum of 1023 entries, and each interface name
+                                      must not exceed 63 characters in length.
                                     items:
+                                      maxLength: 63
                                       type: string
+                                    maxItems: 1023
                                     type: array
+                                    x-kubernetes-list-type: atomic
                                   interfacesDiscoveryConfig:
                                     description: |-
                                       interfacesDiscoveryConfig is an optional field that is used to control if
@@ -1070,10 +1111,14 @@ spec:
                                           `/veth*/`, then the entry is considered as a regular expression for
                                           matching. Otherwise, the interface names in the list are case-sensitive.
                                           This field is only taken into consideration if interfaceAutoDiscovery is set
-                                          to true.
+                                          to true. The list is limited to a maximum of 1023 entries, and each
+                                          interface name must not exceed 63 characters in length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       excludeInterfaces:
                                         default:
                                         - lo
@@ -1082,16 +1127,22 @@ spec:
                                           names that are excluded from interface discovery. The interface names in
                                           the list are case-sensitive. By default, the list contains the loopback
                                           interface, "lo". This field is only taken into consideration if
-                                          interfaceAutoDiscovery is set to true.
+                                          interfaceAutoDiscovery is set to true. The list is limited to a maximum of
+                                          1023 entries, and each interface name must not exceed 63 characters in
+                                          length.
                                         items:
+                                          maxLength: 63
                                           type: string
+                                        maxItems: 1023
                                         type: array
+                                        x-kubernetes-list-type: atomic
                                       interfaceAutoDiscovery:
                                         default: false
                                         description: |-
                                           interfaceAutoDiscovery is an optional field. When enabled, the agent
                                           monitors the creation and deletion of interfaces and automatically
                                           attached eBPF programs to the newly discovered interfaces.
+                                          Valid values are "Enabled", "Disabled" (default).
                                           CAUTION: This has the potential to attach a given eBPF program to a large
                                           number of interfaces. Use with caution.
                                         type: boolean
@@ -1157,8 +1208,6 @@ spec:
                                         type: object
                                     type: object
                                     x-kubernetes-map-type: atomic
-                                required:
-                                - pods
                                 type: object
                               priority:
                                 default: 1000
@@ -1198,16 +1247,17 @@ spec:
                                   - ReDirect
                                   - DispatcherReturn
                                   type: string
+                                maxItems: 1023
                                 type: array
+                                x-kubernetes-list-type: atomic
                             required:
                             - interfaceSelector
                             - networkNamespaces
                             type: object
+                          maxItems: 1023
                           type: array
+                          x-kubernetes-list-type: atomic
                       type: object
-                  required:
-                  - name
-                  - type
                   type: object
                   x-kubernetes-validations:
                   - message: xdp configuration is required when type is xdp, and forbidden
@@ -1230,16 +1280,15 @@ spec:
                       and forbidden otherwise
                     rule: 'has(self.type) && self.type == ''URetProbe'' ?  has(self.uretprobe)
                       : !has(self.uretprobe)'
+                maxItems: 1023
                 minItems: 1
                 type: array
+                x-kubernetes-list-type: atomic
             required:
             - byteCode
-            - nodeSelector
             type: object
           status:
-            description: |-
-              status reflects the status of a BPF Application and indicates if all the
-              eBPF programs for a given instance loaded successfully or not.
+            description: status reflects the observed state of the BpfApplication.
             properties:
               conditions:
                 description: |-
@@ -1312,11 +1361,14 @@ spec:
                   - status
                   - type
                   type: object
+                maxItems: 1023
                 type: array
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

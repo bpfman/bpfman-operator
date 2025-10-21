@@ -30,7 +30,7 @@ import (
 )
 
 type NamespaceApplicationReconciler struct {
-	ReconcilerCommon[bpfmaniov1alpha1.BpfApplicationState, bpfmaniov1alpha1.BpfApplicationStateList]
+	ReconcilerCommon
 }
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
@@ -38,7 +38,7 @@ func (r *NamespaceApplicationReconciler) getAppStateList(
 	ctx context.Context,
 	appName string,
 	appNamespace string,
-) (*bpfmaniov1alpha1.BpfApplicationStateList, error) {
+) (client.ObjectList, error) {
 
 	appStateList := &bpfmaniov1alpha1.BpfApplicationStateList{}
 
@@ -58,7 +58,7 @@ func (r *NamespaceApplicationReconciler) getAppStateList(
 
 //lint:ignore U1000 Linter claims function unused, but generics confusing linter
 func (r *NamespaceApplicationReconciler) containsFinalizer(
-	bpfAppState *bpfmaniov1alpha1.BpfApplicationState,
+	bpfAppState client.Object,
 	finalizer string,
 ) bool {
 	return controllerutil.ContainsFinalizer(bpfAppState, finalizer)
