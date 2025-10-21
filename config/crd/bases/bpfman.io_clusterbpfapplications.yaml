@@ -640,7 +640,6 @@ spec:
                                 - pods
                                 type: object
                               priority:
-                                default: 1000
                                 description: |-
                                   priority is an optional field and determines the execution order of the TC
                                   program relative to other TC programs attached to the same attachment point.
@@ -869,7 +868,6 @@ spec:
                                 - pods
                                 type: object
                               priority:
-                                default: 1000
                                 description: |-
                                   priority is an optional field and determines the execution order of the TCX
                                   program relative to other TCX programs attached to the same attachment
@@ -1444,7 +1442,6 @@ spec:
                                 - pods
                                 type: object
                               priority:
-                                default: 1000
                                 description: |-
                                   priority is an optional field and determines the execution order of the XDP
                                   program relative to other XDP programs attached to the same attachment

@@ -23,6 +23,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
 )
@@ -121,7 +122,7 @@ func (r *ClXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 	}
 
 	attachInfo := &gobpfman.XDPAttachInfo{
-		Priority:  r.currentLink.Priority,
+		Priority:  helpers.GetPriority(r.currentLink.Priority),
 		Iface:     r.currentLink.InterfaceName,
 		ProceedOn: xdpProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
@@ -210,7 +211,7 @@ func (r *ClXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.ClXdp
 		// attachInfoState is the same as a if the the following fields are the
 		// same: InterfaceName, Priority, ProceedOn, and network namespace.
 		if a.InterfaceName == attachInfoState.InterfaceName &&
-			a.Priority == attachInfoState.Priority &&
+			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
 			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
@@ -294,7 +295,7 @@ func (r *ClXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 			},
 			InterfaceName: interfaceName,
 			NetnsPath:     netnsPath,
-			Priority:      attachInfo.Priority,
+			Priority:      helpers.GetPriorityPointer(attachInfo.Priority),
 			ProceedOn:     attachInfo.ProceedOn,
 		}
 	}
