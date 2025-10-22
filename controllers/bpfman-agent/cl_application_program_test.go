@@ -27,6 +27,7 @@ import (
 	testutils "github.com/bpfman/bpfman-operator/internal/test-utils"
 
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,13 +40,7 @@ import (
 )
 
 func TestClBpfApplicationReconcilerGetBpfAppState(t *testing.T) {
-	s := scheme.Scheme
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplication{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationState{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationStateList{})
-
-	// Create a mock ClusterBpfApplicationState that will be
-	// found.
+	// Create a mock ClusterBpfApplicationState that will be found.
 	mockAppState := &bpfmaniov1alpha1.ClusterBpfApplicationState{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-app-state",
@@ -55,33 +50,21 @@ func TestClBpfApplicationReconcilerGetBpfAppState(t *testing.T) {
 			},
 		},
 	}
-
 	objs := []runtime.Object{mockAppState}
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-	cli := agenttestutils.NewBpfmanClientFake()
 
-	rc := ReconcilerCommon{
-		Client:       cl,
-		Scheme:       s,
-		BpfmanClient: cli,
-		NodeName:     "test-node",
-	}
-
-	r := &ClBpfApplicationReconciler{
-		ReconcilerCommon: rc,
-	}
-
-	// Set currentApp (required for getBpfAppState).
-	r.currentApp = &bpfmaniov1alpha1.ClusterBpfApplication{
+	bpfApp := &bpfmaniov1alpha1.ClusterBpfApplication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-app",
 		},
 	}
+	fakeNode := testutils.NewNode("test-node")
+	r := createFakeClusterReconciler(objs, bpfApp, fakeNode)
+	// Set currentApp (required for getBpfAppState).
+	r.currentApp = bpfApp
 
 	// Test getBpfAppState when currentAppState is nil.
 	ctx := context.Background()
 	result, err := r.getBpfAppState(ctx)
-
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, "test-app-state", result.Name)
@@ -90,215 +73,238 @@ func TestClBpfApplicationReconcilerGetBpfAppState(t *testing.T) {
 func TestClBpfApplicationControllerCreate(t *testing.T) {
 	var (
 		// global config
-		appProgramName = "fakeAppProgram"
-		namespace      = "bpfman"
-		bytecodePath   = "/tmp/hello.o"
-
-		fentryBpfFunctionName     = "FentryTest"
-		fexitBpfFunctionName      = "FexitTest"
-		uprobeBpfFunctionName     = "UprobeTest"
-		uretprobeBpfFunctionName  = "UretprobeTest"
-		kprobeBpfFunctionName     = "KprobeTest"
-		kretprobeBpfFunctionName  = "KretprobeTest"
-		tracepointBpfFunctionName = "TracepointTest"
-		tcBpfFunctionName         = "TcTest"
-		tcxBpfFunctionName        = "TcxTest"
-		xdpBpfFunctionName        = "XdpTest"
-
-		direction  = bpfmaniov1alpha1.TCIngress
-		AttachName = "AttachNameTest"
-		priority   = 50
-		fakeNode   = testutils.NewNode("fake-control-plane")
-		fakeInt0   = "eth0"
-		fakePid    = int32(1000)
-		// fakeInt1        = "eth1"
+		fakePid           = int32(4490)
+		fakeNode          = testutils.NewNode("fake-control-plane")
+		interfaceSelector = bpfmaniov1alpha1.InterfaceSelector{
+			Interfaces: []string{fakeInt0},
+		}
+		proceedOn = []bpfmaniov1alpha1.XdpProceedOnValue{
+			bpfmaniov1alpha1.XdpProceedOnValue("pass"),
+			bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
+		}
 		ctx = context.TODO()
 	)
 
-	programs := []bpfmaniov1alpha1.ClBpfApplicationProgram{}
+	// Set development Logger, so we can see all logs in tests.
+	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	fakeInts := []string{fakeInt0}
-
-	interfaceSelector := bpfmaniov1alpha1.InterfaceSelector{
-		Interfaces: fakeInts,
-	}
-
-	proceedOn := []bpfmaniov1alpha1.XdpProceedOnValue{bpfmaniov1alpha1.XdpProceedOnValue("pass"),
-		bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return")}
-	xdpAttachInfo := bpfmaniov1alpha1.ClXdpAttachInfo{
-		InterfaceSelector: interfaceSelector,
-		NetworkNamespaces: nil,
-		Priority:          ptr.To(int32(priority)),
-		ProceedOn:         proceedOn,
-	}
-	xdpProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: xdpBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeXDP,
-		XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
-			Links: []bpfmaniov1alpha1.ClXdpAttachInfo{xdpAttachInfo},
-		},
-	}
-	programs = append(programs, xdpProgram)
-
-	fentryProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: fentryBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeFentry,
-		FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
-			ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
-				Function: AttachName,
-			},
-			Links: []bpfmaniov1alpha1.ClFentryAttachInfo{
-				{},
-			},
-		},
-	}
-	programs = append(programs, fentryProgram)
-
-	fexitProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: fexitBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeFexit,
-		FExit: &bpfmaniov1alpha1.ClFexitProgramInfo{
-			ClFexitLoadInfo: bpfmaniov1alpha1.ClFexitLoadInfo{
-				Function: AttachName,
-			},
-			Links: []bpfmaniov1alpha1.ClFexitAttachInfo{
-				{Mode: bpfmaniov1alpha1.Attach},
-			},
-		},
-	}
-	programs = append(programs, fexitProgram)
-
-	kprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: kprobeBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeKprobe,
-		KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
-			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+	tcs := []struct {
+		testName string
+		programs []bpfmaniov1alpha1.ClBpfApplicationProgram
+	}{
+		{
+			testName: "application test",
+			programs: []bpfmaniov1alpha1.ClBpfApplicationProgram{
+				// XDP Program
 				{
-					Function: AttachName,
-					Offset:   200,
+					Name: testXdpBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeXDP,
+					XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
+						Links: []bpfmaniov1alpha1.ClXdpAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(testPriority)),
+								ProceedOn:         proceedOn,
+							},
+						},
+					},
 				},
-			},
-		},
-	}
-	programs = append(programs, kprobeProgram)
-
-	kretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: kretprobeBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeKretprobe,
-		KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
-			Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
+				// Fentry Program
 				{
-					Function: AttachName,
+					Name: testFentryBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeFentry,
+					FEntry: &bpfmaniov1alpha1.ClFentryProgramInfo{
+						ClFentryLoadInfo: bpfmaniov1alpha1.ClFentryLoadInfo{
+							Function: testAttachName,
+						},
+						Links: []bpfmaniov1alpha1.ClFentryAttachInfo{{}},
+					},
 				},
-			},
-		},
-	}
-	programs = append(programs, kretprobeProgram)
-
-	uprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: uprobeBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeUprobe,
-		UProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
-			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+				// Fexit Program
 				{
-					Function: AttachName,
-					Offset:   200,
-					Target:   "/bin/bash",
-					Pid:      &fakePid,
+					Name: testFexitBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeFexit,
+					FExit: &bpfmaniov1alpha1.ClFexitProgramInfo{
+						ClFexitLoadInfo: bpfmaniov1alpha1.ClFexitLoadInfo{
+							Function: testAttachName,
+						},
+						Links: []bpfmaniov1alpha1.ClFexitAttachInfo{
+							{Mode: bpfmaniov1alpha1.Attach},
+						},
+					},
 				},
-			},
-		},
-	}
-	programs = append(programs, uprobeProgram)
-
-	uretprobeProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: uretprobeBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeUretprobe,
-		URetProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
-			Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+				// Kprobe Program
 				{
-					Function: AttachName,
-					Offset:   100,
-					Target:   "/bin/bash",
-					Pid:      &fakePid,
+					Name: testKprobeBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeKprobe,
+					KProbe: &bpfmaniov1alpha1.ClKprobeProgramInfo{
+						Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
+							{
+								Function: testAttachName,
+								Offset:   200,
+							},
+						},
+					},
 				},
-			},
-		},
-	}
-	programs = append(programs, uretprobeProgram)
-
-	tracepointProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: tracepointBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeTracepoint,
-		TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
-			Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
+				// Kretprobe Program
 				{
-					Name: AttachName,
+					Name: testKretprobeBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeKretprobe,
+					KRetProbe: &bpfmaniov1alpha1.ClKretprobeProgramInfo{
+						Links: []bpfmaniov1alpha1.ClKretprobeAttachInfo{
+							{
+								Function: testAttachName,
+							},
+						},
+					},
+				},
+				// Uprobe Program
+				{
+					Name: testUprobeBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeUprobe,
+					UProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+						Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+							{
+								Function: testAttachName,
+								Offset:   200,
+								Target:   "/bin/bash",
+								Pid:      &fakePid,
+							},
+						},
+					},
+				},
+				// Uretprobe Program
+				{
+					Name: testUretprobeBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeUretprobe,
+					URetProbe: &bpfmaniov1alpha1.ClUprobeProgramInfo{
+						Links: []bpfmaniov1alpha1.ClUprobeAttachInfo{
+							{
+								Function: testAttachName,
+								Offset:   100,
+								Target:   "/bin/bash",
+								Pid:      &fakePid,
+							},
+						},
+					},
+				},
+				// Tracepoint Program
+				{
+					Name: testTracepointBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeTracepoint,
+					TracePoint: &bpfmaniov1alpha1.ClTracepointProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTracepointAttachInfo{
+							{
+								Name: testAttachName,
+							},
+						},
+					},
+				},
+				// TC Program
+				{
+					Name: testTcBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeTC,
+					TC: &bpfmaniov1alpha1.ClTcProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Direction:         testDirectionIngress,
+								Priority:          ptr.To(int32(testPriority)),
+							},
+						},
+					},
+				},
+				// TCX Program
+				{
+					Name: testTcxBpfFunctionName,
+					Type: bpfmaniov1alpha1.ProgTypeTCX,
+					TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcxAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Direction:         testDirectionIngress,
+								Priority:          ptr.To(int32(testPriority)),
+							},
+						},
+					},
 				},
 			},
 		},
 	}
-	programs = append(programs, tracepointProgram)
 
-	tcAttachInfo := bpfmaniov1alpha1.ClTcAttachInfo{
-		InterfaceSelector: interfaceSelector,
-		NetworkNamespaces: nil,
-		Direction:         direction,
-		Priority:          ptr.To(int32(priority)),
-	}
-	tcProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: tcBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeTC,
-		TC: &bpfmaniov1alpha1.ClTcProgramInfo{
-			Links: []bpfmaniov1alpha1.ClTcAttachInfo{tcAttachInfo},
-		},
-	}
-	programs = append(programs, tcProgram)
-
-	tcxAttachInfo := bpfmaniov1alpha1.ClTcxAttachInfo{
-		InterfaceSelector: interfaceSelector,
-		NetworkNamespaces: nil,
-		Direction:         "ingress",
-		Priority:          ptr.To(int32(priority)),
-	}
-	tcxProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
-		Name: tcxBpfFunctionName,
-		Type: bpfmaniov1alpha1.ProgTypeTCX,
-		TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
-			Links: []bpfmaniov1alpha1.ClTcxAttachInfo{tcxAttachInfo},
-		},
-	}
-	programs = append(programs, tcxProgram)
-
-	bpfApp := &bpfmaniov1alpha1.ClusterBpfApplication{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: appProgramName,
-		},
-		Spec: bpfmaniov1alpha1.ClBpfApplicationSpec{
-			BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
-				NodeSelector: metav1.LabelSelector{},
-				ByteCode: bpfmaniov1alpha1.ByteCodeSelector{
-					Path: &bytecodePath,
-				},
+	for _, tc := range tcs {
+		bpfApp := &bpfmaniov1alpha1.ClusterBpfApplication{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: testAppProgramName,
 			},
-			Programs: programs,
-		},
+			Spec: bpfmaniov1alpha1.ClBpfApplicationSpec{
+				BpfAppCommon: bpfmaniov1alpha1.BpfAppCommon{
+					NodeSelector: metav1.LabelSelector{},
+					ByteCode: bpfmaniov1alpha1.ByteCodeSelector{
+						Path: ptr.To(testBytecodePath),
+					},
+				},
+				Programs: tc.programs,
+			},
+		}
+
+		// Objects to track in the fake client.
+		objs := []runtime.Object{fakeNode, bpfApp}
+		r := createFakeClusterReconciler(objs, bpfApp, fakeNode)
+
+		// Mock request to simulate Reconcile() being called on an event for a
+		// watched resource.
+		req := reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      testAppProgramName,
+				Namespace: testNamespace,
+			},
+		}
+
+		// First reconcile should create the ClusterBpfApplicationState object.
+		r.Logger.Info("First reconcile")
+		runReconciler(t, ctx, r, req, r.Logger)
+		// Check if the BpfApplicationState Object was created successfully.
+		bpfAppState, err := r.getBpfAppState(ctx)
+		require.NoError(t, err)
+		verifyBpfApplicationState(t, bpfAppState, fakeNode, testAppProgramName, bpfmaniov1alpha1.BpfAppStateCondPending)
+
+		// Do a second reconcile to make sure that the programs are loaded and attached.
+		r.Logger.Info("Second reconcile")
+		runReconciler(t, ctx, r, req, r.Logger)
+		// Check if the BpfApplicationState Object was created successfully.
+		bpfAppState2, err := r.getBpfAppState(ctx)
+		require.NoError(t, err)
+		verifyBpfApplicationState(t, bpfAppState2, fakeNode, testAppProgramName, bpfmaniov1alpha1.BpfAppStateCondSuccess)
+		verifyClusterBpfProgramState(t, bpfAppState2, tc.programs)
+
+		// Do a 3rd reconcile and make sure it doesn't change.
+		r.Logger.Info("Third reconcile")
+		runReconciler(t, ctx, r, req, r.Logger)
+		// Check if the BpfApplicationState Object was created successfully.
+		bpfAppState3, err := r.getBpfAppState(ctx)
+		require.NoError(t, err)
+		verifyBpfApplicationState(t, bpfAppState3, fakeNode, testAppProgramName, bpfmaniov1alpha1.BpfAppStateCondSuccess)
+		// Check that the bpfAppState was not updated.
+		require.True(t, reflect.DeepEqual(bpfAppState2, bpfAppState3))
 	}
+}
 
-	// Objects to track in the fake client.
-	objs := []runtime.Object{fakeNode, bpfApp}
-
+// createFakeClusterReconciler creates a fake ClBpfApplicationReconciler for testing purposes.
+// It initializes the scheme with BPF application types, creates a fake Kubernetes client,
+// and returns a configured reconciler instance.
+func createFakeClusterReconciler(objs []runtime.Object, bpfApp *bpfmaniov1alpha1.ClusterBpfApplication,
+	fakeNode *v1.Node) *ClBpfApplicationReconciler {
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, bpfApp)
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationList{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplication{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationStateList{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationState{})
+	registerBpfApplicationScheme(s, true, bpfApp)
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithStatusSubresource(bpfApp).WithStatusSubresource(&bpfmaniov1alpha1.ClusterBpfApplicationState{}).WithRuntimeObjects(objs...).Build()
-
+	cl := fake.NewClientBuilder().WithStatusSubresource(bpfApp).WithStatusSubresource(
+		&bpfmaniov1alpha1.ClusterBpfApplicationState{}).WithRuntimeObjects(objs...).Build()
 	cli := agenttestutils.NewBpfmanClientFake()
 
 	rc := ReconcilerCommon{
@@ -308,99 +314,18 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		NodeName:     fakeNode.Name,
 		ourNode:      fakeNode,
 	}
-
-	// Set development Logger, so we can see all logs in tests.
-	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
-
-	// Create a ReconcileMemcached object with the scheme and fake client.
 	r := &ClBpfApplicationReconciler{
 		ReconcilerCommon: rc,
 	}
+	return r
+}
 
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      appProgramName,
-			Namespace: namespace,
-		},
-	}
-
-	// First reconcile should create the ClusterBpfApplicationState object
-	r.Logger.Info("First reconcile")
-	res, err := r.Reconcile(ctx, req)
-	require.NoError(t, err)
-
-	r.Logger.Info("First reconcile", "res:", res, "err:", err)
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check if the BpfApplicationState Object was created successfully
-	bpfAppState, err := r.getBpfAppState(ctx)
-	require.NoError(t, err)
-
-	// Make sure we got bpfAppState from the api server
-	require.NotEqual(t, nil, bpfAppState)
-
-	require.Equal(t, 1, len(bpfAppState.Status.Conditions))
-	require.Equal(t, string(bpfmaniov1alpha1.BpfAppStateCondPending), bpfAppState.Status.Conditions[0].Type)
-
-	require.Equal(t, fakeNode.Name, bpfAppState.Labels[internal.K8sHostLabel])
-
-	require.Equal(t, appProgramName, bpfAppState.Labels[internal.BpfAppStateOwner])
-
-	require.Equal(t, internal.ClBpfApplicationControllerFinalizer, bpfAppState.Finalizers[0])
-
-	// Do a second reconcile to make sure that the programs are loaded and attached.
-	r.Logger.Info("Second reconcile")
-	res, err = r.Reconcile(ctx, req)
-	require.NoError(t, err)
-
-	r.Logger.Info("Second reconcile", "res:", res, "err:", err)
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check if the BpfApplicationState Object was created successfully
-	bpfAppState2, err := r.getBpfAppState(ctx)
-	require.NoError(t, err)
-
-	// Make sure we got bpfAppState from the api server
-	require.NotEqual(t, nil, bpfAppState2)
-
-	require.Equal(t, 1, len(bpfAppState2.Status.Conditions))
-	require.Equal(t, string(bpfmaniov1alpha1.BpfAppStateCondSuccess), bpfAppState2.Status.Conditions[0].Type)
-
-	require.Equal(t, fakeNode.Name, bpfAppState2.Labels[internal.K8sHostLabel])
-
-	require.Equal(t, appProgramName, bpfAppState2.Labels[internal.BpfAppStateOwner])
-
-	require.Equal(t, internal.ClBpfApplicationControllerFinalizer, bpfAppState2.Finalizers[0])
-
-	for _, program := range bpfAppState2.Status.Programs {
-		r.Logger.Info("ProgramAttachStatus check", "program", program.Name, "status", program.ProgramLinkStatus)
+// verifyClusterBpfProgramState checks that all BPF programs in the application state have
+// successfully attached and that the number of programs matches the expected count.
+func verifyClusterBpfProgramState(t *testing.T, bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState,
+	programs []bpfmaniov1alpha1.ClBpfApplicationProgram) {
+	for _, program := range bpfAppState.Status.Programs {
 		require.Equal(t, bpfmaniov1alpha1.ProgAttachSuccess, program.ProgramLinkStatus)
 	}
-
-	// Do a 3rd reconcile and make sure it doesn't change
-	r.Logger.Info("Third reconcile")
-	res, err = r.Reconcile(ctx, req)
-	require.NoError(t, err)
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	r.Logger.Info("Third reconcile", "res:", res, "err:", err)
-
-	// Check if the BpfApplicationState Object was created successfully
-	bpfAppState3, err := r.getBpfAppState(ctx)
-	require.NoError(t, err)
-
-	// Make sure we got bpfAppState from the api server and didn't create a new
-	// one.
-	require.NotEqual(t, nil, bpfAppState3)
-
-	// Check that the bpfAppState was not updated
-	require.True(t, reflect.DeepEqual(bpfAppState2, bpfAppState3))
+	require.Equal(t, len(programs), len(bpfAppState.Status.Programs))
 }
