@@ -200,3 +200,11 @@ func registerBpfApplicationScheme(s *runtime.Scheme, isClusterScoped bool, bpfAp
 	}
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, bpfApp)
 }
+
+type MockNetNsCache map[string]*uint64
+
+func (mnnc MockNetNsCache) GetNetNsId(path string) *uint64 {
+	return mnnc[path]
+}
+
+func (mnnc MockNetNsCache) Reset() {}

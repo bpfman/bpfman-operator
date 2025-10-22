@@ -284,6 +284,7 @@ func createFakeNamespaceReconciler(objs []runtime.Object, bpfApp *bpfmaniov1alph
 		NodeName:     fakeNode.Name,
 		ourNode:      fakeNode,
 		Containers:   testContainers,
+		NetNsCache:   MockNetNsCache{"/host/proc/1000/ns/net": ptr.To(uint64(12345))},
 	}
 	r := &NsBpfApplicationReconciler{
 		ReconcilerCommon: rc,

@@ -313,6 +313,7 @@ func createFakeClusterReconciler(objs []runtime.Object, bpfApp *bpfmaniov1alpha1
 		BpfmanClient: cli,
 		NodeName:     fakeNode.Name,
 		ourNode:      fakeNode,
+		NetNsCache:   MockNetNsCache{"": ptr.To(uint64(12345))},
 	}
 	r := &ClBpfApplicationReconciler{
 		ReconcilerCommon: rc,
