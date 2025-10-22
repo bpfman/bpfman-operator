@@ -395,6 +395,7 @@ func main() {
 		NodeName:     nodeName,
 		Containers:   containerGetter,
 		Interfaces:   &sync.Map{},
+		NetNsCache:   &bpfmanagent.ReconcilerNetNsCache{},
 	}
 
 	if err = (&bpfmanagent.ClBpfApplicationReconciler{

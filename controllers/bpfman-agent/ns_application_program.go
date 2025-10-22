@@ -126,7 +126,7 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	r.Logger = ctrl.Log.WithName("namespace-app")
 	r.finalizer = internal.NsBpfApplicationControllerFinalizer
 	r.recType = internal.ApplicationString
-	r.NetnsCache = make(map[string]uint64)
+	r.NetNsCache.Reset()
 
 	r.Logger.Info("Enter BpfApplication Reconcile", "Name", req.Name)
 
