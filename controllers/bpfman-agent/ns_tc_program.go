@@ -177,7 +177,7 @@ func (r *NsTcProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha1
 }
 
 func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAttachInfoState) (*int, error) {
-	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
+	newNetnsId := r.NetNsCache.GetNetNsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -189,7 +189,7 @@ func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAtta
 			a.Direction == attachInfoState.Direction &&
 			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
+			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}
