@@ -23,6 +23,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
 )
@@ -96,7 +97,7 @@ func (r *NsXdpProgramReconciler) getNamespace() string {
 func (r *NsXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.XDPAttachInfo{
-		Priority:  r.currentLink.Priority,
+		Priority:  helpers.GetPriority(r.currentLink.Priority),
 		Iface:     r.currentLink.InterfaceName,
 		ProceedOn: xdpProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
@@ -174,7 +175,7 @@ func (r *NsXdpProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha
 }
 
 func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAttachInfoState) (*int, error) {
-	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
+	newNetnsId := r.NetNsCache.GetNetNsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -183,9 +184,9 @@ func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAt
 		// attachInfoState is the same as a if the the following fields are the
 		// same: InterfaceName, Priority, ProceedOn, and network namespace.
 		if a.InterfaceName == attachInfoState.InterfaceName &&
-			a.Priority == attachInfoState.Priority &&
+			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
+			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}
@@ -292,7 +293,7 @@ func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      attachInfo.Priority,
+					Priority:      helpers.GetPriorityPointer(attachInfo.Priority),
 					ProceedOn:     attachInfo.ProceedOn,
 				}
 				nodeLinks = append(nodeLinks, link)

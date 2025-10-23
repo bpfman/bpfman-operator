@@ -23,6 +23,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
 )
@@ -96,7 +97,7 @@ func (r *NsTcxProgramReconciler) getNamespace() string {
 func (r *NsTcxProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCXAttachInfo{
-		Priority:  r.currentLink.Priority,
+		Priority:  helpers.GetPriority(r.currentLink.Priority),
 		Iface:     r.currentLink.InterfaceName,
 		Direction: directionToStr(r.currentLink.Direction),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
@@ -175,7 +176,7 @@ func (r *NsTcxProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha
 }
 
 func (r *NsTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcxAttachInfoState) (*int, error) {
-	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
+	newNetnsId := r.NetNsCache.GetNetNsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -185,8 +186,8 @@ func (r *NsTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcxAt
 		// same: InterfaceName, Direction, Priority, and network namespace.
 		if a.InterfaceName == attachInfoState.InterfaceName &&
 			a.Direction == attachInfoState.Direction &&
-			a.Priority == attachInfoState.Priority &&
-			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
+			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
+			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}
@@ -293,7 +294,7 @@ func (r *NsTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      attachInfo.Priority,
+					Priority:      helpers.GetPriorityPointer(attachInfo.Priority),
 					Direction:     attachInfo.Direction,
 				}
 				nodeLinks = append(nodeLinks, link)

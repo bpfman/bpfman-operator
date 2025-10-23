@@ -74,7 +74,58 @@ type ReconcilerCommon struct {
 	Containers   ContainerGetter
 	ourNode      *v1.Node
 	Interfaces   *sync.Map
-	NetnsCache   map[string]uint64
+	NetNsCache   NetNsCache
+}
+
+type NetNsCache interface {
+	GetNetNsId(path string) *uint64
+	Reset()
+}
+
+type ReconcilerNetNsCache struct {
+	logger logr.Logger
+	cache  map[string]uint64
+}
+
+// GetNetnsId returns the network namespace ID from the given path. If the path
+// is empty, it defaults to "/host/proc/1/ns/net".  If the file is a hard link,
+// it returns the inode number of the file.  If the file is a soft link, it
+// returns the inode of the file linked. If the path is not valid or the
+// conversion to Stat_t fails, it returns nil.
+func (rnnc *ReconcilerNetNsCache) GetNetNsId(path string) *uint64 {
+	if path == "" {
+		rnnc.logger.V(1).Info("Enter getNetnsId: Path is empty.  Using /host/proc/1/ns/net")
+		path = "/host/proc/1/ns/net"
+	} else {
+		rnnc.logger.V(1).Info("Enter getNetnsId", "Path", path)
+	}
+
+	// If path is in the cache, return the cached value
+	if id, ok := rnnc.cache[path]; ok {
+		rnnc.logger.V(1).Info("Exit getNetnsId: Found in cache", "Path", path, "inode", id)
+		return &id
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		rnnc.logger.V(1).Info("Exit getNetnsId: Failed to stat file", "path", path, "error", err)
+		return nil
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		rnnc.logger.V(1).Info("Exit getNetnsId: Failed to convert to Stat_t", "path", path)
+		return nil
+	}
+
+	rnnc.cache[path] = stat.Ino
+	rnnc.logger.V(1).Info("Exit getNetnsId", "Path", path, "inode", stat.Ino)
+	return &stat.Ino
+}
+
+// Reset reinitializes the cache to an empty state.
+func (rnnc *ReconcilerNetNsCache) Reset() {
+	rnnc.cache = make(map[string]uint64)
 }
 
 // ApplicationReconciler is an interface that defines the methods needed to
@@ -608,40 +659,4 @@ func isInterfacesDiscoveryEnabled(interfaceSelector *bpfmaniov1alpha1.InterfaceS
 		return true
 	}
 	return false
-}
-
-// getNetnsId returns the network namespace ID from the given path. If the path
-// is empty, it defaults to "/host/proc/1/ns/net".  If the file is a hard link,
-// it returns the inode number of the file.  If the file is a soft link, it
-// returns the inode of the file linked. If the path is not valid or the
-// conversion to Stat_t fails, it returns nil.
-func (r *ReconcilerCommon) getNetnsId(path string) *uint64 {
-	if path == "" {
-		r.Logger.V(1).Info("Enter getNetnsId: Path is empty.  Using /host/proc/1/ns/net")
-		path = "/host/proc/1/ns/net"
-	} else {
-		r.Logger.V(1).Info("Enter getNetnsId", "Path", path)
-	}
-
-	// If path is in the cache, return the cached value
-	if id, ok := r.NetnsCache[path]; ok {
-		r.Logger.V(1).Info("Exit getNetnsId: Found in cache", "Path", path, "inode", id)
-		return &id
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		r.Logger.V(1).Info("Exit getNetnsId: Failed to stat file", "path", path, "error", err)
-		return nil
-	}
-
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		r.Logger.V(1).Info("Exit getNetnsId: Failed to convert to Stat_t", "path", path)
-		return nil
-	}
-
-	r.NetnsCache[path] = stat.Ino
-	r.Logger.V(1).Info("Exit getNetnsId", "Path", path, "inode", stat.Ino)
-	return &stat.Ino
 }
