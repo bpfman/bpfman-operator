@@ -179,7 +179,7 @@ func testMetricsProxySelfTest(ctx context.Context, t *testing.T, pod corev1.Pod,
 	cmd := []string{"env", "TOKEN=" + token, "/metrics-proxy", "test"}
 
 	var stdout, stderr bytes.Buffer
-	err := podExec(ctx, t, pod, &stdout, &stderr, cmd)
+	err := podExec(ctx, t, pod, "", &stdout, &stderr, cmd)
 
 	// For self-test, we expect exit code 0 for success, non-zero
 	// for failure. Parse the JSON regardless of exit code to get
@@ -244,7 +244,8 @@ func testMetricsProxySelfTest(ctx context.Context, t *testing.T, pod corev1.Pod,
 	t.Logf("All self-tests passed successfully on pod %s", pod.Name)
 }
 
-func podExec(ctx context.Context, t *testing.T, pod corev1.Pod, stdout, stderr *bytes.Buffer, cmd []string) error {
+// podExec executes a command in a pod's container and captures stdout/stderr output.
+func podExec(ctx context.Context, t *testing.T, pod corev1.Pod, container string, stdout, stderr *bytes.Buffer, cmd []string) error {
 	t.Helper()
 	kubeConfig, err := config.GetConfig()
 	if err != nil {
@@ -268,6 +269,9 @@ func podExec(ctx context.Context, t *testing.T, pod corev1.Pod, stdout, stderr *
 		Stdout:  true,
 		Stderr:  true,
 		TTY:     false,
+	}
+	if container != "" {
+		execOptions.Container = container
 	}
 
 	req.VersionedParams(execOptions, scheme.ParameterCodec)
