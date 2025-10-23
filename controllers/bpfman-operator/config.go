@@ -29,9 +29,11 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,7 +53,9 @@ import (
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=bpfman.io,resources=configs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 type BpfmanConfigReconciler struct {
 	ClusterApplicationReconciler
@@ -60,6 +64,7 @@ type BpfmanConfigReconciler struct {
 	CsiDriverDS          string
 	RestrictedSCC        string
 	IsOpenshift          bool
+	Recorder             record.EventRecorder
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -106,6 +111,14 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	// If we haven't added any conditions, yet, set them to unknown.
+	if len(bpfmanConfig.Status.Conditions) == 0 {
+		r.Logger.Info("Adding initial status conditions", "name", bpfmanConfig.Name)
+		if err := r.setStatusConditions(ctx, bpfmanConfig); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// Check if Config is being deleted first to prevent race
 	// conditions.
 	if !bpfmanConfig.DeletionTimestamp.IsZero() {
@@ -121,7 +134,7 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			r.Logger.Error(err, "Failed to add finalizer to Config")
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, r.setStatusConditions(ctx, bpfmanConfig)
 	}
 
 	// Normal reconciliation - safe to create/update resources.
@@ -145,7 +158,7 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.setStatusConditions(ctx, bpfmanConfig)
 }
 
 func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
@@ -223,6 +236,175 @@ func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bp
 	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS, func(existing, desired *appsv1.DaemonSet) bool {
 		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
 	})
+}
+
+// setStatusConditions checks the status of all Config components (ConfigMap, DaemonSets, CSIDriver, SCC)
+// and updates the Config's status.componentStatuses and status.conditions accordingly.
+// It emits Kubernetes events for status changes. After updating the status subresource, it re-fetches
+// the Config object to ensure the in-memory representation reflects the latest server state, including
+// any changes made by the API server (e.g., resource version updates).
+func (r *BpfmanConfigReconciler) setStatusConditions(ctx context.Context, config *v1alpha1.Config) error {
+	if config == nil {
+		return fmt.Errorf("object Config config is nil")
+	}
+	if r.Recorder == nil {
+		return fmt.Errorf("object Recorder is nil")
+	}
+
+	// Check each resource and set appropriate status.
+	statuses := make(map[string]v1alpha1.ConfigComponentStatus)
+	var err error
+	var status *v1alpha1.ConfigComponentStatus
+
+	cm := &corev1.ConfigMap{}
+	key := types.NamespacedName{Name: internal.BpfmanCmName, Namespace: config.Spec.Namespace}
+	if status, err = r.checkResourceStatus(ctx, cm, key, nil); err != nil {
+		return err
+	}
+	if status != nil {
+		statuses["ConfigMap"] = *status
+	}
+
+	ds := &appsv1.DaemonSet{}
+	key = types.NamespacedName{Name: internal.BpfmanDsName, Namespace: config.Spec.Namespace}
+	if status, err = r.checkResourceStatus(ctx, ds, key, isDaemonSetReady); err != nil {
+		return err
+	}
+	if status != nil {
+		statuses["DaemonSet"] = *status
+	}
+
+	metricsDS := &appsv1.DaemonSet{}
+	key = types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: config.Spec.Namespace}
+	if status, err = r.checkResourceStatus(ctx, metricsDS, key, isDaemonSetReady); err != nil {
+		return err
+	}
+	if status != nil {
+		statuses["MetricsProxyDaemonSet"] = *status
+	}
+
+	csiDriver := &storagev1.CSIDriver{}
+	key = types.NamespacedName{Name: internal.BpfmanCsiDriverName}
+	if status, err = r.checkResourceStatus(ctx, csiDriver, key, nil); err != nil {
+		return err
+	}
+	if status != nil {
+		statuses["CsiDriver"] = *status
+	}
+
+	if r.IsOpenshift {
+		scc := &osv1.SecurityContextConstraints{}
+		key = types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
+		if status, err = r.checkResourceStatus(ctx, scc, key, nil); err != nil {
+			return err
+		}
+		if status != nil {
+			statuses["Scc"] = *status
+		}
+	}
+
+	// If none of the components changed, do not update anything for the status.
+	if config.Status.Components != nil && internal.CCSEquals(statuses, config.Status.Components) {
+		return nil
+	}
+
+	// Set component statuses, first.
+	config.Status.Components = statuses
+
+	// Set conditions, next.
+	switch {
+	case internal.CCSAnyComponentProgressing(statuses, r.IsOpenshift):
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionFalse,
+			Reason:  internal.ConfigReasonProgressing,
+			Message: internal.ConfigMessageProgressing,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonProgressing, internal.ConfigMessageProgressing)
+	case internal.CCSAllComponentsReady(statuses, r.IsOpenshift):
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionTrue,
+			Reason:  internal.ConfigReasonAvailable,
+			Message: internal.ConfigMessageAvailable,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonAvailable, internal.ConfigMessageAvailable)
+	default:
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionProgressing,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		})
+		meta.SetStatusCondition(&config.Status.Conditions, metav1.Condition{
+			Type:    internal.ConfigConditionAvailable,
+			Status:  metav1.ConditionUnknown,
+			Reason:  internal.ConfigReasonUnknown,
+			Message: internal.ConfigMessageUnknown,
+		})
+		r.Recorder.Event(config, "Normal", internal.ConfigReasonUnknown, internal.ConfigMessageUnknown)
+	}
+
+	// Update the status.
+	if err := r.Status().Update(ctx, config); err != nil {
+		return fmt.Errorf("cannot update status for config %q, err: %w", config.Name, err)
+	}
+
+	// Update the object again (config is a pointer).
+	return r.Get(ctx, types.NamespacedName{Name: config.Name}, config)
+}
+
+// checkResourceStatus is a helper for setStatusConditions. It checks whether a given object (= resource) can be found
+// and if it's ready. It'll return a status (Unknown, Progressing, Ready) for the object or an error.
+func (r *BpfmanConfigReconciler) checkResourceStatus(ctx context.Context, obj client.Object, key types.NamespacedName,
+	readyCheck func(client.Object) bool) (*v1alpha1.ConfigComponentStatus, error) {
+	if err := r.Get(ctx, key, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return ptr.To(v1alpha1.ConfigStatusUnknown), nil
+		} else {
+			return nil, err
+		}
+	}
+	if readyCheck == nil || readyCheck(obj) {
+		return ptr.To(v1alpha1.ConfigStatusReady), nil
+	}
+	return ptr.To(v1alpha1.ConfigStatusProgressing), nil
+}
+
+// isDaemonSetReady returns true if we consider the DaemonSet to be ready.
+// We consider a DaemonSet to be ready when:
+// a) the DesiredNumberScheduled is > 0. For example, if a DaemonSet's node selector matches 0 nodes, we consider that
+// it isn't ready.
+// b) We check UpdatedNumberScheduled and NumberAvailable, the same as in
+// https://github.com/kubernetes/kubernetes/blob/ad82c3d39f5e9f21e173ffeb8aa57953a0da4601/staging/src/k8s.io/kubectl/pkg/polymorphichelpers/rollout_status.go#L95
+// c) In addition, we check that NumberReady matches DesiredNumberScheduled.
+func isDaemonSetReady(obj client.Object) bool {
+	daemon := obj.(*appsv1.DaemonSet)
+	if daemon.Status.DesiredNumberScheduled <= 0 {
+		return false
+	}
+	if daemon.Status.UpdatedNumberScheduled < daemon.Status.DesiredNumberScheduled {
+		return false
+	}
+	if daemon.Status.NumberAvailable < daemon.Status.DesiredNumberScheduled {
+		return false
+	}
+	if daemon.Status.NumberReady < daemon.Status.DesiredNumberScheduled {
+		return false
+	}
+	return true
 }
 
 // resourcePredicate creates a predicate that filters events based on resource name.
@@ -431,9 +613,12 @@ func (r *BpfmanConfigReconciler) handleDeletion(ctx context.Context, config *v1a
 	return ctrl.Result{}, nil
 }
 
-func healthProbeAddress(healthProbePort int) string {
-	if healthProbePort <= 0 || healthProbePort > 65535 {
+func healthProbeAddress(healthProbePort int32) string {
+	if healthProbePort < 0 || healthProbePort > 65535 {
 		return ""
+	}
+	if healthProbePort == 0 {
+		healthProbePort = internal.DefaultHealthProbePort
 	}
 	return fmt.Sprintf(":%d", healthProbePort)
 }
