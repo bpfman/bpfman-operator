@@ -29,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -207,11 +209,35 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
 	s.AddKnownTypes(osv1.GroupVersion, &osv1.SecurityContextConstraints{})
 
-	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
+
+	// Create an interceptor that fakes Server-Side Apply Patch calls.
+	// This is needed until the upgrade to a version of sigs.k8s.io/controller-runtime/pkg/client/fake that fully
+	// supports r.Patch(..., client.Apply, ...) and/or r.Apply().
+	// See: https://github.com/kubernetes-sigs/controller-runtime/issues/2341#issuecomment-1560118000
+	//      https://github.com/kubernetes/kubernetes/issues/115598
+	fns := interceptor.Funcs{
+		Patch: func(ctx context.Context, c client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+			if patch.Type() != types.ApplyPatchType {
+				return c.Patch(ctx, obj, patch, opts...)
+			}
+			existing, ok := obj.DeepCopyObject().(client.Object)
+			if !ok {
+				return fmt.Errorf("could not check for object in fake client")
+			}
+			if err := c.Get(ctx, client.ObjectKeyFromObject(obj), existing); errors.IsNotFound(err) {
+				if err := c.Create(ctx, existing); err != nil {
+					return fmt.Errorf("could not create object: %w", err)
+				}
+			}
+			obj.SetResourceVersion(existing.GetResourceVersion())
+			return c.Update(ctx, obj)
+		},
+	}
+
+	// Create a fake client to mock API calls.
+	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).WithInterceptorFuncs(fns).Build()
 
 	rc := ReconcilerCommon[v1alpha1.ClusterBpfApplicationState, v1alpha1.ClusterBpfApplicationStateList]{
 		Client: cl,
