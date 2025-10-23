@@ -18,6 +18,7 @@ package bpfmanagent
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -25,6 +26,7 @@ import (
 	agenttestutils "github.com/bpfman/bpfman-operator/controllers/bpfman-agent/internal/test-utils"
 	"github.com/bpfman/bpfman-operator/internal"
 	testutils "github.com/bpfman/bpfman-operator/internal/test-utils"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -82,6 +84,8 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 			bpfmaniov1alpha1.XdpProceedOnValue("pass"),
 			bpfmaniov1alpha1.XdpProceedOnValue("dispatcher_return"),
 		}
+		tcProceedOn = []bpfmaniov1alpha1.TcProceedOnValue{bpfmaniov1alpha1.TcProceedOnValue("ok"),
+			bpfmaniov1alpha1.TcProceedOnValue("shot")}
 		ctx = context.TODO()
 	)
 
@@ -233,6 +237,147 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 				},
 			},
 		},
+		{
+			testName: "link priority test XDP",
+			programs: []bpfmaniov1alpha1.ClBpfApplicationProgram{
+				// XDP Program
+				{
+					Name: fmt.Sprintf("%s-%d", testXdpBpfFunctionName, 0),
+					Type: bpfmaniov1alpha1.ProgTypeXDP,
+					XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
+						Links: []bpfmaniov1alpha1.ClXdpAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          nil, // nil priority should yield 1000.
+								ProceedOn:         proceedOn,
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testXdpBpfFunctionName, 1),
+					Type: bpfmaniov1alpha1.ProgTypeXDP,
+					XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
+						Links: []bpfmaniov1alpha1.ClXdpAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(999)),
+								ProceedOn:         proceedOn,
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testXdpBpfFunctionName, 2),
+					Type: bpfmaniov1alpha1.ProgTypeXDP,
+					XDP: &bpfmaniov1alpha1.ClXdpProgramInfo{
+						Links: []bpfmaniov1alpha1.ClXdpAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(0)), // 0 priority should be allowed.
+								ProceedOn:         proceedOn,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "link priority test TC",
+			programs: []bpfmaniov1alpha1.ClBpfApplicationProgram{
+				// TC Program
+				{
+					Name: fmt.Sprintf("%s-%d", testTcBpfFunctionName, 0),
+					Type: bpfmaniov1alpha1.ProgTypeTC,
+					TC: &bpfmaniov1alpha1.ClTcProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          nil, // nil priority should yield 1000.
+								ProceedOn:         tcProceedOn,
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testTcBpfFunctionName, 1),
+					Type: bpfmaniov1alpha1.ProgTypeTC,
+					TC: &bpfmaniov1alpha1.ClTcProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(999)),
+								ProceedOn:         tcProceedOn,
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testTcBpfFunctionName, 2),
+					Type: bpfmaniov1alpha1.ProgTypeTC,
+					TC: &bpfmaniov1alpha1.ClTcProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(0)), // 0 priority should be allowed.
+								ProceedOn:         tcProceedOn,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "link priority test TCX",
+			programs: []bpfmaniov1alpha1.ClBpfApplicationProgram{
+				// TCX Program
+				{
+					Name: fmt.Sprintf("%s-%d", testTcxBpfFunctionName, 0),
+					Type: bpfmaniov1alpha1.ProgTypeTCX,
+					TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcxAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          nil, // nil priority should yield 1000.
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testTcxBpfFunctionName, 1),
+					Type: bpfmaniov1alpha1.ProgTypeTCX,
+					TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcxAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(999)),
+							},
+						},
+					},
+				},
+				{
+					Name: fmt.Sprintf("%s-%d", testTcxBpfFunctionName, 2),
+					Type: bpfmaniov1alpha1.ProgTypeTCX,
+					TCX: &bpfmaniov1alpha1.ClTcxProgramInfo{
+						Links: []bpfmaniov1alpha1.ClTcxAttachInfo{
+							{
+								InterfaceSelector: interfaceSelector,
+								NetworkNamespaces: nil,
+								Priority:          ptr.To(int32(0)), // 0 priority should be allowed.
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -325,8 +470,34 @@ func createFakeClusterReconciler(objs []runtime.Object, bpfApp *bpfmaniov1alpha1
 // successfully attached and that the number of programs matches the expected count.
 func verifyClusterBpfProgramState(t *testing.T, bpfAppState *bpfmaniov1alpha1.ClusterBpfApplicationState,
 	programs []bpfmaniov1alpha1.ClBpfApplicationProgram) {
+	require.Equal(t, len(programs), len(bpfAppState.Status.Programs))
+
+	numMatches := 0
 	for _, program := range bpfAppState.Status.Programs {
 		require.Equal(t, bpfmaniov1alpha1.ProgAttachSuccess, program.ProgramLinkStatus)
+		for _, expectedProgram := range programs {
+			if program.Name != expectedProgram.Name {
+				continue
+			}
+			switch {
+			case program.XDP != nil:
+				require.NotNil(t, program.XDP.Links[0].Priority)
+				if *program.XDP.Links[0].Priority != helpers.GetPriority(expectedProgram.XDP.Links[0].Priority) {
+					continue
+				}
+			case program.TC != nil:
+				require.NotNil(t, program.TC.Links[0].Priority)
+				if *program.TC.Links[0].Priority != helpers.GetPriority(expectedProgram.TC.Links[0].Priority) {
+					continue
+				}
+			case program.TCX != nil:
+				require.NotNil(t, program.TCX.Links[0].Priority)
+				if *program.TCX.Links[0].Priority != helpers.GetPriority(expectedProgram.TCX.Links[0].Priority) {
+					continue
+				}
+			}
+			numMatches++
+		}
 	}
-	require.Equal(t, len(programs), len(bpfAppState.Status.Programs))
+	require.Equal(t, len(programs), numMatches)
 }
