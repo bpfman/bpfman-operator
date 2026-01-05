@@ -30,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -150,10 +152,6 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 func (r *BpfmanConfigReconciler) reconcileCM(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
 	cm := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      internal.BpfmanCmName,
 			Namespace: bpfmanConfig.Spec.Namespace,
@@ -380,9 +378,10 @@ func load[T client.Object](t T, path, name string) (T, error) {
 // Creates the resource if it doesn't exist, otherwise updates it to match the desired state.
 func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconciler,
 	bpfmanConfig *v1alpha1.Config, resource T, needsUpdate func(existing T, desired T) bool) error {
-	if isOverridden(resource, bpfmanConfig.Spec.Overrides) {
-		r.Logger.Info("Ignoring object (override in place)",
-			"type", resource.GetObjectKind(), "namespace", resource.GetNamespace(), "name", resource.GetName())
+	if isOverridden(resource, bpfmanConfig.Spec.Overrides, r.Scheme) {
+		r.Logger.Info("Skipping unmanaged resource (override in place)",
+			"kind", resource.GetObjectKind().GroupVersionKind().Kind,
+			"namespace", resource.GetNamespace(), "name", resource.GetName())
 		return nil
 	}
 
@@ -424,12 +423,32 @@ func assureResource[T client.Object](ctx context.Context, r *BpfmanConfigReconci
 	return nil
 }
 
-// isOverridden determines if a given object shall be unmanaged.
-func isOverridden(resource client.Object, overrides []v1alpha1.ComponentOverride) bool {
+// isOverridden determines if a given object shall be unmanaged by checking
+// against the configured overrides. It uses the scheme to reliably resolve
+// the GVK for the resource, rather than relying on the object's TypeMeta
+// which may not be populated for in-memory objects.
+func isOverridden(resource client.Object, overrides []v1alpha1.ComponentOverride, scheme *runtime.Scheme) bool {
+	// Resolve GVK via the scheme - this is reliable even for objects
+	// constructed in code that don't have TypeMeta populated.
+	gvks, _, err := scheme.ObjectKinds(resource)
+	if err != nil || len(gvks) == 0 {
+		return false
+	}
+	resourceGVK := gvks[0]
+
 	for _, override := range overrides {
-		if override.Unmanaged &&
-			override.Kind == resource.GetObjectKind().GroupVersionKind().Kind &&
-			override.Group == resource.GetObjectKind().GroupVersionKind().Group &&
+		if !override.Unmanaged {
+			continue
+		}
+
+		// Parse the apiVersion from the override (e.g., "apps/v1" or "v1")
+		overrideGV, err := schema.ParseGroupVersion(override.APIVersion)
+		if err != nil {
+			continue
+		}
+
+		if override.Kind == resourceGVK.Kind &&
+			overrideGV.Group == resourceGVK.Group &&
 			override.Namespace == resource.GetNamespace() &&
 			override.Name == resource.GetName() {
 			return true

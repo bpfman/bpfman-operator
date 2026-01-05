@@ -58,12 +58,14 @@ type ConfigSpec struct {
 	// deployed.
 	Namespace string `json:"namespace,omitempty"`
 
-	// overrides is list of overides for components that are managed by
-	// the operator. Marking a component unmanaged will prevent
-	// the operator from creating or updating the object.
+	// overrides is a list of overrides for components that are managed by
+	// the operator. Marking a component as unmanaged will prevent
+	// the operator from creating or updating the object. This is intended
+	// as a debug/escape hatch for advanced users who need to customise
+	// specific resources without operator interference.
 	// +listType=map
 	// +listMapKey=kind
-	// +listMapKey=group
+	// +listMapKey=apiVersion
 	// +listMapKey=namespace
 	// +listMapKey=name
 	// +optional
@@ -106,27 +108,34 @@ type ConfigList struct {
 	Items           []Config `json:"items"`
 }
 
-// ComponentOverride allows overriding the operator's behavior for a component.
+// ComponentOverride allows overriding the operator's behaviour for a component.
+// This is a debug/escape hatch feature. When a component is marked as unmanaged,
+// the operator will completely stop reconciling it: no creates, updates, or
+// recreates if deleted.
 // +k8s:deepcopy-gen=true
 type ComponentOverride struct {
-	// kind indentifies which object to override.
+	// apiVersion identifies the API group and version of the resource,
+	// e.g., "apps/v1" for DaemonSets or "v1" for core resources like ConfigMaps.
+	// This matches the apiVersion field in Kubernetes manifests.
+	// +required
+	APIVersion string `json:"apiVersion"`
+
+	// kind identifies which object to override, e.g., "DaemonSet", "ConfigMap".
 	// +required
 	Kind string `json:"kind"`
-	// group identifies the API group that the kind is in.
-	// +required
-	Group string `json:"group"`
 
-	// namespace is the component's namespace. If the resource is cluster
-	// scoped, the namespace should be empty.
+	// namespace is the component's namespace. For cluster-scoped resources,
+	// this should be empty.
 	// +required
 	Namespace string `json:"namespace"`
+
 	// name is the component's name.
 	// +required
 	Name string `json:"name"`
 
-	// unmanaged controls if cluster version operator should stop managing the
-	// resources in this cluster.
-	// Default: false
+	// unmanaged controls whether the operator should stop managing this
+	// resource. When true, the operator will not create, update, or recreate
+	// this resource.
 	// +required
 	Unmanaged bool `json:"unmanaged"`
 }
