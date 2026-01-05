@@ -81,36 +81,44 @@ spec:
                 type: string
               overrides:
                 description: |-
-                  overrides is list of overides for components that are managed by
-                  the operator. Marking a component unmanaged will prevent
-                  the operator from creating or updating the object.
+                  overrides is a list of overrides for components that are managed by
+                  the operator. Marking a component as unmanaged will prevent
+                  the operator from creating or updating the object. This is intended
+                  as a debug/escape hatch for advanced users who need to customise
+                  specific resources without operator interference.
                 items:
-                  description: ComponentOverride allows overriding the operator's
-                    behavior for a component.
+                  description: |-
+                    ComponentOverride allows overriding the operator's behaviour for a component.
+                    This is a debug/escape hatch feature. When a component is marked as unmanaged,
+                    the operator will completely stop reconciling it: no creates, updates, or
+                    recreates if deleted.
                   properties:
-                    group:
-                      description: group identifies the API group that the kind is
-                        in.
+                    apiVersion:
+                      description: |-
+                        apiVersion identifies the API group and version of the resource,
+                        e.g., "apps/v1" for DaemonSets or "v1" for core resources like ConfigMaps.
+                        This matches the apiVersion field in Kubernetes manifests.
                       type: string
                     kind:
-                      description: kind indentifies which object to override.
+                      description: kind identifies which object to override, e.g.,
+                        "DaemonSet", "ConfigMap".
                       type: string
                     name:
                       description: name is the component's name.
                       type: string
                     namespace:
                       description: |-
-                        namespace is the component's namespace. If the resource is cluster
-                        scoped, the namespace should be empty.
+                        namespace is the component's namespace. For cluster-scoped resources,
+                        this should be empty.
                       type: string
                     unmanaged:
                       description: |-
-                        unmanaged controls if cluster version operator should stop managing the
-                        resources in this cluster.
-                        Default: false
+                        unmanaged controls whether the operator should stop managing this
+                        resource. When true, the operator will not create, update, or recreate
+                        this resource.
                       type: boolean
                   required:
-                  - group
+                  - apiVersion
                   - kind
                   - name
                   - namespace
@@ -119,7 +127,7 @@ spec:
                 type: array
                 x-kubernetes-list-map-keys:
                 - kind
-                - group
+                - apiVersion
                 - namespace
                 - name
                 x-kubernetes-list-type: map
