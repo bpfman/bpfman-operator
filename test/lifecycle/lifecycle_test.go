@@ -6,6 +6,7 @@ package lifecycle
 import (
 	"context"
 	"fmt"
+	"os"
 	"slices"
 	"testing"
 	"time"
@@ -42,6 +43,19 @@ const (
 	fieldOwner   = "lifecycle-test"
 )
 
+// Image defaults - overridden by environment variables in CI.
+var (
+	bpfmanImage      = getEnvOrDefault("BPFMAN_IMG", "quay.io/bpfman/bpfman:latest")
+	bpfmanAgentImage = getEnvOrDefault("BPFMAN_AGENT_IMG", "quay.io/bpfman/bpfman-agent:latest")
+)
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultValue
+}
+
 // Create new Config with modified settings
 var (
 	newConfig = &v1alpha1.Config{
@@ -57,13 +71,13 @@ millisec_delay = 10000
 allow_unsigned = true
 verify_enabled = true`,
 			Agent: v1alpha1.AgentSpec{
-				Image:           "quay.io/bpfman/bpfman-agent:latest",
+				Image:           bpfmanAgentImage,
 				LogLevel:        "debug", // Changed from info to debug
 				HealthProbePort: 8175,
 			},
 			Daemon: v1alpha1.DaemonSpec{
-				Image:    "quay.io/bpfman/bpfman:latest",
-				LogLevel: "bpfman=info", // Changed from debug to info
+				Image:    bpfmanImage,
+				LogLevel: "bpfman=info",
 			},
 		},
 	}
@@ -654,7 +668,7 @@ func waitUntilCondition(ctx context.Context, conditionFunc func() (bool, error))
 	for {
 		select {
 		case <-timeoutCTX.Done():
-			return fmt.Errorf("timeout or context cancelled waiting for resource deletion: %w", ctx.Err())
+			return fmt.Errorf("timeout or context cancelled: %w", timeoutCTX.Err())
 		case <-ticker.C:
 			b, err := conditionFunc()
 			if err != nil {
