@@ -271,6 +271,14 @@ func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config
 	staticBpfmanDS.Name = internal.BpfmanDsName
 	staticBpfmanDS.Namespace = config.Spec.Namespace
 	staticBpfmanDS.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	// Update init container images
+	for cindex, container := range staticBpfmanDS.Spec.Template.Spec.InitContainers {
+		if container.Name == internal.BpfmanInitContainerName {
+			staticBpfmanDS.Spec.Template.Spec.InitContainers[cindex].Image = config.Spec.Agent.Image
+		}
+	}
+
 	for cindex, container := range staticBpfmanDS.Spec.Template.Spec.Containers {
 		switch container.Name {
 		case internal.BpfmanContainerName:
