@@ -41,15 +41,8 @@ spec:
       ## in kind so mount it if needed.
       initContainers:
         - name: mount-bpffs
-          image: quay.io/fedora/fedora-minimal:39
-          command:
-            - /bin/sh
-            - -xc
-            - |
-              #!/bin/sh
-              if ! /usr/bin/findmnt --noheadings --types bpf /sys/fs/bpf >/dev/null 2>&1; then
-                /bin/mount bpffs /sys/fs/bpf -t bpf
-              fi
+          image: quay.io/bpfman/bpfman-agent:latest
+          command: ["/bpfman-agent", "--mount-bpffs"]
           securityContext:
             privileged: true
             runAsUser: 0
