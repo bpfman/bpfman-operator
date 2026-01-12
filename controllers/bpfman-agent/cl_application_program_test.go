@@ -481,18 +481,15 @@ func verifyClusterBpfProgramState(t *testing.T, bpfAppState *bpfmaniov1alpha1.Cl
 			}
 			switch {
 			case program.XDP != nil:
-				require.NotNil(t, program.XDP.Links[0].Priority)
-				if *program.XDP.Links[0].Priority != helpers.GetPriority(expectedProgram.XDP.Links[0].Priority) {
+				if program.XDP.Links[0].Priority != helpers.GetPriority(expectedProgram.XDP.Links[0].Priority) {
 					continue
 				}
 			case program.TC != nil:
-				require.NotNil(t, program.TC.Links[0].Priority)
-				if *program.TC.Links[0].Priority != helpers.GetPriority(expectedProgram.TC.Links[0].Priority) {
+				if program.TC.Links[0].Priority != helpers.GetPriority(expectedProgram.TC.Links[0].Priority) {
 					continue
 				}
 			case program.TCX != nil:
-				require.NotNil(t, program.TCX.Links[0].Priority)
-				if *program.TCX.Links[0].Priority != helpers.GetPriority(expectedProgram.TCX.Links[0].Priority) {
+				if program.TCX.Links[0].Priority != helpers.GetPriority(expectedProgram.TCX.Links[0].Priority) {
 					continue
 				}
 			}

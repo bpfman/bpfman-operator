@@ -287,36 +287,33 @@ func getClusterBpfApplicationStateLinks(t *testing.T, appState v1alpha1.ClusterB
 			// Extract XDP program links.
 			for _, l := range program.XDP.Links {
 				require.NotNil(t, l.LinkId)
-				require.NotNil(t, l.Priority)
 				links = append(links, link{
 					linkId:        *l.LinkId,
 					interfaceName: l.InterfaceName,
 					netnsPath:     l.NetnsPath,
-					priority:      *l.Priority,
+					priority:      l.Priority,
 				})
 			}
 		case v1alpha1.ProgTypeTC:
 			// Extract TC program links.
 			for _, l := range program.TC.Links {
 				require.NotNil(t, l.LinkId)
-				require.NotNil(t, l.Priority)
 				links = append(links, link{
 					linkId:        *l.LinkId,
 					interfaceName: l.InterfaceName,
 					netnsPath:     l.NetnsPath,
-					priority:      *l.Priority,
+					priority:      l.Priority,
 				})
 			}
 		case v1alpha1.ProgTypeTCX:
 			// Extract TCX program links.
 			for _, l := range program.TCX.Links {
 				require.NotNil(t, l.LinkId)
-				require.NotNil(t, l.Priority)
 				links = append(links, link{
 					linkId:        *l.LinkId,
 					interfaceName: l.InterfaceName,
 					netnsPath:     l.NetnsPath,
-					priority:      *l.Priority,
+					priority:      l.Priority,
 				})
 			}
 		}
