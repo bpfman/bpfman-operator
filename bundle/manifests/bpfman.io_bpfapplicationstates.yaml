@@ -275,6 +275,7 @@ spec:
                             - interfaceName
                             - linkStatus
                             - netnsPath
+                            - priority
                             - proceedOn
                             - shouldAttach
                             - uuid
@@ -345,6 +346,7 @@ spec:
                             - interfaceName
                             - linkStatus
                             - netnsPath
+                            - priority
                             - shouldAttach
                             - uuid
                             type: object
@@ -596,6 +598,7 @@ spec:
                             - interfaceName
                             - linkStatus
                             - netnsPath
+                            - priority
                             - proceedOn
                             - shouldAttach
                             - uuid
