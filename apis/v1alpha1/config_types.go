@@ -56,9 +56,6 @@ type ConfigSpec struct {
 
 // DaemonSpec defines the desired state of the bpfman daemon.
 type DaemonSpec struct {
-	// BpffsInitImage holds the image for the init container that mounts bpffs.
-	// +optional
-	BpffsInitImage string `json:"bpffsInitImage,omitempty"`
 	// CsiRegistrarImage holds the image for the CSI node driver registrar
 	// sidecar container.
 	// +optional
