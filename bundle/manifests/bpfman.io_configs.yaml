@@ -70,10 +70,6 @@ spec:
               daemon:
                 description: Daemon holds the configuration for the bpfman daemon.
                 properties:
-                  bpffsInitImage:
-                    description: BpffsInitImage holds the image for the init container
-                      that mounts bpffs.
-                    type: string
                   csiRegistrarImage:
                     description: |-
                       CsiRegistrarImage holds the image for the CSI node driver registrar
