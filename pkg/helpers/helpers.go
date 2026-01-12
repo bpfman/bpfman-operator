@@ -25,7 +25,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -196,13 +195,4 @@ func GetPriority(priority *int32) int32 {
 		return defaultPriority
 	}
 	return *priority
-}
-
-// GetPriorityPointer reads a priority value. If priority is nil, return a pointer to the default value (1000).
-// Otherwise, return the pointer itself.
-func GetPriorityPointer(priority *int32) *int32 {
-	if priority == nil {
-		return ptr.To(int32(defaultPriority))
-	}
-	return priority
 }
