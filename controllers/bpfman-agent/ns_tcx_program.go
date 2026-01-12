@@ -97,7 +97,7 @@ func (r *NsTcxProgramReconciler) getNamespace() string {
 func (r *NsTcxProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.TCXAttachInfo{
-		Priority:  helpers.GetPriority(r.currentLink.Priority),
+		Priority:  r.currentLink.Priority,
 		Iface:     r.currentLink.InterfaceName,
 		Direction: directionToStr(r.currentLink.Direction),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
@@ -186,7 +186,7 @@ func (r *NsTcxProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcxAt
 		// same: InterfaceName, Direction, Priority, and network namespace.
 		if a.InterfaceName == attachInfoState.InterfaceName &&
 			a.Direction == attachInfoState.Direction &&
-			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
+			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
@@ -294,7 +294,7 @@ func (r *NsTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      helpers.GetPriorityPointer(attachInfo.Priority),
+					Priority:      helpers.GetPriority(attachInfo.Priority),
 					Direction:     attachInfo.Direction,
 				}
 				nodeLinks = append(nodeLinks, link)

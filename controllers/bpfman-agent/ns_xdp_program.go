@@ -97,7 +97,7 @@ func (r *NsXdpProgramReconciler) getNamespace() string {
 func (r *NsXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.XDPAttachInfo{
-		Priority:  helpers.GetPriority(r.currentLink.Priority),
+		Priority:  r.currentLink.Priority,
 		Iface:     r.currentLink.InterfaceName,
 		ProceedOn: xdpProceedOnToInt(r.currentLink.ProceedOn),
 		Metadata:  map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
@@ -184,7 +184,7 @@ func (r *NsXdpProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.XdpAt
 		// attachInfoState is the same as a if the the following fields are the
 		// same: InterfaceName, Priority, ProceedOn, and network namespace.
 		if a.InterfaceName == attachInfoState.InterfaceName &&
-			helpers.GetPriority(a.Priority) == helpers.GetPriority(attachInfoState.Priority) &&
+			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
 			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
@@ -293,7 +293,7 @@ func (r *NsXdpProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      helpers.GetPriorityPointer(attachInfo.Priority),
+					Priority:      helpers.GetPriority(attachInfo.Priority),
 					ProceedOn:     attachInfo.ProceedOn,
 				}
 				nodeLinks = append(nodeLinks, link)
