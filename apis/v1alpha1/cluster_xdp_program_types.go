@@ -106,7 +106,7 @@ type ClXdpAttachInfoState struct {
 	// +required
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=1000
-	Priority *int32 `json:"priority,omitempty"`
+	Priority int32 `json:"priority"`
 
 	// proceedOn is the provisioned list of proceedOn values. proceedOn allows the
 	// user to call other TC programs in a chain, or not call the next program in a

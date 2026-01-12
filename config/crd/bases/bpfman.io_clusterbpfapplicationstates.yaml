@@ -478,6 +478,7 @@ spec:
                             - direction
                             - interfaceName
                             - linkStatus
+                            - priority
                             - proceedOn
                             - shouldAttach
                             - uuid
@@ -547,6 +548,7 @@ spec:
                             - direction
                             - interfaceName
                             - linkStatus
+                            - priority
                             - shouldAttach
                             - uuid
                             type: object
@@ -870,6 +872,7 @@ spec:
                             required:
                             - interfaceName
                             - linkStatus
+                            - priority
                             - proceedOn
                             - shouldAttach
                             - uuid
