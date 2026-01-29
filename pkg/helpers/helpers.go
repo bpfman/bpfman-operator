@@ -21,7 +21,6 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanclientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -33,11 +32,12 @@ import (
 type ProgramType int32
 
 const (
-	Kprobe     ProgramType = 2
-	Tc         ProgramType = 3
-	Tracepoint ProgramType = 5
-	Xdp        ProgramType = 6
-	Tracing    ProgramType = 26
+	Kprobe          ProgramType = 2
+	Tc              ProgramType = 3
+	Tracepoint      ProgramType = 5
+	Xdp             ProgramType = 6
+	Tracing         ProgramType = 26
+	defaultPriority             = 1000
 )
 
 func (p ProgramType) Uint32() *uint32 {
@@ -186,4 +186,13 @@ func IsBpfAppStateConditionPending(conditions []metav1.Condition) bool {
 	}
 
 	return conditions[0].Type == string(bpfmaniov1alpha1.BpfAppCondPending)
+}
+
+// GetPriority reads a priority value. If priority is nil, return the default value (1000). Otherwise, return the value
+// behind the pointer.
+func GetPriority(priority *int32) int32 {
+	if priority == nil {
+		return defaultPriority
+	}
+	return *priority
 }

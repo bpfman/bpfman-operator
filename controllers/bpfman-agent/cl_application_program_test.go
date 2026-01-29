@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -127,7 +128,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 	xdpAttachInfo := bpfmaniov1alpha1.ClXdpAttachInfo{
 		InterfaceSelector: interfaceSelector,
 		NetworkNamespaces: nil,
-		Priority:          int32(priority),
+		Priority:          ptr.To(int32(priority)),
 		ProceedOn:         proceedOn,
 	}
 	xdpProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
@@ -243,7 +244,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		InterfaceSelector: interfaceSelector,
 		NetworkNamespaces: nil,
 		Direction:         direction,
-		Priority:          int32(priority),
+		Priority:          ptr.To(int32(priority)),
 	}
 	tcProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tcBpfFunctionName,
@@ -258,7 +259,7 @@ func TestClBpfApplicationControllerCreate(t *testing.T) {
 		InterfaceSelector: interfaceSelector,
 		NetworkNamespaces: nil,
 		Direction:         "ingress",
-		Priority:          int32(priority),
+		Priority:          ptr.To(int32(priority)),
 	}
 	tcxProgram := bpfmaniov1alpha1.ClBpfApplicationProgram{
 		Name: tcxBpfFunctionName,

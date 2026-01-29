@@ -23,6 +23,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
 )
@@ -293,7 +294,7 @@ func (r *NsTcxProgramReconciler) getExpectedLinks(ctx context.Context, attachInf
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      attachInfo.Priority,
+					Priority:      helpers.GetPriority(attachInfo.Priority),
 					Direction:     attachInfo.Direction,
 				}
 				nodeLinks = append(nodeLinks, link)
