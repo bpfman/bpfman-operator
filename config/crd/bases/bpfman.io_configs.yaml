@@ -90,6 +90,58 @@ spec:
                   Namespace holds the namespace where bpfman-operator resources shall be
                   deployed.
                 type: string
+              overrides:
+                description: |-
+                  overrides is a list of overrides for components that are managed by
+                  the operator. Marking a component as unmanaged will prevent
+                  the operator from creating or updating the object. This is intended
+                  as a debug/escape hatch for advanced users who need to customise
+                  specific resources without operator interference.
+                items:
+                  description: |-
+                    ComponentOverride allows overriding the operator's behaviour for a component.
+                    This is a debug/escape hatch feature. When a component is marked as unmanaged,
+                    the operator will completely stop reconciling it: no creates, updates, or
+                    recreates if deleted.
+                  properties:
+                    apiVersion:
+                      description: |-
+                        apiVersion identifies the API group and version of the resource,
+                        e.g., "apps/v1" for DaemonSets or "v1" for core resources like ConfigMaps.
+                        This matches the apiVersion field in Kubernetes manifests.
+                      type: string
+                    kind:
+                      description: kind identifies which object to override, e.g.,
+                        "DaemonSet", "ConfigMap".
+                      type: string
+                    name:
+                      description: name is the component's name.
+                      type: string
+                    namespace:
+                      description: |-
+                        namespace is the component's namespace. For cluster-scoped resources,
+                        this should be empty.
+                      type: string
+                    unmanaged:
+                      description: |-
+                        unmanaged controls whether the operator should stop managing this
+                        resource. When true, the operator will not create, update, or recreate
+                        this resource.
+                      type: boolean
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  - namespace
+                  - unmanaged
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - kind
+                - apiVersion
+                - namespace
+                - name
+                x-kubernetes-list-type: map
             required:
             - configuration
             type: object

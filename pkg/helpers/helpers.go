@@ -21,7 +21,6 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanclientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -186,4 +185,13 @@ func IsBpfAppStateConditionPending(conditions []metav1.Condition) bool {
 	}
 
 	return conditions[0].Type == string(bpfmaniov1alpha1.BpfAppCondPending)
+}
+
+// GetPriority reads a priority value. If priority is nil, return
+// DefaultAttachPriority. Otherwise, return the value behind the pointer.
+func GetPriority(priority *int32) int32 {
+	if priority == nil {
+		return bpfmaniov1alpha1.DefaultAttachPriority
+	}
+	return *priority
 }
