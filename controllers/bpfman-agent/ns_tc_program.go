@@ -23,6 +23,7 @@ import (
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	internal "github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/google/uuid"
 )
@@ -176,7 +177,7 @@ func (r *NsTcProgramReconciler) printAttachInfo(attachInfoState bpfmaniov1alpha1
 }
 
 func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAttachInfoState) (*int, error) {
-	newNetnsId := r.getNetnsId(attachInfoState.NetnsPath)
+	newNetnsId := r.NetNsCache.GetNetNsId(attachInfoState.NetnsPath)
 	if newNetnsId == nil {
 		return nil, fmt.Errorf("failed to get netnsId for path %s", attachInfoState.NetnsPath)
 	}
@@ -188,7 +189,7 @@ func (r *NsTcProgramReconciler) findLink(attachInfoState bpfmaniov1alpha1.TcAtta
 			a.Direction == attachInfoState.Direction &&
 			a.Priority == attachInfoState.Priority &&
 			reflect.DeepEqual(a.ProceedOn, attachInfoState.ProceedOn) &&
-			reflect.DeepEqual(r.getNetnsId(a.NetnsPath), newNetnsId) {
+			reflect.DeepEqual(r.NetNsCache.GetNetNsId(a.NetnsPath), newNetnsId) {
 			return &i, nil
 		}
 	}
@@ -294,7 +295,7 @@ func (r *NsTcProgramReconciler) getExpectedLinks(ctx context.Context, attachInfo
 					},
 					InterfaceName: iface,
 					NetnsPath:     netnsPath,
-					Priority:      attachInfo.Priority,
+					Priority:      helpers.GetPriority(attachInfo.Priority),
 					Direction:     attachInfo.Direction,
 					ProceedOn:     attachInfo.ProceedOn,
 				}
