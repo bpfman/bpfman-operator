@@ -20,6 +20,7 @@ const (
 	appGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-app-counter/?timeout=120&ref=main"
 	appGoCounterUserspaceNs     = "go-app-counter"
 	appGoCounterUserspaceDsName = "go-app-counter-ds"
+	appGoCounterBytecodeName    = "app-counter"
 )
 
 func TestApplicationGoCounter(t *testing.T) {
@@ -41,6 +42,9 @@ func TestApplicationGoCounter(t *testing.T) {
 		cleanupLog("cleaning up application counter program")
 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), appGoCounterKustomize)
 	})
+
+	t.Log("waiting for application counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, appGoCounterBytecodeName), 2*time.Minute, time.Second)
 
 	t.Log("waiting for go application counter userspace daemon to be available")
 	require.Eventually(t, func() bool {
