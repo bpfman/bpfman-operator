@@ -93,7 +93,7 @@ func (r *NsUprobeProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.UprobeAttachInfo{
 		FnName:   &r.currentLink.Function,
-		Offset:   r.currentLink.Offset,
+		Offset:   uint64(r.currentLink.Offset),
 		Target:   r.currentLink.Target,
 		Pid:      r.currentLink.Pid,
 		Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},

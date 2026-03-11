@@ -110,7 +110,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 			Links: []bpfmaniov1alpha1.ClKprobeAttachInfo{
 				{
 					Function: functionKprobeName,
-					Offset:   uint64(offset),
+					Offset:   int64(offset),
 				},
 			},
 		},

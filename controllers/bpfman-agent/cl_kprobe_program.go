@@ -95,7 +95,7 @@ func (r *ClKprobeProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
 				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
 					FnName:   r.currentLink.Function,
-					Offset:   r.currentLink.Offset,
+					Offset:   uint64(r.currentLink.Offset),
 					Metadata: map[string]string{internal.UuidMetadataKey: string(r.currentLink.UUID)},
 				},
 			},
