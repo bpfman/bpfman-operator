@@ -19,11 +19,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	v1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
+	bpfmanoperatorapisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
 	clientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	internalinterfaces "github.com/bpfman/bpfman-operator/pkg/client/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,7 @@ import (
 // BpfApplicationStates.
 type BpfApplicationStateInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.BpfApplicationStateLister
+	Lister() apisv1alpha1.BpfApplicationStateLister
 }
 
 type bpfApplicationStateInformer struct {
@@ -62,16 +62,28 @@ func NewFilteredBpfApplicationStateInformer(client clientset.Interface, namespac
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).List(context.TODO(), options)
+				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).Watch(context.TODO(), options)
+				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).Watch(context.Background(), options)
+			},
+			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().BpfApplicationStates(namespace).Watch(ctx, options)
 			},
 		},
-		&apisv1alpha1.BpfApplicationState{},
+		&bpfmanoperatorapisv1alpha1.BpfApplicationState{},
 		resyncPeriod,
 		indexers,
 	)
@@ -82,9 +94,9 @@ func (f *bpfApplicationStateInformer) defaultInformer(client clientset.Interface
 }
 
 func (f *bpfApplicationStateInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisv1alpha1.BpfApplicationState{}, f.defaultInformer)
+	return f.factory.InformerFor(&bpfmanoperatorapisv1alpha1.BpfApplicationState{}, f.defaultInformer)
 }
 
-func (f *bpfApplicationStateInformer) Lister() v1alpha1.BpfApplicationStateLister {
-	return v1alpha1.NewBpfApplicationStateLister(f.Informer().GetIndexer())
+func (f *bpfApplicationStateInformer) Lister() apisv1alpha1.BpfApplicationStateLister {
+	return apisv1alpha1.NewBpfApplicationStateLister(f.Informer().GetIndexer())
 }

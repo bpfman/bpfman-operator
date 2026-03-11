@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // BpfApplicationStateLister helps list BpfApplicationStates.
@@ -30,7 +30,7 @@ import (
 type BpfApplicationStateLister interface {
 	// List lists all BpfApplicationStates in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.BpfApplicationState, err error)
+	List(selector labels.Selector) (ret []*apisv1alpha1.BpfApplicationState, err error)
 	// BpfApplicationStates returns an object that can list and get BpfApplicationStates.
 	BpfApplicationStates(namespace string) BpfApplicationStateNamespaceLister
 	BpfApplicationStateListerExpansion
@@ -38,25 +38,17 @@ type BpfApplicationStateLister interface {
 
 // bpfApplicationStateLister implements the BpfApplicationStateLister interface.
 type bpfApplicationStateLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*apisv1alpha1.BpfApplicationState]
 }
 
 // NewBpfApplicationStateLister returns a new BpfApplicationStateLister.
 func NewBpfApplicationStateLister(indexer cache.Indexer) BpfApplicationStateLister {
-	return &bpfApplicationStateLister{indexer: indexer}
-}
-
-// List lists all BpfApplicationStates in the indexer.
-func (s *bpfApplicationStateLister) List(selector labels.Selector) (ret []*v1alpha1.BpfApplicationState, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BpfApplicationState))
-	})
-	return ret, err
+	return &bpfApplicationStateLister{listers.New[*apisv1alpha1.BpfApplicationState](indexer, apisv1alpha1.Resource("bpfapplicationstate"))}
 }
 
 // BpfApplicationStates returns an object that can list and get BpfApplicationStates.
 func (s *bpfApplicationStateLister) BpfApplicationStates(namespace string) BpfApplicationStateNamespaceLister {
-	return bpfApplicationStateNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return bpfApplicationStateNamespaceLister{listers.NewNamespaced[*apisv1alpha1.BpfApplicationState](s.ResourceIndexer, namespace)}
 }
 
 // BpfApplicationStateNamespaceLister helps list and get BpfApplicationStates.
@@ -64,36 +56,15 @@ func (s *bpfApplicationStateLister) BpfApplicationStates(namespace string) BpfAp
 type BpfApplicationStateNamespaceLister interface {
 	// List lists all BpfApplicationStates in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.BpfApplicationState, err error)
+	List(selector labels.Selector) (ret []*apisv1alpha1.BpfApplicationState, err error)
 	// Get retrieves the BpfApplicationState from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.BpfApplicationState, error)
+	Get(name string) (*apisv1alpha1.BpfApplicationState, error)
 	BpfApplicationStateNamespaceListerExpansion
 }
 
 // bpfApplicationStateNamespaceLister implements the BpfApplicationStateNamespaceLister
 // interface.
 type bpfApplicationStateNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all BpfApplicationStates in the indexer for a given namespace.
-func (s bpfApplicationStateNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.BpfApplicationState, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BpfApplicationState))
-	})
-	return ret, err
-}
-
-// Get retrieves the BpfApplicationState from the indexer for a given namespace and name.
-func (s bpfApplicationStateNamespaceLister) Get(name string) (*v1alpha1.BpfApplicationState, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("bpfapplicationstate"), name)
-	}
-	return obj.(*v1alpha1.BpfApplicationState), nil
+	listers.ResourceIndexer[*apisv1alpha1.BpfApplicationState]
 }

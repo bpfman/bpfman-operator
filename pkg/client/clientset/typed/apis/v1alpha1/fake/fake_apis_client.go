@@ -29,23 +29,23 @@ type FakeBpfmanV1alpha1 struct {
 }
 
 func (c *FakeBpfmanV1alpha1) BpfApplications(namespace string) v1alpha1.BpfApplicationInterface {
-	return &FakeBpfApplications{c, namespace}
+	return newFakeBpfApplications(c, namespace)
 }
 
 func (c *FakeBpfmanV1alpha1) BpfApplicationStates(namespace string) v1alpha1.BpfApplicationStateInterface {
-	return &FakeBpfApplicationStates{c, namespace}
+	return newFakeBpfApplicationStates(c, namespace)
 }
 
 func (c *FakeBpfmanV1alpha1) ClusterBpfApplications() v1alpha1.ClusterBpfApplicationInterface {
-	return &FakeClusterBpfApplications{c}
+	return newFakeClusterBpfApplications(c)
 }
 
 func (c *FakeBpfmanV1alpha1) ClusterBpfApplicationStates() v1alpha1.ClusterBpfApplicationStateInterface {
-	return &FakeClusterBpfApplicationStates{c}
+	return newFakeClusterBpfApplicationStates(c)
 }
 
 func (c *FakeBpfmanV1alpha1) Configs() v1alpha1.ConfigInterface {
-	return &FakeConfigs{c}
+	return newFakeConfigs(c)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -19,11 +19,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	v1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
+	bpfmanoperatorapisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
 	clientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	internalinterfaces "github.com/bpfman/bpfman-operator/pkg/client/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,7 @@ import (
 // Configs.
 type ConfigInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.ConfigLister
+	Lister() apisv1alpha1.ConfigLister
 }
 
 type configInformer struct {
@@ -61,16 +61,28 @@ func NewFilteredConfigInformer(client clientset.Interface, resyncPeriod time.Dur
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().Configs().List(context.TODO(), options)
+				return client.BpfmanV1alpha1().Configs().List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().Configs().Watch(context.TODO(), options)
+				return client.BpfmanV1alpha1().Configs().Watch(context.Background(), options)
+			},
+			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().Configs().List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().Configs().Watch(ctx, options)
 			},
 		},
-		&apisv1alpha1.Config{},
+		&bpfmanoperatorapisv1alpha1.Config{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,9 +93,9 @@ func (f *configInformer) defaultInformer(client clientset.Interface, resyncPerio
 }
 
 func (f *configInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisv1alpha1.Config{}, f.defaultInformer)
+	return f.factory.InformerFor(&bpfmanoperatorapisv1alpha1.Config{}, f.defaultInformer)
 }
 
-func (f *configInformer) Lister() v1alpha1.ConfigLister {
-	return v1alpha1.NewConfigLister(f.Informer().GetIndexer())
+func (f *configInformer) Lister() apisv1alpha1.ConfigLister {
+	return apisv1alpha1.NewConfigLister(f.Informer().GetIndexer())
 }

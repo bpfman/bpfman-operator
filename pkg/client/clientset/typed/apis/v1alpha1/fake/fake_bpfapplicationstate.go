@@ -19,123 +19,34 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/clientset/typed/apis/v1alpha1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeBpfApplicationStates implements BpfApplicationStateInterface
-type FakeBpfApplicationStates struct {
+// fakeBpfApplicationStates implements BpfApplicationStateInterface
+type fakeBpfApplicationStates struct {
+	*gentype.FakeClientWithList[*v1alpha1.BpfApplicationState, *v1alpha1.BpfApplicationStateList]
 	Fake *FakeBpfmanV1alpha1
-	ns   string
 }
 
-var bpfapplicationstatesResource = v1alpha1.SchemeGroupVersion.WithResource("bpfapplicationstates")
-
-var bpfapplicationstatesKind = v1alpha1.SchemeGroupVersion.WithKind("BpfApplicationState")
-
-// Get takes name of the bpfApplicationState, and returns the corresponding bpfApplicationState object, and an error if there is any.
-func (c *FakeBpfApplicationStates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.BpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(bpfapplicationstatesResource, c.ns, name), &v1alpha1.BpfApplicationState{})
-
-	if obj == nil {
-		return nil, err
+func newFakeBpfApplicationStates(fake *FakeBpfmanV1alpha1, namespace string) apisv1alpha1.BpfApplicationStateInterface {
+	return &fakeBpfApplicationStates{
+		gentype.NewFakeClientWithList[*v1alpha1.BpfApplicationState, *v1alpha1.BpfApplicationStateList](
+			fake.Fake,
+			namespace,
+			v1alpha1.SchemeGroupVersion.WithResource("bpfapplicationstates"),
+			v1alpha1.SchemeGroupVersion.WithKind("BpfApplicationState"),
+			func() *v1alpha1.BpfApplicationState { return &v1alpha1.BpfApplicationState{} },
+			func() *v1alpha1.BpfApplicationStateList { return &v1alpha1.BpfApplicationStateList{} },
+			func(dst, src *v1alpha1.BpfApplicationStateList) { dst.ListMeta = src.ListMeta },
+			func(list *v1alpha1.BpfApplicationStateList) []*v1alpha1.BpfApplicationState {
+				return gentype.ToPointerSlice(list.Items)
+			},
+			func(list *v1alpha1.BpfApplicationStateList, items []*v1alpha1.BpfApplicationState) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1alpha1.BpfApplicationState), err
-}
-
-// List takes label and field selectors, and returns the list of BpfApplicationStates that match those selectors.
-func (c *FakeBpfApplicationStates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.BpfApplicationStateList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewListAction(bpfapplicationstatesResource, bpfapplicationstatesKind, c.ns, opts), &v1alpha1.BpfApplicationStateList{})
-
-	if obj == nil {
-		return nil, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1alpha1.BpfApplicationStateList{ListMeta: obj.(*v1alpha1.BpfApplicationStateList).ListMeta}
-	for _, item := range obj.(*v1alpha1.BpfApplicationStateList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested bpfApplicationStates.
-func (c *FakeBpfApplicationStates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(bpfapplicationstatesResource, c.ns, opts))
-
-}
-
-// Create takes the representation of a bpfApplicationState and creates it.  Returns the server's representation of the bpfApplicationState, and an error, if there is any.
-func (c *FakeBpfApplicationStates) Create(ctx context.Context, bpfApplicationState *v1alpha1.BpfApplicationState, opts v1.CreateOptions) (result *v1alpha1.BpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(bpfapplicationstatesResource, c.ns, bpfApplicationState), &v1alpha1.BpfApplicationState{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.BpfApplicationState), err
-}
-
-// Update takes the representation of a bpfApplicationState and updates it. Returns the server's representation of the bpfApplicationState, and an error, if there is any.
-func (c *FakeBpfApplicationStates) Update(ctx context.Context, bpfApplicationState *v1alpha1.BpfApplicationState, opts v1.UpdateOptions) (result *v1alpha1.BpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(bpfapplicationstatesResource, c.ns, bpfApplicationState), &v1alpha1.BpfApplicationState{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.BpfApplicationState), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeBpfApplicationStates) UpdateStatus(ctx context.Context, bpfApplicationState *v1alpha1.BpfApplicationState, opts v1.UpdateOptions) (*v1alpha1.BpfApplicationState, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(bpfapplicationstatesResource, "status", c.ns, bpfApplicationState), &v1alpha1.BpfApplicationState{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.BpfApplicationState), err
-}
-
-// Delete takes name of the bpfApplicationState and deletes it. Returns an error if one occurs.
-func (c *FakeBpfApplicationStates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteActionWithOptions(bpfapplicationstatesResource, c.ns, name, opts), &v1alpha1.BpfApplicationState{})
-
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeBpfApplicationStates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(bpfapplicationstatesResource, c.ns, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1alpha1.BpfApplicationStateList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched bpfApplicationState.
-func (c *FakeBpfApplicationStates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.BpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(bpfapplicationstatesResource, c.ns, name, pt, data, subresources...), &v1alpha1.BpfApplicationState{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.BpfApplicationState), err
 }

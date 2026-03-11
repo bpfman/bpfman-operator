@@ -19,11 +19,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
+	context "context"
 	time "time"
 
-	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	v1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
+	bpfmanoperatorapisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/apis/v1alpha1"
 	clientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	internalinterfaces "github.com/bpfman/bpfman-operator/pkg/client/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,7 @@ import (
 // ClusterBpfApplications.
 type ClusterBpfApplicationInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.ClusterBpfApplicationLister
+	Lister() apisv1alpha1.ClusterBpfApplicationLister
 }
 
 type clusterBpfApplicationInformer struct {
@@ -61,16 +61,28 @@ func NewFilteredClusterBpfApplicationInformer(client clientset.Interface, resync
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().ClusterBpfApplications().List(context.TODO(), options)
+				return client.BpfmanV1alpha1().ClusterBpfApplications().List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfmanV1alpha1().ClusterBpfApplications().Watch(context.TODO(), options)
+				return client.BpfmanV1alpha1().ClusterBpfApplications().Watch(context.Background(), options)
+			},
+			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().ClusterBpfApplications().List(ctx, options)
+			},
+			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
+				if tweakListOptions != nil {
+					tweakListOptions(&options)
+				}
+				return client.BpfmanV1alpha1().ClusterBpfApplications().Watch(ctx, options)
 			},
 		},
-		&apisv1alpha1.ClusterBpfApplication{},
+		&bpfmanoperatorapisv1alpha1.ClusterBpfApplication{},
 		resyncPeriod,
 		indexers,
 	)
@@ -81,9 +93,9 @@ func (f *clusterBpfApplicationInformer) defaultInformer(client clientset.Interfa
 }
 
 func (f *clusterBpfApplicationInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisv1alpha1.ClusterBpfApplication{}, f.defaultInformer)
+	return f.factory.InformerFor(&bpfmanoperatorapisv1alpha1.ClusterBpfApplication{}, f.defaultInformer)
 }
 
-func (f *clusterBpfApplicationInformer) Lister() v1alpha1.ClusterBpfApplicationLister {
-	return v1alpha1.NewClusterBpfApplicationLister(f.Informer().GetIndexer())
+func (f *clusterBpfApplicationInformer) Lister() apisv1alpha1.ClusterBpfApplicationLister {
+	return apisv1alpha1.NewClusterBpfApplicationLister(f.Informer().GetIndexer())
 }
