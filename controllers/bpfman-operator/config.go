@@ -293,13 +293,6 @@ func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config
 			// Do nothing
 		}
 	}
-
-	// Configure init containers
-	for cindex, container := range staticBpfmanDS.Spec.Template.Spec.InitContainers {
-		if container.Name == internal.BpfmanInitContainerName && config.Spec.Daemon.BpffsInitImage != "" {
-			staticBpfmanDS.Spec.Template.Spec.InitContainers[cindex].Image = config.Spec.Daemon.BpffsInitImage
-		}
-	}
 }
 
 // configureMetricsProxyDs configures the metrics-proxy DaemonSet with runtime values.

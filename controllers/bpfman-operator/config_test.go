@@ -617,44 +617,24 @@ func verifyCM(cm *corev1.ConfigMap, requiredFields map[string]*string) error {
 	return nil
 }
 
-// TestConfigureBpfmanDsImageOverrides verifies that optional image
-// fields in the Config CR correctly override container images in the
-// DaemonSet.
-func TestConfigureBpfmanDsImageOverrides(t *testing.T) {
+// TestConfigureBpfmanDsCsiRegistrarImageOverride verifies that the optional
+// CsiRegistrarImage field in the Config CR correctly overrides the CSI node
+// driver registrar container image in the DaemonSet.
+func TestConfigureBpfmanDsCsiRegistrarImageOverride(t *testing.T) {
 	tests := []struct {
 		name                      string
-		bpffsInitImage            string
 		csiRegistrarImage         string
-		expectedInitImage         string
 		expectedCsiRegistrarImage string
 	}{
 		{
-			name:                      "defaults preserved when fields empty",
-			bpffsInitImage:            "",
+			name:                      "default preserved when field empty",
 			csiRegistrarImage:         "",
-			expectedInitImage:         "quay.io/fedora/fedora-minimal:39",
-			expectedCsiRegistrarImage: "quay.io/bpfman/csi-node-driver-registrar:v2.13.0",
-		},
-		{
-			name:                      "init image overridden when set",
-			bpffsInitImage:            "registry.example.com/custom-init:v1",
-			csiRegistrarImage:         "",
-			expectedInitImage:         "registry.example.com/custom-init:v1",
 			expectedCsiRegistrarImage: "quay.io/bpfman/csi-node-driver-registrar:v2.13.0",
 		},
 		{
 			name:                      "csi registrar image overridden when set",
-			bpffsInitImage:            "",
 			csiRegistrarImage:         "registry.example.com/custom-csi:v1",
-			expectedInitImage:         "quay.io/fedora/fedora-minimal:39",
 			expectedCsiRegistrarImage: "registry.example.com/custom-csi:v1",
-		},
-		{
-			name:                      "both images overridden when set",
-			bpffsInitImage:            "registry.example.com/custom-init:v2",
-			csiRegistrarImage:         "registry.example.com/custom-csi:v2",
-			expectedInitImage:         "registry.example.com/custom-init:v2",
-			expectedCsiRegistrarImage: "registry.example.com/custom-csi:v2",
 		},
 	}
 
@@ -681,7 +661,6 @@ func TestConfigureBpfmanDsImageOverrides(t *testing.T) {
 					Daemon: v1alpha1.DaemonSpec{
 						Image:             "quay.io/bpfman/bpfman:latest",
 						LogLevel:          "info",
-						BpffsInitImage:    tc.bpffsInitImage,
 						CsiRegistrarImage: tc.csiRegistrarImage,
 					},
 				},
@@ -689,17 +668,6 @@ func TestConfigureBpfmanDsImageOverrides(t *testing.T) {
 
 			// Apply configuration to the DaemonSet.
 			configureBpfmanDs(ds, config)
-
-			// Verify init container image.
-			var initImage string
-			for _, c := range ds.Spec.Template.Spec.InitContainers {
-				if c.Name == internal.BpfmanInitContainerName {
-					initImage = c.Image
-					break
-				}
-			}
-			require.Equal(t, tc.expectedInitImage, initImage,
-				"init container image mismatch")
 
 			// Verify CSI registrar container image.
 			var csiImage string
