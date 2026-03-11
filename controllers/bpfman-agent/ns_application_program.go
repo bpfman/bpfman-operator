@@ -132,7 +132,7 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Lookup K8s node object for this bpfman-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfman-agent node %s : %v",
+		return ctrl.Result{}, fmt.Errorf("failed getting bpfman-agent node %s : %v",
 			req.NamespacedName, err)
 	}
 
@@ -140,12 +140,12 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	appPrograms := &bpfmaniov1alpha1.BpfApplicationList{}
 	opts := []client.ListOption{}
 	if err := r.List(ctx, appPrograms, opts...); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfNsApplicationPrograms for full reconcile %s : %v",
+		return ctrl.Result{}, fmt.Errorf("failed getting BpfNsApplicationPrograms for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 	if len(appPrograms.Items) == 0 {
 		r.Logger.Info("BpfNsApplicationController found no application Programs")
-		return ctrl.Result{Requeue: false}, nil
+		return ctrl.Result{}, nil
 	}
 
 	for appProgramIndex := range appPrograms.Items {
@@ -191,7 +191,7 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			statusChanged, err := r.updateBpfAppStateStatus(ctx, nil)
 			if err != nil {
 				r.Logger.Error(err, "failed to update BpfApplicationState status", "Name", r.currentApp.Name)
-				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+				return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 			}
 			if statusChanged {
 				r.Logger.Info("BpfApplicationState updated", "Name", r.currentAppState.Name, "Status Changed", statusChanged)
@@ -257,7 +257,7 @@ func (r *NsBpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		// changed, we need to update the BpfApplicationState.
 		statusChanged, err := r.updateBpfAppStateStatus(ctx, bpfAppStateOriginal)
 		if err != nil {
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+			return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 		}
 		if statusChanged {
 			r.Logger.Info("BpfApplicationState updated", "Name", r.currentAppState.Name, "Status Changed", statusChanged)
@@ -285,19 +285,19 @@ func (r *NsBpfApplicationReconciler) createBpfAppState(ctx context.Context) (ctr
 	// initialize the Status subresource and then update the status.
 	if err := r.initBpfAppState(); err != nil {
 		r.Logger.Error(err, "failed to initialize BpfApplicationState object")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 	}
 	if err := r.createInitialBpfAppState(ctx); err != nil {
 		r.Logger.Error(err, "failed to create BpfApplicationState object")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 	}
 	if err := r.initBpfAppStateStatus(); err != nil {
 		r.Logger.Error(err, "failed to initialize BpfApplicationState status")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 	}
 	if _, err := r.updateBpfAppStateStatus(ctx, nil); err != nil {
 		r.Logger.Error(err, "failed to update BpfApplicationState status", "Name", r.currentApp.Name)
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
 	}
 	// We're done creating a new BpfApplicationState object, so we can
 	// return and be requeued.

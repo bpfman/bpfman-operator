@@ -209,7 +209,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	}
 
 	// Require no requeue
-	require.False(t, res.Requeue)
+	require.Zero(t, res.RequeueAfter)
 
 	// Check if the BpfApplication Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: metav1.NamespaceAll}, app)
@@ -242,7 +242,7 @@ func appProgramReconcile(t *testing.T, multiCondition bool) {
 	}
 
 	// Require no requeue
-	require.False(t, res.Requeue)
+	require.Zero(t, res.RequeueAfter)
 
 	// Check if the BpfApplication Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: metav1.NamespaceAll}, app)

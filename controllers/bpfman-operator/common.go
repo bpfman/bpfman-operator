@@ -108,7 +108,7 @@ func reconcileBpfApplication[T BpfProgOper, TL BpfProgListOper[T]](
 	nodes := &corev1.NodeList{}
 	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
 		r.Logger.Error(err, "failed getting nodes for full reconcile")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		return ctrl.Result{RequeueAfter: retryDurationOperator}, nil
 	}
 
 	// If the application isn't being deleted, make sure that each node has at
@@ -176,7 +176,7 @@ func (r *ReconcilerCommon[T, TL]) removeFinalizer(ctx context.Context, bpfApp cl
 		err := r.Update(ctx, bpfApp)
 		if err != nil {
 			r.Logger.Error(err, "failed to remove bpfApp Finalizer")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+			return ctrl.Result{RequeueAfter: retryDurationOperator}, nil
 		}
 	}
 
@@ -190,7 +190,7 @@ func (r *ReconcilerCommon[T, TL]) addFinalizer(ctx context.Context, app client.O
 	err := r.Update(ctx, app)
 	if err != nil {
 		r.Logger.V(1).Info("failed adding bpfman-operator finalizer to Program...requeuing")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		return ctrl.Result{RequeueAfter: retryDurationOperator}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -235,7 +235,7 @@ func (r *ReconcilerCommon[T, TL]) updateCondition(
 		"Name", obj.GetName(), "condition", cond.Condition(message).Type)
 	if err := r.Status().Update(ctx, obj); err != nil {
 		r.Logger.V(1).Info("failed to set BpfApplication object status...requeuing", "error", err)
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		return ctrl.Result{RequeueAfter: retryDurationOperator}, nil
 	}
 
 	r.Logger.V(1).Info("condition updated", "new condition", cond)
