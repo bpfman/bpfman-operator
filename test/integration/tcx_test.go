@@ -33,6 +33,9 @@ func TestTcxGoCounter(t *testing.T) {
 		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tcxGoCounterKustomize)
 	})
 
+	t.Log("waiting for tcx counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, tcxGoCounterBytecodeName), 2*time.Minute, time.Second)
+
 	t.Log("waiting for go tcx counter userspace daemon to be available")
 	require.Eventually(t, func() bool {
 		daemon, err := env.Cluster().Client().AppsV1().DaemonSets(tcxGoCounterUserspaceNs).Get(ctx, tcxGoCounterUserspaceDsName, metav1.GetOptions{})

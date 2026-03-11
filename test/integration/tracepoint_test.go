@@ -20,6 +20,7 @@ const (
 	tracepointGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-tracepoint-counter/?timeout=120&ref=main"
 	tracepointGoCounterUserspaceNs     = "go-tracepoint-counter"
 	tracepointGoCounterUserspaceDsName = "go-tracepoint-counter-ds"
+	tracepointGoCounterBytecodeName    = "go-tracepoint-counter-example"
 )
 
 func TestTracepointGoCounter(t *testing.T) {
@@ -29,6 +30,9 @@ func TestTracepointGoCounter(t *testing.T) {
 		cleanupLog("cleaning up tracepoint counter program")
 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tracepointGoCounterKustomize)
 	})
+
+	t.Log("waiting for tracepoint counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, tracepointGoCounterBytecodeName), 2*time.Minute, time.Second)
 
 	t.Log("waiting for go tracepoint counter userspace daemon to be available")
 	require.Eventually(t, func() bool {

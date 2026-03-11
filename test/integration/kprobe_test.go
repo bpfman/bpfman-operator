@@ -20,6 +20,7 @@ const (
 	kprobeGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-kprobe-counter/?timeout=120&ref=main"
 	kprobeGoCounterUserspaceNs     = "go-kprobe-counter"
 	kprobeGoCounterUserspaceDsName = "go-kprobe-counter-ds"
+	kprobeGoCounterBytecodeName    = "go-kprobe-counter-example"
 )
 
 func TestKprobeGoCounter(t *testing.T) {
@@ -29,6 +30,9 @@ func TestKprobeGoCounter(t *testing.T) {
 		cleanupLog("cleaning up kprobe counter program")
 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), kprobeGoCounterKustomize)
 	})
+
+	t.Log("waiting for kprobe counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, kprobeGoCounterBytecodeName), 2*time.Minute, time.Second)
 
 	t.Log("waiting for go kprobe counter userspace daemon to be available")
 	require.Eventually(t, func() bool {

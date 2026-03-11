@@ -33,6 +33,9 @@ func TestXdpGoCounter(t *testing.T) {
 		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
 	})
 
+	t.Log("waiting for xdp counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, xdpGoCounterBytecodeName), 2*time.Minute, time.Second)
+
 	t.Log("waiting for go xdp counter userspace daemon to be available")
 	require.Eventually(t, func() bool {
 		daemon, err := env.Cluster().Client().AppsV1().DaemonSets(xdpGoCounterUserspaceNs).Get(ctx, xdpGoCounterUserspaceDsName, metav1.GetOptions{})

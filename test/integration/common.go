@@ -143,6 +143,20 @@ func doProbeCommonCheck(t *testing.T, output *bytes.Buffer, str string) (bool, i
 	return false, 0
 }
 
+// namedClusterBpfApplicationSuccess returns a function that checks if a
+// ClusterBpfApplication with the given name has reached a successful state.
+func namedClusterBpfApplicationSuccess(t *testing.T, name string) func() bool {
+	return func() bool {
+		app, err := bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			t.Logf("ClusterBpfApplication %q not yet available: %v", name, err)
+			return false
+		}
+		c := meta.FindStatusCondition(app.Status.Conditions, string(v1alpha1.BpfAppStateCondSuccess))
+		return c != nil && c.Status == metav1.ConditionTrue
+	}
+}
+
 // clusterBpfApplicationStateSuccess returns a function that checks if the expected number of
 // ClusterBpfApplications matching the label selector have reached a successful state.
 func clusterBpfApplicationStateSuccess(t *testing.T, labelSelector string, numExpected int) func() bool {

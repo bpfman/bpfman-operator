@@ -20,6 +20,7 @@ const (
 	uprobeGoCounterKustomize       = "https://github.com/bpfman/bpfman/examples/config/default/go-uprobe-counter/?timeout=120&ref=main"
 	uprobeGoCounterUserspaceNs     = "go-uprobe-counter"
 	uprobeGoCounterUserspaceDsName = "go-uprobe-counter-ds"
+	uprobeGoCounterBytecodeName    = "go-uprobe-counter-example"
 	targetKustomize                = "https://github.com/bpfman/bpfman/examples/config/default/go-target/?timeout=120&ref=main"
 	targetUserspaceNs              = "go-target"
 	targetUserspaceDsName          = "go-target-ds"
@@ -48,6 +49,9 @@ func TestUprobeGoCounter(t *testing.T) {
 		cleanupLog("cleaning up uprobe counter program")
 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), uprobeGoCounterKustomize)
 	})
+
+	t.Log("waiting for uprobe counter BPF program to be loaded")
+	require.Eventually(t, namedClusterBpfApplicationSuccess(t, uprobeGoCounterBytecodeName), 2*time.Minute, time.Second)
 
 	t.Log("waiting for go uprobe counter userspace daemon to be available")
 	require.Eventually(t, func() bool {
