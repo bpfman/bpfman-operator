@@ -764,7 +764,11 @@ func (r *ClBpfApplicationReconciler) load(ctx context.Context) error {
 }
 
 func (r *ClBpfApplicationReconciler) unload(ctx context.Context) {
-	for i, program := range r.currentAppState.Status.Programs {
+	// Unload in reverse order because the first program is the map owner
+	// and subsequent programs may share its maps. Dependents must be
+	// unloaded before the map owner.
+	for i := len(r.currentAppState.Status.Programs) - 1; i >= 0; i-- {
+		program := r.currentAppState.Status.Programs[i]
 		if program.ProgramId != nil {
 			err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *program.ProgramId)
 			if err != nil {
