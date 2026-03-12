@@ -62,7 +62,7 @@ export BPFMAN_OPERATOR_IMG
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
-K8S_CODEGEN_VERSION = v0.30.1
+K8S_CODEGEN_VERSION = v0.34.3
 
 .DEFAULT_GOAL := help
 
@@ -143,7 +143,7 @@ OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
+CONTROLLER_TOOLS_VERSION ?= v0.17.1
 OPERATOR_SDK_VERSION ?= v1.27.0
 GOLANGCI_LINT_VERSION = v2.0.2
 

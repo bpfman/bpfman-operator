@@ -19,114 +19,34 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/pkg/client/clientset/typed/apis/v1alpha1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeClusterBpfApplicationStates implements ClusterBpfApplicationStateInterface
-type FakeClusterBpfApplicationStates struct {
+// fakeClusterBpfApplicationStates implements ClusterBpfApplicationStateInterface
+type fakeClusterBpfApplicationStates struct {
+	*gentype.FakeClientWithList[*v1alpha1.ClusterBpfApplicationState, *v1alpha1.ClusterBpfApplicationStateList]
 	Fake *FakeBpfmanV1alpha1
 }
 
-var clusterbpfapplicationstatesResource = v1alpha1.SchemeGroupVersion.WithResource("clusterbpfapplicationstates")
-
-var clusterbpfapplicationstatesKind = v1alpha1.SchemeGroupVersion.WithKind("ClusterBpfApplicationState")
-
-// Get takes name of the clusterBpfApplicationState, and returns the corresponding clusterBpfApplicationState object, and an error if there is any.
-func (c *FakeClusterBpfApplicationStates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(clusterbpfapplicationstatesResource, name), &v1alpha1.ClusterBpfApplicationState{})
-	if obj == nil {
-		return nil, err
+func newFakeClusterBpfApplicationStates(fake *FakeBpfmanV1alpha1) apisv1alpha1.ClusterBpfApplicationStateInterface {
+	return &fakeClusterBpfApplicationStates{
+		gentype.NewFakeClientWithList[*v1alpha1.ClusterBpfApplicationState, *v1alpha1.ClusterBpfApplicationStateList](
+			fake.Fake,
+			"",
+			v1alpha1.SchemeGroupVersion.WithResource("clusterbpfapplicationstates"),
+			v1alpha1.SchemeGroupVersion.WithKind("ClusterBpfApplicationState"),
+			func() *v1alpha1.ClusterBpfApplicationState { return &v1alpha1.ClusterBpfApplicationState{} },
+			func() *v1alpha1.ClusterBpfApplicationStateList { return &v1alpha1.ClusterBpfApplicationStateList{} },
+			func(dst, src *v1alpha1.ClusterBpfApplicationStateList) { dst.ListMeta = src.ListMeta },
+			func(list *v1alpha1.ClusterBpfApplicationStateList) []*v1alpha1.ClusterBpfApplicationState {
+				return gentype.ToPointerSlice(list.Items)
+			},
+			func(list *v1alpha1.ClusterBpfApplicationStateList, items []*v1alpha1.ClusterBpfApplicationState) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), err
-}
-
-// List takes label and field selectors, and returns the list of ClusterBpfApplicationStates that match those selectors.
-func (c *FakeClusterBpfApplicationStates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ClusterBpfApplicationStateList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterbpfapplicationstatesResource, clusterbpfapplicationstatesKind, opts), &v1alpha1.ClusterBpfApplicationStateList{})
-	if obj == nil {
-		return nil, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1alpha1.ClusterBpfApplicationStateList{ListMeta: obj.(*v1alpha1.ClusterBpfApplicationStateList).ListMeta}
-	for _, item := range obj.(*v1alpha1.ClusterBpfApplicationStateList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested clusterBpfApplicationStates.
-func (c *FakeClusterBpfApplicationStates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(clusterbpfapplicationstatesResource, opts))
-}
-
-// Create takes the representation of a clusterBpfApplicationState and creates it.  Returns the server's representation of the clusterBpfApplicationState, and an error, if there is any.
-func (c *FakeClusterBpfApplicationStates) Create(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.CreateOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterbpfapplicationstatesResource, clusterBpfApplicationState), &v1alpha1.ClusterBpfApplicationState{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), err
-}
-
-// Update takes the representation of a clusterBpfApplicationState and updates it. Returns the server's representation of the clusterBpfApplicationState, and an error, if there is any.
-func (c *FakeClusterBpfApplicationStates) Update(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterbpfapplicationstatesResource, clusterBpfApplicationState), &v1alpha1.ClusterBpfApplicationState{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeClusterBpfApplicationStates) UpdateStatus(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (*v1alpha1.ClusterBpfApplicationState, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(clusterbpfapplicationstatesResource, "status", clusterBpfApplicationState), &v1alpha1.ClusterBpfApplicationState{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), err
-}
-
-// Delete takes name of the clusterBpfApplicationState and deletes it. Returns an error if one occurs.
-func (c *FakeClusterBpfApplicationStates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(clusterbpfapplicationstatesResource, name, opts), &v1alpha1.ClusterBpfApplicationState{})
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeClusterBpfApplicationStates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterbpfapplicationstatesResource, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1alpha1.ClusterBpfApplicationStateList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched clusterBpfApplicationState.
-func (c *FakeClusterBpfApplicationStates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterbpfapplicationstatesResource, name, pt, data, subresources...), &v1alpha1.ClusterBpfApplicationState{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), err
 }

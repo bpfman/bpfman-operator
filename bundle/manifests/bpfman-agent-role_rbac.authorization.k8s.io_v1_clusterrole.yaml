@@ -5,48 +5,24 @@ metadata:
   name: bpfman-agent-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - nodes
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+- apiGroups:
   - bpfman.io
   resources:
   - bpfapplications
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - bpfman.io
-  resources:
-  - bpfapplications/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfman.io
-  resources:
-  - bpfapplicationstates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - bpfman.io
-  resources:
-  - bpfapplicationstates/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfman.io
-  resources:
-  - bpfapplicationstates/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - bpfman.io
-  resources:
   - clusterbpfapplications
   verbs:
   - get
@@ -55,12 +31,16 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfapplications/finalizers
+  - bpfapplicationstates/finalizers
   - clusterbpfapplications/finalizers
+  - clusterbpfapplicationstates/finalizers
   verbs:
   - update
 - apiGroups:
   - bpfman.io
   resources:
+  - bpfapplicationstates
   - clusterbpfapplicationstates
   verbs:
   - create
@@ -73,36 +53,9 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
-  - clusterbpfapplicationstates/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfman.io
-  resources:
+  - bpfapplicationstates/status
   - clusterbpfapplicationstates/status
   verbs:
   - get
   - patch
   - update
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
