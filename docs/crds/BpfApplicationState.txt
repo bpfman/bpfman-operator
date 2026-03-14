@@ -1,0 +1,592 @@
+$ kubectl explain BpfApplicationState
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+DESCRIPTION:
+    BpfApplicationState contains the state of a BpfApplication instance for a
+    given Kubernetes node. When a user creates a BpfApplication instance, bpfman
+    creates a BpfApplicationState instance for each node in a Kubernetes
+    cluster.
+    
+FIELDS:
+  apiVersion	<string>
+    APIVersion defines the versioned schema of this representation of an object.
+    Servers should convert recognized schemas to the latest internal value, and
+    may reject unrecognized values. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+
+  kind	<string>
+    Kind is a string value representing the REST resource this object
+    represents. Servers may infer this from the endpoint the client submits
+    requests to. Cannot be updated. In CamelCase. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+
+  metadata	<ObjectMeta>
+    Standard object's metadata. More info:
+    https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+
+  status	<Object>
+    status reflects the status of a BpfApplication instance for the given node.
+    appLoadStatus and conditions provide an overall status for the given node,
+    while each item in the programs list provides a per eBPF program status for
+    the given node.
+
+$ kubectl explain BpfApplicationState.status
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: status <Object>
+
+
+DESCRIPTION:
+    status reflects the status of a BpfApplication instance for the given node.
+    appLoadStatus and conditions provide an overall status for the given node,
+    while each item in the programs list provides a per eBPF program status for
+    the given node.
+    
+FIELDS:
+  appLoadStatus	<string> -required-
+    appLoadStatus reflects the status of loading the eBPF application on the
+    given node.
+    
+    
+    NotLoaded is a temporary state that is assigned when a
+    ClusterBpfApplicationState is created and the initial reconcile is being
+    processed.
+    
+    
+    LoadSuccess is returned if all the programs have been loaded with no
+    errors.
+    
+    
+    LoadError is returned if one or more programs encountered an error and
+    were not loaded.
+    
+    
+    NotSelected is returned if this application did not select to run on this
+    Kubernetes node.
+    
+    
+    UnloadSuccess is returned when all the programs were successfully
+    unloaded.
+    
+    
+    UnloadError is returned if one or more programs encountered an error when
+    being unloaded.
+
+  conditions	<[]Object>
+    conditions contains the summary state of the BpfApplication for the given
+    Kubernetes node. If one or more programs failed to load or attach to the
+    designated attachment point, the condition will report the error. If more
+    than one error has occurred, condition will contain the first error
+    encountered.
+
+  node	<string> -required-
+    node is the name of the Kubernets node for this BpfApplicationState.
+
+  programs	<[]Object>
+    programs is a list of eBPF programs contained in the parent BpfApplication
+    instance. Each entry in the list contains the derived program attributes as
+    well as the attach status for each program on the given Kubernetes node.
+
+  updateCount	<integer> -required-
+    UpdateCount tracks the number of times the BpfApplicationState object has
+    been updated. The bpfman agent initializes it to 1 when it creates the
+    object, and then increments it before each subsequent update. It serves
+    as a lightweight sequence number to verify that the API server is serving
+    the most recent version of the object before beginning a new Reconcile
+    operation.
+
+$ kubectl explain BpfApplicationState.status.conditions
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: conditions <[]Object>
+
+
+DESCRIPTION:
+    conditions contains the summary state of the BpfApplication for the given
+    Kubernetes node. If one or more programs failed to load or attach to the
+    designated attachment point, the condition will report the error. If more
+    than one error has occurred, condition will contain the first error
+    encountered.
+    Condition contains details for one aspect of the current state of this API
+    Resource.
+    ---
+    This struct is intended for direct use as an array at the field path
+    .status.conditions.  For example,
+    
+    
+    	type FooStatus struct{
+    	    // Represents the observations of a foo's current state.
+    	    // Known .status.conditions.type are: "Available", "Progressing", and
+    "Degraded"
+    	    // +patchMergeKey=type
+    	    // +patchStrategy=merge
+    	    // +listType=map
+    	    // +listMapKey=type
+    	    Conditions []metav1.Condition `json:"conditions,omitempty"
+    patchStrategy:"merge" patchMergeKey:"type"
+    protobuf:"bytes,1,rep,name=conditions"`
+    
+    
+    	    // other fields
+    	}
+    
+FIELDS:
+  lastTransitionTime	<string> -required-
+    lastTransitionTime is the last time the condition transitioned from one
+    status to another.
+    This should be when the underlying condition changed.  If that is not known,
+    then using the time when the API field changed is acceptable.
+
+  message	<string> -required-
+    message is a human readable message indicating details about the transition.
+    This may be an empty string.
+
+  observedGeneration	<integer>
+    observedGeneration represents the .metadata.generation that the condition
+    was set based upon.
+    For instance, if .metadata.generation is currently 12, but the
+    .status.conditions[x].observedGeneration is 9, the condition is out of date
+    with respect to the current state of the instance.
+
+  reason	<string> -required-
+    reason contains a programmatic identifier indicating the reason for the
+    condition's last transition.
+    Producers of specific condition types may define expected values and
+    meanings for this field,
+    and whether the values are considered a guaranteed API.
+    The value should be a CamelCase string.
+    This field may not be empty.
+
+  status	<string> -required-
+  enum: True, False, Unknown
+    status of the condition, one of True, False, Unknown.
+
+  type	<string> -required-
+    type of condition in CamelCase or in foo.example.com/CamelCase.
+    ---
+    Many .condition.type values are consistent across resources like Available,
+    but because arbitrary conditions can be
+    useful (see .node.status.conditions), the ability to deconflict is
+    important.
+    The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+
+$ kubectl explain BpfApplicationState.status.programs
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: programs <[]Object>
+
+
+DESCRIPTION:
+    programs is a list of eBPF programs contained in the parent BpfApplication
+    instance. Each entry in the list contains the derived program attributes as
+    well as the attach status for each program on the given Kubernetes node.
+    
+FIELDS:
+  name	<string> -required-
+    name is the name of the function that is the entry point for the eBPF
+    program
+
+  programId	<integer>
+    programId is the id of the program in the kernel.  Not set until the
+    program is loaded.
+
+  programLinkStatus	<string> -required-
+    programLinkStatus reflects whether all links requested for the program
+    are in the correct state.
+
+  tc	<Object>
+    tc contains the attachment data for a TC program when type is set to TC.
+
+  tcx	<Object>
+    tcx contains the attachment data for a TCX program when type is set to TCX.
+
+  type	<string> -required-
+  enum: XDP, TC, TCX, UProbe, ....
+    type specifies the provisioned eBPF program type for this program entry.
+    Type will be one of:
+      TC, TCX, UProbe, URetProbe, XDP
+    
+    
+    When set to TC, the tc object will be populated with the eBPF program data
+    associated with a TC program.
+    
+    
+    When set to TCX, the tcx object will be populated with the eBPF program
+    data associated with a TCX program.
+    
+    
+    When set to UProbe, the uprobe object will be populated with the eBPF
+    program data associated with a UProbe program.
+    
+    
+    When set to URetProbe, the uretprobe object will be populated with the eBPF
+    program data associated with a URetProbe program.
+    
+    
+    When set to XDP, the xdp object will be populated with the eBPF program data
+    associated with a URetProbe program.
+
+  uprobe	<Object>
+    uprobe contains the attachment data for a UProbe program when type is set to
+    UProbe.
+
+  uretprobe	<Object>
+    uretprobe contains the attachment data for a URetProbe program when type is
+    set to URetProbe.
+
+  xdp	<Object>
+    xdp contains the attachment data for an XDP program when type is set to XDP.
+
+$ kubectl explain BpfApplicationState.status.programs.tc
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: tc <Object>
+
+
+DESCRIPTION:
+    tc contains the attachment data for a TC program when type is set to TC.
+    
+FIELDS:
+  links	<[]Object>
+    links is a list of attachment points for the TC program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+
+$ kubectl explain BpfApplicationState.status.programs.tc.links
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: links <[]Object>
+
+
+DESCRIPTION:
+    links is a list of attachment points for the TC program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+    
+FIELDS:
+  direction	<string> -required-
+  enum: Ingress, Egress
+    direction is the provisioned direction of traffic, Ingress or Egress, the TC
+    program should be attached for a given network device.
+
+  interfaceName	<string> -required-
+    interfaceName is the name of the interface the TC program should be
+    attached.
+
+  linkId	<integer>
+    linkId is an identifier for the link assigned by bpfman. This field is
+    empty until the program is successfully attached and bpfman returns the
+    id.
+
+  linkStatus	<string> -required-
+    linkStatus reflects whether the attachment has been reconciled
+    successfully, and if not, why.
+
+  netnsPath	<string> -required-
+    netnsPath is the path to the network namespace inside of which the TC
+    program should be attached.
+
+  priority	<integer> -required-
+    priority is the provisioned priority of the TC program in relation to other
+    programs of the same type with the same attach point. It is a value from 0
+    to 1000, where lower values have higher precedence.
+
+  proceedOn	<[]string> -required-
+    proceedOn is the provisioned list of proceedOn values. proceedOn allows the
+    user to call other TC programs in a chain, or not call the next program in a
+    chain based on the exit code of a TC program .Multiple values are supported.
+
+  shouldAttach	<boolean> -required-
+    shouldAttach reflects whether the attachment should exist.
+
+  uuid	<string> -required-
+    uuid is an Unique identifier for the attach point assigned by bpfman agent.
+
+$ kubectl explain BpfApplicationState.status.programs.tcx
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: tcx <Object>
+
+
+DESCRIPTION:
+    tcx contains the attachment data for a TCX program when type is set to TCX.
+    
+FIELDS:
+  links	<[]Object>
+    links is a list of attachment points for the TCX program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+
+$ kubectl explain BpfApplicationState.status.programs.tcx.links
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: links <[]Object>
+
+
+DESCRIPTION:
+    links is a list of attachment points for the TCX program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+    
+FIELDS:
+  direction	<string> -required-
+  enum: Ingress, Egress
+    direction is the provisioned direction of traffic, Ingress or Egress, the
+    TCX program should be attached for a given network device.
+
+  interfaceName	<string> -required-
+    interfaceName is the name of the interface the TCX program should be
+    attached.
+
+  linkId	<integer>
+    linkId is an identifier for the link assigned by bpfman. This field is
+    empty until the program is successfully attached and bpfman returns the
+    id.
+
+  linkStatus	<string> -required-
+    linkStatus reflects whether the attachment has been reconciled
+    successfully, and if not, why.
+
+  netnsPath	<string> -required-
+    netnsPath is the path to the network namespace inside of which the TCX
+    program should be attached.
+
+  priority	<integer> -required-
+    priority is the provisioned priority of the TCX program in relation to other
+    programs of the same type with the same attach point. It is a value from 0
+    to 1000, where lower values have higher precedence.
+
+  shouldAttach	<boolean> -required-
+    shouldAttach reflects whether the attachment should exist.
+
+  uuid	<string> -required-
+    uuid is an Unique identifier for the attach point assigned by bpfman agent.
+
+$ kubectl explain BpfApplicationState.status.programs.uprobe
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: uprobe <Object>
+
+
+DESCRIPTION:
+    uprobe contains the attachment data for a UProbe program when type is set to
+    UProbe.
+    
+FIELDS:
+  links	<[]Object>
+    links is a list of attachment points for the UProbe program. Each entry in
+    the list includes a linkStatus, which indicates if the attachment was
+    successful or not on this node, a linkId, which is the kernel ID for the
+    link if successfully attached, and other attachment specific data.
+
+$ kubectl explain BpfApplicationState.status.programs.uprobe.links
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: links <[]Object>
+
+
+DESCRIPTION:
+    links is a list of attachment points for the UProbe program. Each entry in
+    the list includes a linkStatus, which indicates if the attachment was
+    successful or not on this node, a linkId, which is the kernel ID for the
+    link if successfully attached, and other attachment specific data.
+    
+FIELDS:
+  containerPid	<integer>
+    If containers is provisioned in the BpfApplication instance, containerPid is
+    the derived PID of the container the UProbe or URetProbe this attachment
+    point is attached.
+
+  function	<string>
+    function is the provisioned name of the user-space function the UProbe
+    program should be attached.
+
+  linkId	<integer>
+    linkId is an identifier for the link assigned by bpfman. This field is
+    empty until the program is successfully attached and bpfman returns the
+    id.
+
+  linkStatus	<string> -required-
+    linkStatus reflects whether the attachment has been reconciled
+    successfully, and if not, why.
+
+  offset	<integer>
+    offset is the provisioned offset, whose value is added to the address of the
+    attachment point function.
+
+  pid	<integer>
+    pid is the provisioned pid. If set, pid limits the execution of the UProbe
+    or URetProbe to the provided process identification number (PID). If pid is
+    not provided, the UProbe or URetProbe executes for all PIDs.
+
+  shouldAttach	<boolean> -required-
+    shouldAttach reflects whether the attachment should exist.
+
+  target	<string> -required-
+    target is the provisioned user-space library name or the absolute path to a
+    binary or library.
+
+  uuid	<string> -required-
+    uuid is an Unique identifier for the attach point assigned by bpfman agent.
+
+$ kubectl explain BpfApplicationState.status.programs.uretprobe
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: uretprobe <Object>
+
+
+DESCRIPTION:
+    uretprobe contains the attachment data for a URetProbe program when type is
+    set to URetProbe.
+    
+FIELDS:
+  links	<[]Object>
+    links is a list of attachment points for the UProbe program. Each entry in
+    the list includes a linkStatus, which indicates if the attachment was
+    successful or not on this node, a linkId, which is the kernel ID for the
+    link if successfully attached, and other attachment specific data.
+
+$ kubectl explain BpfApplicationState.status.programs.uretprobe.links
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: links <[]Object>
+
+
+DESCRIPTION:
+    links is a list of attachment points for the UProbe program. Each entry in
+    the list includes a linkStatus, which indicates if the attachment was
+    successful or not on this node, a linkId, which is the kernel ID for the
+    link if successfully attached, and other attachment specific data.
+    
+FIELDS:
+  containerPid	<integer>
+    If containers is provisioned in the BpfApplication instance, containerPid is
+    the derived PID of the container the UProbe or URetProbe this attachment
+    point is attached.
+
+  function	<string>
+    function is the provisioned name of the user-space function the UProbe
+    program should be attached.
+
+  linkId	<integer>
+    linkId is an identifier for the link assigned by bpfman. This field is
+    empty until the program is successfully attached and bpfman returns the
+    id.
+
+  linkStatus	<string> -required-
+    linkStatus reflects whether the attachment has been reconciled
+    successfully, and if not, why.
+
+  offset	<integer>
+    offset is the provisioned offset, whose value is added to the address of the
+    attachment point function.
+
+  pid	<integer>
+    pid is the provisioned pid. If set, pid limits the execution of the UProbe
+    or URetProbe to the provided process identification number (PID). If pid is
+    not provided, the UProbe or URetProbe executes for all PIDs.
+
+  shouldAttach	<boolean> -required-
+    shouldAttach reflects whether the attachment should exist.
+
+  target	<string> -required-
+    target is the provisioned user-space library name or the absolute path to a
+    binary or library.
+
+  uuid	<string> -required-
+    uuid is an Unique identifier for the attach point assigned by bpfman agent.
+
+$ kubectl explain BpfApplicationState.status.programs.xdp
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: xdp <Object>
+
+
+DESCRIPTION:
+    xdp contains the attachment data for an XDP program when type is set to XDP.
+    
+FIELDS:
+  links	<[]Object>
+    links is a list of attachment points for the XDP program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+
+$ kubectl explain BpfApplicationState.status.programs.xdp.links
+GROUP:      bpfman.io
+KIND:       BpfApplicationState
+VERSION:    v1alpha1
+
+FIELD: links <[]Object>
+
+
+DESCRIPTION:
+    links is a list of attachment points for the XDP program. Each entry in the
+    list includes a linkStatus, which indicates if the attachment was successful
+    or not on this node, a linkId, which is the kernel ID for the link if
+    successfully attached, and other attachment specific data.
+    
+FIELDS:
+  interfaceName	<string> -required-
+    interfaceName is the name of the interface the XDP program should be
+    attached.
+
+  linkId	<integer>
+    linkId is an identifier for the link assigned by bpfman. This field is
+    empty until the program is successfully attached and bpfman returns the
+    id.
+
+  linkStatus	<string> -required-
+    linkStatus reflects whether the attachment has been reconciled
+    successfully, and if not, why.
+
+  netnsPath	<string> -required-
+    netnsPath is the path to the network namespace inside of which the XDP
+    program should be attached.
+
+  priority	<integer> -required-
+    priority is the provisioned priority of the XDP program in relation to other
+    programs of the same type with the same attach point. It is a value from 0
+    to 1000, where lower values have higher precedence.
+
+  proceedOn	<[]string> -required-
+    proceedOn is the provisioned list of proceedOn values. proceedOn allows the
+    user to call other TC programs in a chain, or not call the next program in a
+    chain based on the exit code of a TC program .Multiple values are supported.
+
+  shouldAttach	<boolean> -required-
+    shouldAttach reflects whether the attachment should exist.
+
+  uuid	<string> -required-
+    uuid is an Unique identifier for the attach point assigned by bpfman agent.
+

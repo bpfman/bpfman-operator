@@ -274,6 +274,10 @@ vendors: ## Refresh vendors directory.
 	@echo "### Checking vendors"
 	go mod tidy && go mod vendor
 
+.PHONY: explain
+explain: ## Run "kubectl explain" on all CRDs.
+	CRD_1="BpfApplication" CRD_2="ClusterBpfApplication" CRD_3="BpfApplicationState" CRD_4="ClusterBpfApplicationState" OUTPUT_DIR="../docs/crds" ./hack/crd_explain_txt.sh
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...
