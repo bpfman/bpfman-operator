@@ -34,7 +34,9 @@ import (
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	"github.com/go-logr/logr"
+	"github.com/netobserv/netobserv-ebpf-agent/pkg/config"
 	"github.com/netobserv/netobserv-ebpf-agent/pkg/ifaces"
+	netobservmetrics "github.com/netobserv/netobserv-ebpf-agent/pkg/metrics"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/credentials/insecure"
@@ -157,8 +159,12 @@ type interfaceDiscovery struct {
 //
 // Returns an error if the subscription to interface events fails.
 func newInterfaceDiscovery(ctx context.Context, interfaces *sync.Map) (*interfaceDiscovery, error) {
-	informer := ifaces.NewWatcher(buffersLength)
-	registerer := ifaces.NewRegisterer(informer, buffersLength)
+	m := netobservmetrics.NoOp()
+	informer := ifaces.NewWatcher(buffersLength, m)
+	registerer, err := ifaces.NewRegisterer(informer, &config.Agent{BuffersLength: buffersLength}, m)
+	if err != nil {
+		return nil, fmt.Errorf("creating interface registerer: %w", err)
+	}
 
 	ifaceEvents, err := registerer.Subscribe(ctx)
 	if err != nil {

@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // BpfApplicationLister helps list BpfApplications.
@@ -30,7 +30,7 @@ import (
 type BpfApplicationLister interface {
 	// List lists all BpfApplications in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error)
+	List(selector labels.Selector) (ret []*apisv1alpha1.BpfApplication, err error)
 	// BpfApplications returns an object that can list and get BpfApplications.
 	BpfApplications(namespace string) BpfApplicationNamespaceLister
 	BpfApplicationListerExpansion
@@ -38,25 +38,17 @@ type BpfApplicationLister interface {
 
 // bpfApplicationLister implements the BpfApplicationLister interface.
 type bpfApplicationLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*apisv1alpha1.BpfApplication]
 }
 
 // NewBpfApplicationLister returns a new BpfApplicationLister.
 func NewBpfApplicationLister(indexer cache.Indexer) BpfApplicationLister {
-	return &bpfApplicationLister{indexer: indexer}
-}
-
-// List lists all BpfApplications in the indexer.
-func (s *bpfApplicationLister) List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BpfApplication))
-	})
-	return ret, err
+	return &bpfApplicationLister{listers.New[*apisv1alpha1.BpfApplication](indexer, apisv1alpha1.Resource("bpfapplication"))}
 }
 
 // BpfApplications returns an object that can list and get BpfApplications.
 func (s *bpfApplicationLister) BpfApplications(namespace string) BpfApplicationNamespaceLister {
-	return bpfApplicationNamespaceLister{indexer: s.indexer, namespace: namespace}
+	return bpfApplicationNamespaceLister{listers.NewNamespaced[*apisv1alpha1.BpfApplication](s.ResourceIndexer, namespace)}
 }
 
 // BpfApplicationNamespaceLister helps list and get BpfApplications.
@@ -64,36 +56,15 @@ func (s *bpfApplicationLister) BpfApplications(namespace string) BpfApplicationN
 type BpfApplicationNamespaceLister interface {
 	// List lists all BpfApplications in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error)
+	List(selector labels.Selector) (ret []*apisv1alpha1.BpfApplication, err error)
 	// Get retrieves the BpfApplication from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.BpfApplication, error)
+	Get(name string) (*apisv1alpha1.BpfApplication, error)
 	BpfApplicationNamespaceListerExpansion
 }
 
 // bpfApplicationNamespaceLister implements the BpfApplicationNamespaceLister
 // interface.
 type bpfApplicationNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all BpfApplications in the indexer for a given namespace.
-func (s bpfApplicationNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.BpfApplication, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BpfApplication))
-	})
-	return ret, err
-}
-
-// Get retrieves the BpfApplication from the indexer for a given namespace and name.
-func (s bpfApplicationNamespaceLister) Get(name string) (*v1alpha1.BpfApplication, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("bpfapplication"), name)
-	}
-	return obj.(*v1alpha1.BpfApplication), nil
+	listers.ResourceIndexer[*apisv1alpha1.BpfApplication]
 }

@@ -19,10 +19,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/tools/cache"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	listers "k8s.io/client-go/listers"
+	cache "k8s.io/client-go/tools/cache"
 )
 
 // ClusterBpfApplicationStateLister helps list ClusterBpfApplicationStates.
@@ -30,39 +30,19 @@ import (
 type ClusterBpfApplicationStateLister interface {
 	// List lists all ClusterBpfApplicationStates in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*v1alpha1.ClusterBpfApplicationState, err error)
+	List(selector labels.Selector) (ret []*apisv1alpha1.ClusterBpfApplicationState, err error)
 	// Get retrieves the ClusterBpfApplicationState from the index for a given name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*v1alpha1.ClusterBpfApplicationState, error)
+	Get(name string) (*apisv1alpha1.ClusterBpfApplicationState, error)
 	ClusterBpfApplicationStateListerExpansion
 }
 
 // clusterBpfApplicationStateLister implements the ClusterBpfApplicationStateLister interface.
 type clusterBpfApplicationStateLister struct {
-	indexer cache.Indexer
+	listers.ResourceIndexer[*apisv1alpha1.ClusterBpfApplicationState]
 }
 
 // NewClusterBpfApplicationStateLister returns a new ClusterBpfApplicationStateLister.
 func NewClusterBpfApplicationStateLister(indexer cache.Indexer) ClusterBpfApplicationStateLister {
-	return &clusterBpfApplicationStateLister{indexer: indexer}
-}
-
-// List lists all ClusterBpfApplicationStates in the indexer.
-func (s *clusterBpfApplicationStateLister) List(selector labels.Selector) (ret []*v1alpha1.ClusterBpfApplicationState, err error) {
-	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.ClusterBpfApplicationState))
-	})
-	return ret, err
-}
-
-// Get retrieves the ClusterBpfApplicationState from the index for a given name.
-func (s *clusterBpfApplicationStateLister) Get(name string) (*v1alpha1.ClusterBpfApplicationState, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(v1alpha1.Resource("clusterbpfapplicationstate"), name)
-	}
-	return obj.(*v1alpha1.ClusterBpfApplicationState), nil
+	return &clusterBpfApplicationStateLister{listers.New[*apisv1alpha1.ClusterBpfApplicationState](indexer, apisv1alpha1.Resource("clusterbpfapplicationstate"))}
 }

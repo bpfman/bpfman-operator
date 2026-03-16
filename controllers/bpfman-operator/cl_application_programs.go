@@ -88,7 +88,7 @@ func (r *BpfApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			// Get owning bpfApp object from ownerRef
 			ownerRef := metav1.GetControllerOf(bpfAppState)
 			if ownerRef == nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfApplicationState object owner")
+				return ctrl.Result{}, fmt.Errorf("failed getting BpfApplicationState object owner")
 			}
 
 			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, bpfApp); err != nil {
@@ -117,7 +117,7 @@ func (r *BpfApplicationReconciler) updateStatus(ctx context.Context, _namespace 
 	app := &bpfmaniov1alpha1.ClusterBpfApplication{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, app); err != nil {
 		r.Logger.V(1).Info("failed to get fresh Application Programs object...requeuing")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		return ctrl.Result{RequeueAfter: retryDurationOperator}, nil
 	}
 
 	return r.updateCondition(ctx, app, &app.Status.Conditions, cond, message)

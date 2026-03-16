@@ -1014,7 +1014,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2026-01-29T11:46:57Z"
+    createdAt: "2026-03-11T14:43:51Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1408,103 +1408,6 @@ spec:
       clusterPermissions:
       - rules:
         - apiGroups:
-          - apps
-          resources:
-          - daemonsets
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - bpfapplications
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - bpfapplications/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - bpfapplications/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - bpfapplicationstates
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - clusterbpfapplications
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - clusterbpfapplications/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - clusterbpfapplications/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - clusterbpfapplicationstates
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - configs
-          verbs:
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - configs/finalizers
-          verbs:
-          - update
-        - apiGroups:
           - ""
           resources:
           - configmaps
@@ -1523,6 +1426,68 @@ spec:
           verbs:
           - get
           - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications
+          - clusterbpfapplications
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications/finalizers
+          - clusterbpfapplications/finalizers
+          - configs/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplications/status
+          - clusterbpfapplications/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - bpfapplicationstates
+          - clusterbpfapplicationstates
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - bpfman.io
+          resources:
+          - configs
+          verbs:
+          - delete
+          - get
+          - list
+          - patch
+          - update
           - watch
         - apiGroups:
           - security.openshift.io

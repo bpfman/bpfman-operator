@@ -182,7 +182,7 @@ func runReconciler(t *testing.T, ctx context.Context, r reconcile.Reconciler, re
 	require.NoError(t, err)
 	logger.Info("Reconcile result", "res:", res, "err:", err)
 	// Require no requeue.
-	require.False(t, res.Requeue)
+	require.Zero(t, res.RequeueAfter)
 }
 
 // registerBpfApplicationScheme is a helper to register bpf application schemes for the mock reconciler.

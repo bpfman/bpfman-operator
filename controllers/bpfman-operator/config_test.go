@@ -234,7 +234,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(corev1.SchemeGroupVersion, &v1alpha1.Config{})
+	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Config{})
 	s.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ConfigMap{})
 	s.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.DaemonSet{})
 	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
@@ -339,10 +339,10 @@ func hasOwnerReference(config *v1alpha1.Config, o client.Object) error {
 	if or[0].Controller == nil || *or[0].Controller != true {
 		return fmt.Errorf("owner ref of %q has Controller=%v, expected true", name, or[0].Controller)
 	}
-	// The APIVersion is set to v1 by the fake client, so ignore it.
-	if or[0].APIVersion != "v1" || or[0].Kind != config.Kind {
+	expectedGVK := v1alpha1.SchemeGroupVersion.WithKind("Config")
+	if or[0].APIVersion != expectedGVK.GroupVersion().String() || or[0].Kind != expectedGVK.Kind {
 		return fmt.Errorf("owner ref of %q has APIVersion=%q Kind=%q, expected APIVersion=%q Kind=%q",
-			name, or[0].APIVersion, or[0].Kind, config.APIVersion, config.Kind)
+			name, or[0].APIVersion, or[0].Kind, expectedGVK.GroupVersion().String(), expectedGVK.Kind)
 	}
 	if or[0].Name != internal.BpfmanConfigName {
 		return fmt.Errorf("owner ref of %q has OwnerReference Name=%q, expected %q",
@@ -488,9 +488,10 @@ func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *
 		if err := hasOwnerReference(bpfmanConfig, bpfmanCM); err != nil {
 			return err
 		}
-		// Match ResourceVersion and OwnerReferences as those are the only expected differences.
+		// Match fields that differ between the loaded manifest and the fake client's stored object.
 		expectedRestrictedSCC.ResourceVersion = actualRestrictedSCC.ResourceVersion
 		expectedRestrictedSCC.OwnerReferences = actualRestrictedSCC.OwnerReferences
+		expectedRestrictedSCC.TypeMeta = actualRestrictedSCC.TypeMeta
 		if !reflect.DeepEqual(actualRestrictedSCC, expectedRestrictedSCC) {
 			return fmt.Errorf("deep equal failed, actualRestrictedSCC.Spec: %+v, expectedRestrictedSCC.Spec: %+v",
 				actualRestrictedSCC, expectedRestrictedSCC)

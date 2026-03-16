@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        go: ["1.24"]
+        go: ["1.25"]
         oci_bin: ["docker", "podman"]
         command: [
           "integration",

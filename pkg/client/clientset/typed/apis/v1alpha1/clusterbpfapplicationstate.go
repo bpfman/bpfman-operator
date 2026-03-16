@@ -19,15 +19,14 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	apisv1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	scheme "github.com/bpfman/bpfman-operator/pkg/client/clientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // ClusterBpfApplicationStatesGetter has a method to return a ClusterBpfApplicationStateInterface.
@@ -38,147 +37,36 @@ type ClusterBpfApplicationStatesGetter interface {
 
 // ClusterBpfApplicationStateInterface has methods to work with ClusterBpfApplicationState resources.
 type ClusterBpfApplicationStateInterface interface {
-	Create(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.CreateOptions) (*v1alpha1.ClusterBpfApplicationState, error)
-	Update(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (*v1alpha1.ClusterBpfApplicationState, error)
-	UpdateStatus(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (*v1alpha1.ClusterBpfApplicationState, error)
+	Create(ctx context.Context, clusterBpfApplicationState *apisv1alpha1.ClusterBpfApplicationState, opts v1.CreateOptions) (*apisv1alpha1.ClusterBpfApplicationState, error)
+	Update(ctx context.Context, clusterBpfApplicationState *apisv1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (*apisv1alpha1.ClusterBpfApplicationState, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, clusterBpfApplicationState *apisv1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (*apisv1alpha1.ClusterBpfApplicationState, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.ClusterBpfApplicationState, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.ClusterBpfApplicationStateList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*apisv1alpha1.ClusterBpfApplicationState, error)
+	List(ctx context.Context, opts v1.ListOptions) (*apisv1alpha1.ClusterBpfApplicationStateList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ClusterBpfApplicationState, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *apisv1alpha1.ClusterBpfApplicationState, err error)
 	ClusterBpfApplicationStateExpansion
 }
 
 // clusterBpfApplicationStates implements ClusterBpfApplicationStateInterface
 type clusterBpfApplicationStates struct {
-	client rest.Interface
+	*gentype.ClientWithList[*apisv1alpha1.ClusterBpfApplicationState, *apisv1alpha1.ClusterBpfApplicationStateList]
 }
 
 // newClusterBpfApplicationStates returns a ClusterBpfApplicationStates
 func newClusterBpfApplicationStates(c *BpfmanV1alpha1Client) *clusterBpfApplicationStates {
 	return &clusterBpfApplicationStates{
-		client: c.RESTClient(),
+		gentype.NewClientWithList[*apisv1alpha1.ClusterBpfApplicationState, *apisv1alpha1.ClusterBpfApplicationStateList](
+			"clusterbpfapplicationstates",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			"",
+			func() *apisv1alpha1.ClusterBpfApplicationState { return &apisv1alpha1.ClusterBpfApplicationState{} },
+			func() *apisv1alpha1.ClusterBpfApplicationStateList {
+				return &apisv1alpha1.ClusterBpfApplicationStateList{}
+			},
+		),
 	}
-}
-
-// Get takes name of the clusterBpfApplicationState, and returns the corresponding clusterBpfApplicationState object, and an error if there is any.
-func (c *clusterBpfApplicationStates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	result = &v1alpha1.ClusterBpfApplicationState{}
-	err = c.client.Get().
-		Resource("clusterbpfapplicationstates").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ClusterBpfApplicationStates that match those selectors.
-func (c *clusterBpfApplicationStates) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.ClusterBpfApplicationStateList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1alpha1.ClusterBpfApplicationStateList{}
-	err = c.client.Get().
-		Resource("clusterbpfapplicationstates").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested clusterBpfApplicationStates.
-func (c *clusterBpfApplicationStates) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Resource("clusterbpfapplicationstates").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a clusterBpfApplicationState and creates it.  Returns the server's representation of the clusterBpfApplicationState, and an error, if there is any.
-func (c *clusterBpfApplicationStates) Create(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.CreateOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	result = &v1alpha1.ClusterBpfApplicationState{}
-	err = c.client.Post().
-		Resource("clusterbpfapplicationstates").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(clusterBpfApplicationState).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a clusterBpfApplicationState and updates it. Returns the server's representation of the clusterBpfApplicationState, and an error, if there is any.
-func (c *clusterBpfApplicationStates) Update(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	result = &v1alpha1.ClusterBpfApplicationState{}
-	err = c.client.Put().
-		Resource("clusterbpfapplicationstates").
-		Name(clusterBpfApplicationState.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(clusterBpfApplicationState).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *clusterBpfApplicationStates) UpdateStatus(ctx context.Context, clusterBpfApplicationState *v1alpha1.ClusterBpfApplicationState, opts v1.UpdateOptions) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	result = &v1alpha1.ClusterBpfApplicationState{}
-	err = c.client.Put().
-		Resource("clusterbpfapplicationstates").
-		Name(clusterBpfApplicationState.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(clusterBpfApplicationState).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the clusterBpfApplicationState and deletes it. Returns an error if one occurs.
-func (c *clusterBpfApplicationStates) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Resource("clusterbpfapplicationstates").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *clusterBpfApplicationStates) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Resource("clusterbpfapplicationstates").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched clusterBpfApplicationState.
-func (c *clusterBpfApplicationStates) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.ClusterBpfApplicationState, err error) {
-	result = &v1alpha1.ClusterBpfApplicationState{}
-	err = c.client.Patch(pt).
-		Resource("clusterbpfapplicationstates").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }

@@ -169,7 +169,7 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 	}
 
 	// Require no requeue
-	require.False(t, res.Requeue)
+	require.Zero(t, res.RequeueAfter)
 
 	// Check the BpfNsApplicationState Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: App.Name, Namespace: App.Namespace}, App)
@@ -202,7 +202,7 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 	}
 
 	// Require no requeue
-	require.False(t, res.Requeue)
+	require.Zero(t, res.RequeueAfter)
 
 	// Check the BpfNsApplicationState Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: App.Name, Namespace: App.Namespace}, App)
