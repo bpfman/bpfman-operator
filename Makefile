@@ -341,6 +341,10 @@ bundle: operator-sdk generate kustomize manifests patch-image-references ## Gene
 build-release-yamls: generate kustomize ## Generate the crd install bundle for a specific release version.
 	VERSION=$(VERSION) ./hack/build-release-yamls.sh
 
+.PHONY: default-config
+default-config: ## Print the default Config CR as YAML using current BPFMAN_IMG and BPFMAN_AGENT_IMG.
+	@BPFMAN_IMG=$(BPFMAN_IMG) BPFMAN_AGENT_IMG=$(BPFMAN_AGENT_IMG) go run ./cmd/bpfman-operator default-config
+
 .PHONY: run-local
 run-local: build ## Run the bpfman-operator locally for development purposes.
 	kubectl scale deployment -n bpfman bpfman-operator --replicas=0 || true

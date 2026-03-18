@@ -19,7 +19,9 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -45,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -61,6 +64,11 @@ func init() {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "default-config" {
+		printDefaultConfig()
+		return
+	}
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -270,7 +278,8 @@ func setupCertWatcher(certDir string, tlsOpts *[]func(*tls.Config)) *certwatcher
 }
 
 // defaultConfig builds a Config CR from the given image references
-// and compiled defaults.
+// and compiled defaults. It is used both for bootstrapping the CR on
+// startup and for the default-config subcommand.
 func defaultConfig(bpfmanImage, bpfmanAgentImage string) *bpfmaniov1alpha1.Config {
 	return &bpfmaniov1alpha1.Config{
 		TypeMeta: metav1.TypeMeta{
@@ -296,12 +305,44 @@ func defaultConfig(bpfmanImage, bpfmanAgentImage string) *bpfmaniov1alpha1.Confi
 	}
 }
 
+// printDefaultConfig writes the default Config CR as YAML to stdout
+// using BPFMAN_IMG and BPFMAN_AGENT_IMG from the environment. Usage:
+//
+//	kubectl exec -n bpfman deploy/bpfman-operator -- /bpfman-operator default-config | kubectl apply -f -
+func printDefaultConfig() {
+	bpfmanImage := os.Getenv("BPFMAN_IMG")
+	if bpfmanImage == "" {
+		fmt.Fprintln(os.Stderr, "BPFMAN_IMG environment variable must be set")
+		os.Exit(1)
+	}
+	bpfmanAgentImage := os.Getenv("BPFMAN_AGENT_IMG")
+	if bpfmanAgentImage == "" {
+		fmt.Fprintln(os.Stderr, "BPFMAN_AGENT_IMG environment variable must be set")
+		os.Exit(1)
+	}
+	config := defaultConfig(bpfmanImage, bpfmanAgentImage)
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error marshalling config: %v\n", err)
+		os.Exit(1)
+	}
+
+	out, err := yaml.JSONToYAML(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error converting to YAML: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Print(string(out))
+}
+
 // ensureDefaultConfig creates a default Config CR if one does not
 // already exist. This allows the operator to be self-sufficient when
 // deployed via OLM, where custom resource instances cannot be shipped
 // in the bundle. The image references are sourced from environment
-// variables (BPFMAN_IMG, BPFMAN_AGENT_IMG), falling back to compiled
-// defaults. Downstream builds set these env vars on the deployment.
+// variables (BPFMAN_IMG, BPFMAN_AGENT_IMG), both of which are
+// required; the operator exits on startup if either is missing.
 func ensureDefaultConfig(mgr ctrl.Manager, bpfmanImage, bpfmanAgentImage string) error {
 	directClient, err := client.New(mgr.GetConfig(), client.Options{Scheme: scheme})
 	if err != nil {

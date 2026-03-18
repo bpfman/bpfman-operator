@@ -4,6 +4,7 @@
 package lifecycle
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -27,10 +28,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -130,6 +133,12 @@ func TestLifecycle(t *testing.T) {
 		originalConfig.ResourceVersion = ""
 	}
 
+	// Verify the operator bootstrapped the Config CR with correct defaults.
+	t.Logf("Running: TestConfigBootstrap")
+	if err := testConfigBootstrap(ctx, t, originalConfig); err != nil {
+		t.Fatalf("Failed config bootstrap verification: %q", err)
+	}
+
 	// After this test run, we want to restore to the original configuration.
 	defer func() {
 		t.Logf("Restoring original config")
@@ -163,6 +172,12 @@ func TestLifecycle(t *testing.T) {
 	t.Logf("Running: TestConfigCascadingDeletion")
 	if err := testConfigCascadingDeletion(ctx, t); err != nil {
 		t.Fatalf("Failed config cascading deletion: %q", err)
+	}
+
+	// Test recovery via the default-config subcommand exec'd in the operator pod.
+	t.Logf("Running: TestDefaultConfigRecovery")
+	if err := testDefaultConfigRecovery(ctx, t); err != nil {
+		t.Fatalf("Failed default-config recovery: %q", err)
 	}
 
 	// Test config recreation with modified settings.
@@ -679,6 +694,133 @@ func waitUntilCondition(ctx context.Context, conditionFunc func() (bool, error))
 			}
 		}
 	}
+}
+
+// testConfigBootstrap verifies that the operator auto-created the Config CR
+// on startup with the expected default values from compiled constants. Image
+// fields are checked for non-emptiness only because they come from
+// environment variables which vary between test environments.
+func testConfigBootstrap(ctx context.Context, t *testing.T, config *v1alpha1.Config) error {
+	if config == nil {
+		return fmt.Errorf("expected operator to bootstrap Config CR on startup, but none found")
+	}
+	if config.Name != internal.BpfmanConfigName {
+		return fmt.Errorf("expected Config name %q, got %q", internal.BpfmanConfigName, config.Name)
+	}
+	if config.Spec.Namespace != internal.DefaultConfigNamespace {
+		return fmt.Errorf("expected namespace %q, got %q", internal.DefaultConfigNamespace, config.Spec.Namespace)
+	}
+	if config.Spec.Agent.LogLevel != internal.DefaultLogLevel {
+		return fmt.Errorf("expected agent log level %q, got %q", internal.DefaultLogLevel, config.Spec.Agent.LogLevel)
+	}
+	if config.Spec.Daemon.LogLevel != internal.DefaultLogLevel {
+		return fmt.Errorf("expected daemon log level %q, got %q", internal.DefaultLogLevel, config.Spec.Daemon.LogLevel)
+	}
+	if config.Spec.Agent.HealthProbePort != internal.DefaultHealthProbePort {
+		return fmt.Errorf("expected health probe port %d, got %d", internal.DefaultHealthProbePort, config.Spec.Agent.HealthProbePort)
+	}
+	if config.Spec.Configuration != internal.DefaultConfiguration {
+		return fmt.Errorf("expected default configuration block, got %q", config.Spec.Configuration)
+	}
+	if config.Spec.Agent.Image == "" {
+		return fmt.Errorf("expected non-empty agent image")
+	}
+	if config.Spec.Daemon.Image == "" {
+		return fmt.Errorf("expected non-empty daemon image")
+	}
+
+	t.Logf("Config CR bootstrapped by operator with correct defaults (agent=%s, daemon=%s)",
+		config.Spec.Agent.Image, config.Spec.Daemon.Image)
+	return nil
+}
+
+// testDefaultConfigRecovery verifies that the default-config subcommand,
+// exec'd inside the running operator pod, produces valid YAML that can be
+// applied to restore the Config CR and bring all managed resources back.
+// This mirrors the documented recovery procedure:
+//
+//	kubectl exec -n bpfman deploy/bpfman-operator -- /bpfman-operator default-config | kubectl apply -f -
+func testDefaultConfigRecovery(ctx context.Context, t *testing.T) error {
+	// Confirm the Config CR is absent (deleted by the preceding cascading deletion test).
+	existing := &v1alpha1.Config{}
+	err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, existing)
+	if !errors.IsNotFound(err) {
+		if err == nil {
+			return fmt.Errorf("Config CR should not exist before recovery test")
+		}
+		return err
+	}
+
+	// Set up a kubernetes client and REST config for pod exec.
+	restConfig := bpfmanHelpers.GetK8sConfigOrDie()
+	kubeClient, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create kubernetes client: %w", err)
+	}
+
+	// Find the operator pod.
+	pods, err := kubeClient.CoreV1().Pods(internal.BpfmanNamespace).List(ctx, metav1.ListOptions{
+		LabelSelector: "control-plane=controller-manager",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list operator pods: %w", err)
+	}
+	if len(pods.Items) == 0 {
+		return fmt.Errorf("no operator pods found with label control-plane=controller-manager")
+	}
+	podName := pods.Items[0].Name
+	t.Logf("Executing default-config in pod %s", podName)
+
+	// Exec /bpfman-operator default-config in the operator container.
+	req := kubeClient.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(internal.BpfmanNamespace).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Command:   []string{"/bpfman-operator", "default-config"},
+			Container: "bpfman-operator",
+			Stdout:    true,
+			Stderr:    true,
+		}, clientgoscheme.ParameterCodec)
+
+	executor, err := remotecommand.NewSPDYExecutor(restConfig, "POST", req.URL())
+	if err != nil {
+		return fmt.Errorf("failed to create SPDY executor: %w", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if err := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: &stdout,
+		Stderr: &stderr,
+	}); err != nil {
+		return fmt.Errorf("default-config exec failed (stderr: %s): %w", stderr.String(), err)
+	}
+	t.Logf("default-config output:\n%s", stdout.String())
+
+	// Parse the YAML output into a Config CR and create it.
+	var recoveredConfig v1alpha1.Config
+	if err := yaml.Unmarshal(stdout.Bytes(), &recoveredConfig); err != nil {
+		return fmt.Errorf("failed to unmarshal default-config output: %w", err)
+	}
+	if err := runtimeClient.Create(ctx, &recoveredConfig); err != nil {
+		return fmt.Errorf("failed to create Config CR from default-config output: %w", err)
+	}
+	t.Logf("Created Config CR from default-config subcommand output")
+
+	// Verify the recovered Config CR has the correct default values.
+	if err := testConfigBootstrap(ctx, t, &recoveredConfig); err != nil {
+		return fmt.Errorf("recovered Config CR does not match defaults: %w", err)
+	}
+
+	// Wait for all managed resources to be recreated.
+	if err := waitForResourceCreation(ctx); err != nil {
+		return fmt.Errorf("resources did not recover after applying default-config output: %w", err)
+	}
+	t.Logf("All resources recovered via default-config subcommand")
+
+	// Clean up for the next test by deleting the Config CR.
+	return testConfigCascadingDeletion(ctx, t)
 }
 
 // testConfigStuckDeletion verifies that bpfman can handle scenarios

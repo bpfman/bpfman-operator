@@ -20,7 +20,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/bpfman/bpfman-operator/internal"
 	"github.com/bpfman/bpfman-operator/pkg/client/clientset"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
@@ -46,36 +45,12 @@ var (
 
 	cleanup = []func(context.Context) error{}
 
-	bpfmanConfig = v1alpha1.Config{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: internal.BpfmanConfigName,
-		},
-		Spec: v1alpha1.ConfigSpec{
-			Namespace: "bpfman",
-			Configuration: `[database]
-max_retries = 30
-millisec_delay = 10000
-[signing]
-allow_unsigned = true
-verify_enabled = true`,
-			Agent: v1alpha1.AgentSpec{
-				Image:           "CHANGEME",
-				LogLevel:        "info",
-				HealthProbePort: 8175,
-			},
-			Daemon: v1alpha1.DaemonSpec{
-				Image:    "quay.io/bpfman/bpfman:latest",
-				LogLevel: "bpfman=debug",
-			},
-		},
-	}
 )
 
 const (
 	bpfmanCRD              = "../../config/crd"
 	bpfmanKustomize        = "../../config/test"
 	bpfmanKustomizationEnv = "kustomization.yaml.env"
-	bpfmanConfigMap        = "../../config/bpfman-deployment/config.yaml"
 	newImageName           = "NEW_IMAGE_NAME"
 	newImageTag            = "NEW_IMAGE_TAG"
 )
@@ -141,10 +116,9 @@ func TestMain(m *testing.M) {
 		fmt.Println("INFO: deploying bpfman operator to test cluster")
 		exitOnErr(generateKustomization(bpfmanKustomize, bpfmanKustomizationEnv, bpfmanOperatorImage))
 		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfmanKustomize))
-		// Then, deploy the Config resource.
-		bpfmanConfig.Spec.Agent.Image = bpfmanAgentImage
-		_, err := bpfmanClient.BpfmanV1alpha1().Configs().Create(ctx, &bpfmanConfig, metav1.CreateOptions{})
-		exitOnErr(err)
+		// The operator bootstraps the Config CR on startup using
+		// BPFMAN_IMG and BPFMAN_AGENT_IMG from its deployment env
+		// vars; both are required.
 		if !keepKustomizeDeploys {
 			addCleanup(func(context.Context) error {
 				ctxTimeout, cancelFunc := context.WithTimeout(ctx, 5*time.Minute)
