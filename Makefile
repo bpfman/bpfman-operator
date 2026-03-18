@@ -439,10 +439,9 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: patch-image-references
 patch-image-references: kustomize ## Update all image references with environment variables
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && \
-	  $(SED) -e 's@quay.io/bpfman/bpfman:latest@$(BPFMAN_IMG)@g' \
-	      -e 's@quay.io/bpfman/bpfman-agent:latest@$(BPFMAN_AGENT_IMG)@g' \
-		  kustomization.yaml.env > kustomization.yaml
+	$(SED) -i -e 's@value: quay.io/bpfman/bpfman:latest@value: $(BPFMAN_IMG)@' \
+	       -e 's@value: quay.io/bpfman/bpfman-agent:latest@value: $(BPFMAN_AGENT_IMG)@' \
+	       config/bpfman-operator-deployment/deployment.yaml
 
 ##@ Vanilla K8s Deployment
 

@@ -41,6 +41,7 @@ rules:
   resources:
   - bpfapplications
   - clusterbpfapplications
+  - configs
   verbs:
   - create
   - delete
@@ -74,17 +75,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - bpfman.io
-  resources:
-  - configs
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - security.openshift.io

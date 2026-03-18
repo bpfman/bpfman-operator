@@ -44,6 +44,16 @@ const (
 	DefaultPath                   = "/run/bpfman-sock/bpfman.sock"
 	DefaultPort                   = 50051
 	DefaultEnabled                = true
+	DefaultConfigNamespace        = "bpfman"
+	DefaultLogLevel               = "info"
+	DefaultHealthProbePort        = 8175
+	DefaultConfiguration          = `[database]
+max_retries = 30
+millisec_delay = 10000
+[signing]
+allow_unsigned = true
+verify_enabled = true
+`
 	BpfAppStateOwner              = "bpfman.io/ownedByProgram"
 	NetNsPath                     = "/run/netns"
 	BpfmanTOML                    = "bpfman.toml"
