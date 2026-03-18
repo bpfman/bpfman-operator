@@ -52,7 +52,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
 
 type BpfmanConfigReconciler struct {
@@ -67,7 +67,7 @@ type BpfmanConfigReconciler struct {
 // SetupWithManager sets up the controller with the Manager.
 func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	setup := ctrl.NewControllerManagedBy(mgr).
-		// Watch the bpfman-daemon configmap to configure the bpfman deployment across the whole cluster
+		// Watch the Config CR to configure the bpfman deployment across the whole cluster
 		For(&v1alpha1.Config{},
 			builder.WithPredicates(resourcePredicate(internal.BpfmanConfigName))).
 		Owns(&corev1.ConfigMap{},

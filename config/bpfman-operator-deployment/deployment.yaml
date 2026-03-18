@@ -75,6 +75,10 @@ spec:
           env:
             - name: GO_LOG
               value: info
+            - name: BPFMAN_IMG
+              value: quay.io/bpfman/bpfman:latest
+            - name: BPFMAN_AGENT_IMG
+              value: quay.io/bpfman/bpfman-agent:latest
           name: bpfman-operator
           securityContext:
             allowPrivilegeEscalation: false
