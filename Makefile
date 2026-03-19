@@ -54,6 +54,7 @@ BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
+KIND_BUNDLE_IMG ?= ttl.sh/bpfman-operator-bundle-$(shell git rev-parse --short HEAD):1h
 
 # These environment variable keys need to be exported as the
 # integration tests expect them to be defined.
@@ -392,11 +393,11 @@ load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the runn
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	$(OCI_BIN) build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	docker push $(BUNDLE_IMG)
+	$(OCI_BIN) push $(BUNDLE_IMG)
 
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
@@ -473,6 +474,28 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
+
+##@ OLM Bundle Deployment
+
+.PHONY: bundle-deploy
+bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind ## Deploy bpfman-operator via OLM bundle on the current cluster.
+	$(OPERATOR_SDK) olm install 2>/dev/null || true
+	kubectl create namespace bpfman 2>/dev/null || true
+	$(OCI_BIN) tag $(BUNDLE_IMG) $(KIND_BUNDLE_IMG)
+	$(OCI_BIN) push $(KIND_BUNDLE_IMG)
+	$(OPERATOR_SDK) run bundle $(KIND_BUNDLE_IMG) -n bpfman --timeout 5m
+
+.PHONY: bundle-run-on-kind
+bundle-run-on-kind: kustomize setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
+
+.PHONY: bundle-deploy-openshift
+bundle-deploy-openshift: operator-sdk build-images push-images bundle bundle-build bundle-push ## Deploy bpfman-operator via OLM bundle on OpenShift.
+	kubectl create namespace bpfman 2>/dev/null || true
+	$(OPERATOR_SDK) run bundle $(BUNDLE_IMG) -n bpfman --timeout 5m
+
+.PHONY: bundle-undeploy
+bundle-undeploy: operator-sdk ## Remove the OLM bundle deployment.
+	$(OPERATOR_SDK) cleanup bpfman-operator -n bpfman
 
 ##@ Openshift Deployment
 
