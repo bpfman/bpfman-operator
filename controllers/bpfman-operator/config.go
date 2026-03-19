@@ -56,6 +56,7 @@ import (
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
 
@@ -180,6 +181,14 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	if err := r.reconcileAgentMetricsServiceAnnotation(ctx, bpfmanConfig); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileNamespace(ctx, bpfmanConfig); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -273,25 +282,6 @@ func (r *BpfmanConfigReconciler) reconcileServiceMonitors(ctx context.Context, b
 	}
 
 	ns := bpfmanConfig.Spec.Namespace
-
-	// On OpenShift, label the namespace so that the cluster
-	// Prometheus instance discovers ServiceMonitors here.
-	if r.IsOpenshift {
-		namespace := &corev1.Namespace{}
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: ns}, namespace); err != nil {
-			return fmt.Errorf("get namespace %s: %w", ns, err)
-		}
-		if namespace.Labels["openshift.io/cluster-monitoring"] != "true" {
-			if namespace.Labels == nil {
-				namespace.Labels = make(map[string]string)
-			}
-			namespace.Labels["openshift.io/cluster-monitoring"] = "true"
-			if err := r.Client.Update(ctx, namespace); err != nil {
-				return fmt.Errorf("label namespace %s for monitoring: %w", ns, err)
-			}
-			r.Logger.Info("Labelled namespace for OpenShift cluster monitoring", "namespace", ns)
-		}
-	}
 	httpsScheme := monitoringv1.Scheme("https")
 
 	agentTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-agent-metrics-service", ns)
@@ -411,6 +401,105 @@ func serviceMonitorTLSConfig(isOpenshift bool, serviceName, namespace string) *m
 			InsecureSkipVerify: ptr.To(true),
 		},
 	}
+}
+
+// reconcileNamespace ensures the operator namespace has the correct
+// labels and annotations. Pod security labels are set on all
+// platforms since the bpfman-daemon requires privileged containers.
+// On OpenShift, additional labels and annotations are set for
+// cluster monitoring discovery and workload partitioning.
+func (r *BpfmanConfigReconciler) reconcileNamespace(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
+	ns := bpfmanConfig.Spec.Namespace
+	namespace := &corev1.Namespace{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: ns}, namespace); err != nil {
+		return fmt.Errorf("get namespace %s: %w", ns, err)
+	}
+
+	if namespace.Labels == nil {
+		namespace.Labels = make(map[string]string)
+	}
+	if namespace.Annotations == nil {
+		namespace.Annotations = make(map[string]string)
+	}
+
+	changed := false
+
+	// Pod security admission labels required on all platforms
+	// for the privileged bpfman-daemon containers.
+	psaLabels := map[string]string{
+		"pod-security.kubernetes.io/enforce": "privileged",
+		"pod-security.kubernetes.io/audit":   "privileged",
+		"pod-security.kubernetes.io/warn":    "privileged",
+	}
+	for k, v := range psaLabels {
+		if namespace.Labels[k] != v {
+			namespace.Labels[k] = v
+			changed = true
+		}
+	}
+
+	if r.IsOpenshift {
+		if r.HasMonitoring && namespace.Labels["openshift.io/cluster-monitoring"] != "true" {
+			namespace.Labels["openshift.io/cluster-monitoring"] = "true"
+			changed = true
+		}
+
+		osAnnotations := map[string]string{
+			"openshift.io/node-selector":     "",
+			"openshift.io/description":       "Openshift bpfman components",
+			"workload.openshift.io/allowed":  "management",
+		}
+		for k, v := range osAnnotations {
+			if namespace.Annotations[k] != v {
+				namespace.Annotations[k] = v
+				changed = true
+			}
+		}
+	}
+
+	if changed {
+		if err := r.Client.Update(ctx, namespace); err != nil {
+			return fmt.Errorf("update namespace %s: %w", ns, err)
+		}
+		r.Logger.Info("Updated namespace labels and annotations", "namespace", ns)
+	}
+
+	return nil
+}
+
+// reconcileAgentMetricsServiceAnnotation annotates the agent
+// metrics service with the OpenShift service-CA serving certificate
+// annotation, which triggers the service CA operator to provision
+// a TLS secret for the agent metrics proxy.
+func (r *BpfmanConfigReconciler) reconcileAgentMetricsServiceAnnotation(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
+	if !r.IsOpenshift {
+		return nil
+	}
+
+	ns := bpfmanConfig.Spec.Namespace
+	svc := &corev1.Service{}
+	if err := r.Client.Get(ctx, types.NamespacedName{
+		Name:      "bpfman-agent-metrics-service",
+		Namespace: ns,
+	}, svc); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("get agent metrics service: %w", err)
+	}
+
+	if svc.Annotations == nil {
+		svc.Annotations = make(map[string]string)
+	}
+	if svc.Annotations["service.beta.openshift.io/serving-cert-secret-name"] != "agent-metrics-tls" {
+		svc.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = "agent-metrics-tls"
+		if err := r.Client.Update(ctx, svc); err != nil {
+			return fmt.Errorf("annotate agent metrics service: %w", err)
+		}
+		r.Logger.Info("Annotated agent metrics service for service-CA cert provisioning")
+	}
+
+	return nil
 }
 
 // resourcePredicate creates a predicate that filters events based on resource name.
