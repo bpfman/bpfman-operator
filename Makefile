@@ -159,7 +159,7 @@ OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/
 .PHONY: operator-sdk
 operator-sdk: $(OPERATOR_SDK)
 $(OPERATOR_SDK): $(LOCALBIN)
-	test -s $(LOCALBIN)/operator_sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
+	test -s $(LOCALBIN)/operator-sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
 	 mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
 
 .PHONY: controller-gen
