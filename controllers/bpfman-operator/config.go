@@ -259,7 +259,14 @@ func (r *BpfmanConfigReconciler) reconcileServiceMonitors(ctx context.Context, b
 	httpsScheme := monitoringv1.Scheme("https")
 
 	agentTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-agent-metrics-service", ns)
-	controllerTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-controller-manager-metrics-service", ns)
+	// The operator deployment always uses controller-runtime's
+	// self-signed certificates, so the controller ServiceMonitor
+	// must skip TLS verification on all platforms.
+	controllerTLS := &monitoringv1.TLSConfig{
+		SafeTLSConfig: monitoringv1.SafeTLSConfig{
+			InsecureSkipVerify: ptr.To(true),
+		},
+	}
 
 	agentSM := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{

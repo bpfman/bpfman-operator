@@ -994,7 +994,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2026-03-19T07:46:16Z"
+    createdAt: "2026-03-19T15:04:22Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1516,7 +1516,6 @@ spec:
             metadata:
               annotations:
                 kubectl.kubernetes.io/default-container: manager
-                service.beta.openshift.io/serving-cert-secret-name: controller-manager-metrics-tls
               labels:
                 control-plane: controller-manager
             spec:
@@ -1550,8 +1549,8 @@ spec:
                 - name: BPFMAN_IMG
                   value: quay.io/bpfman/bpfman:latest
                 - name: BPFMAN_AGENT_IMG
-                  value: quay.io/bpfman/bpfman-agent:latest
-                image: quay.io/bpfman/bpfman-operator:latest
+                  value: quay.int.frobware.com/amcdermo/bpfman-agent:latest
+                image: quay.int.frobware.com/amcdermo/bpfman-operator:latest
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -1582,18 +1581,10 @@ spec:
                   capabilities:
                     drop:
                     - ALL
-                volumeMounts:
-                - mountPath: /tmp/k8s-webhook-server/serving-certs
-                  name: controller-manager-metrics-tls
-                  readOnly: true
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: bpfman-operator
               terminationGracePeriodSeconds: 10
-              volumes:
-              - name: controller-manager-metrics-tls
-                secret:
-                  secretName: controller-manager-metrics-tls
       permissions:
       - rules:
         - apiGroups:

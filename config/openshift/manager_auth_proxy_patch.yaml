@@ -6,9 +6,6 @@ metadata:
   namespace: system
 spec:
   template:
-    metadata:
-      annotations:
-        service.beta.openshift.io/serving-cert-secret-name: controller-manager-metrics-tls
     spec:
       affinity:
         nodeAffinity:
@@ -37,10 +34,6 @@ spec:
             - containerPort: 8443
               protocol: TCP
               name: https-metrics
-          volumeMounts:
-            - mountPath: /tmp/k8s-webhook-server/serving-certs
-              name: controller-manager-metrics-tls
-              readOnly: true
           resources:
             limits:
               cpu: 500m
@@ -48,7 +41,3 @@ spec:
             requests:
               cpu: 5m
               memory: 64Mi
-      volumes:
-        - name: controller-manager-metrics-tls
-          secret:
-            secretName: controller-manager-metrics-tls
