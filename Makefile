@@ -54,7 +54,10 @@ BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
-KIND_BUNDLE_IMG ?= ttl.sh/bpfman-operator-bundle-$(shell git rev-parse --short HEAD):1h
+KIND_REGISTRY_NAME ?= kind-registry
+KIND_REGISTRY_PORT ?= 5001
+KIND_BUNDLE_IMG ?= localhost:$(KIND_REGISTRY_PORT)/bpfman-operator-bundle:latest
+KIND_BUNDLE_PULL_FLAGS ?= --use-http
 
 # These environment variable keys need to be exported as the
 # integration tests expect them to be defined.
@@ -450,9 +453,16 @@ patch-image-references: kustomize ## Update all image references with environmen
 setup-kind: ## Setup Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
+.PHONY: setup-kind-registry
+setup-kind-registry: ## Start a local registry for KIND and connect it to the KIND network.
+	$(OCI_BIN) inspect $(KIND_REGISTRY_NAME) >/dev/null 2>&1 || \
+	  $(OCI_BIN) run -d --restart=always -p "$(KIND_REGISTRY_PORT):5000" --name $(KIND_REGISTRY_NAME) registry:2
+	$(OCI_BIN) network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
+
 .PHONY: destroy-kind
 destroy-kind: ## Destroy Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME}
+	$(OCI_BIN) rm -f $(KIND_REGISTRY_NAME) 2>/dev/null || true
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
@@ -478,12 +488,12 @@ run-on-kind: kustomize setup-kind build-images load-images-kind install deploy #
 ##@ OLM Bundle Deployment
 
 .PHONY: bundle-deploy
-bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind ## Deploy bpfman-operator via OLM bundle on the current cluster.
+bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
 	$(OPERATOR_SDK) olm install 2>/dev/null || true
 	kubectl create namespace bpfman 2>/dev/null || true
 	$(OCI_BIN) tag $(BUNDLE_IMG) $(KIND_BUNDLE_IMG)
 	$(OCI_BIN) push $(KIND_BUNDLE_IMG)
-	$(OPERATOR_SDK) run bundle $(KIND_BUNDLE_IMG) -n bpfman --timeout 5m
+	$(OPERATOR_SDK) run bundle $(KIND_BUNDLE_IMG) $(KIND_BUNDLE_PULL_FLAGS) -n bpfman --timeout 5m
 
 .PHONY: bundle-run-on-kind
 bundle-run-on-kind: kustomize setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
