@@ -458,6 +458,10 @@ setup-kind-registry: ## Start a local registry for KIND and connect it to the KI
 	$(OCI_BIN) inspect $(KIND_REGISTRY_NAME) >/dev/null 2>&1 || \
 	  $(OCI_BIN) run -d --restart=always -p "$(KIND_REGISTRY_PORT):5000" --name $(KIND_REGISTRY_NAME) registry:2
 	$(OCI_BIN) network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
+	for node in $$(kind get nodes --name $(KIND_CLUSTER_NAME)); do \
+	  $(OCI_BIN) exec $$node mkdir -p /etc/containerd/certs.d/localhost:$(KIND_REGISTRY_PORT); \
+	  $(OCI_BIN) exec $$node sh -c "echo '[host.\"http://$(KIND_REGISTRY_NAME):5000\"]' > /etc/containerd/certs.d/localhost:$(KIND_REGISTRY_PORT)/hosts.toml"; \
+	done
 
 .PHONY: destroy-kind
 destroy-kind: ## Destroy Kind cluster
@@ -490,6 +494,7 @@ run-on-kind: kustomize setup-kind build-images load-images-kind install deploy #
 .PHONY: bundle-deploy
 bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
 	$(OPERATOR_SDK) olm install 2>/dev/null || true
+	kubectl delete catalogsource operatorhubio-catalog -n olm 2>/dev/null || true
 	kubectl create namespace bpfman 2>/dev/null || true
 	$(OCI_BIN) tag $(BUNDLE_IMG) $(KIND_BUNDLE_IMG)
 	$(OCI_BIN) push $(KIND_BUNDLE_IMG)
