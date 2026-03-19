@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	osv1 "github.com/openshift/api/security/v1"
@@ -54,6 +55,7 @@ import (
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
 
@@ -86,6 +88,21 @@ func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		setup = setup.Owns(
 			&osv1.SecurityContextConstraints{},
 			builder.WithPredicates(resourcePredicate(internal.BpfmanRestrictedSccName)))
+
+		if r.HasMonitoring {
+			// Watch the operator namespace so we can re-apply the
+			// cluster-monitoring label if it is removed.
+			setup = setup.Watches(
+				&corev1.Namespace{},
+				handler.EnqueueRequestsFromMapFunc(
+					func(_ context.Context, obj client.Object) []ctrl.Request {
+						if obj.GetName() != internal.BpfmanNamespace {
+							return nil
+						}
+						return []ctrl.Request{{NamespacedName: types.NamespacedName{Name: internal.BpfmanConfigName}}}
+					}),
+				builder.WithPredicates(resourcePredicate(internal.BpfmanNamespace)))
+		}
 	}
 
 	if r.HasMonitoring {
@@ -256,6 +273,25 @@ func (r *BpfmanConfigReconciler) reconcileServiceMonitors(ctx context.Context, b
 	}
 
 	ns := bpfmanConfig.Spec.Namespace
+
+	// On OpenShift, label the namespace so that the cluster
+	// Prometheus instance discovers ServiceMonitors here.
+	if r.IsOpenshift {
+		namespace := &corev1.Namespace{}
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: ns}, namespace); err != nil {
+			return fmt.Errorf("get namespace %s: %w", ns, err)
+		}
+		if namespace.Labels["openshift.io/cluster-monitoring"] != "true" {
+			if namespace.Labels == nil {
+				namespace.Labels = make(map[string]string)
+			}
+			namespace.Labels["openshift.io/cluster-monitoring"] = "true"
+			if err := r.Client.Update(ctx, namespace); err != nil {
+				return fmt.Errorf("label namespace %s for monitoring: %w", ns, err)
+			}
+			r.Logger.Info("Labelled namespace for OpenShift cluster monitoring", "namespace", ns)
+		}
+	}
 	httpsScheme := monitoringv1.Scheme("https")
 
 	agentTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-agent-metrics-service", ns)

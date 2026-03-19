@@ -250,8 +250,14 @@ func setupTestEnvironment(isOpenShift, hasMonitoring bool) (*BpfmanConfigReconci
 	bpfmanConfig.Kind = "Config"
 	bpfmanConfig.APIVersion = "bpfman.io/v1alpha1"
 
+	bpfmanNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bpfman",
+		},
+	}
+
 	// Objects to track in the fake client.
-	objs := []runtime.Object{bpfmanConfig}
+	objs := []runtime.Object{bpfmanConfig, bpfmanNamespace}
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
