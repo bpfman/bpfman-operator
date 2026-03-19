@@ -30,6 +30,7 @@ import (
 	"github.com/bpfman/bpfman-operator/internal"
 
 	osv1 "github.com/openshift/api/security/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,6 +61,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(bpfmaniov1alpha1.Install(scheme))
 	utilruntime.Must(osv1.Install(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -203,7 +205,12 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to determine platform")
 		os.Exit(1)
+	}
 
+	hasMonitoring, err := internal.HasMonitoringAPI(dc, setupLog)
+	if err != nil {
+		setupLog.Error(err, "unable to determine monitoring API availability")
+		os.Exit(1)
 	}
 
 	if err = (&bpfmanoperator.BpfmanConfigReconciler{
@@ -213,6 +220,7 @@ func main() {
 		CsiDriverDS:                  internal.BpfmanCsiDriverPath,
 		RestrictedSCC:                internal.BpfmanRestrictedSCCPath,
 		IsOpenshift:                  isOpenshift,
+		HasMonitoring:                hasMonitoring,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create bpfmanConfig controller")
 		os.Exit(1)

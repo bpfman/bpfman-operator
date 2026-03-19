@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	osv1 "github.com/openshift/api/security/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 
 	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
@@ -52,6 +53,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=bpfman.io,resources=configs/finalizers,verbs=update
 
@@ -62,6 +64,7 @@ type BpfmanConfigReconciler struct {
 	CsiDriverDS          string
 	RestrictedSCC        string
 	IsOpenshift          bool
+	HasMonitoring        bool
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -76,9 +79,6 @@ func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			&appsv1.DaemonSet{},
 			builder.WithPredicates(resourcePredicate(internal.BpfmanDsName))).
 		Owns(
-			&appsv1.DaemonSet{},
-			builder.WithPredicates(resourcePredicate(internal.BpfmanMetricsProxyDsName))).
-		Owns(
 			&storagev1.CSIDriver{},
 			builder.WithPredicates(resourcePredicate(internal.BpfmanCsiDriverName)))
 
@@ -86,6 +86,18 @@ func (r *BpfmanConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		setup = setup.Owns(
 			&osv1.SecurityContextConstraints{},
 			builder.WithPredicates(resourcePredicate(internal.BpfmanRestrictedSccName)))
+	}
+
+	if r.HasMonitoring {
+		setup = setup.Owns(
+			&appsv1.DaemonSet{},
+			builder.WithPredicates(resourcePredicate(internal.BpfmanMetricsProxyDsName))).
+			Owns(
+				&monitoringv1.ServiceMonitor{},
+				builder.WithPredicates(resourcePredicate(internal.BpfmanAgentServiceMonitorName))).
+			Owns(
+				&monitoringv1.ServiceMonitor{},
+				builder.WithPredicates(resourcePredicate(internal.BpfmanControllerServiceMonitorName)))
 	}
 
 	return setup.Complete(r)
@@ -144,6 +156,10 @@ func (r *BpfmanConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	if err := r.reconcileMetricsProxyDS(ctx, bpfmanConfig); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileServiceMonitors(ctx, bpfmanConfig); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -217,6 +233,10 @@ func (r *BpfmanConfigReconciler) reconcileStandardDS(ctx context.Context, bpfman
 }
 
 func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
+	if !r.HasMonitoring {
+		return nil
+	}
+
 	// Reconcile metrics-proxy daemonset
 	metricsProxyDS := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanMetricsProxyDsName}}
 	r.Logger.Info("Loading object", "object", metricsProxyDS.Name, "path", r.BpfmanMetricsProxyDS)
@@ -228,6 +248,126 @@ func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bp
 	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS, func(existing, desired *appsv1.DaemonSet) bool {
 		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
 	})
+}
+
+func (r *BpfmanConfigReconciler) reconcileServiceMonitors(ctx context.Context, bpfmanConfig *v1alpha1.Config) error {
+	if !r.HasMonitoring {
+		return nil
+	}
+
+	ns := bpfmanConfig.Spec.Namespace
+	httpsScheme := monitoringv1.Scheme("https")
+
+	agentTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-agent-metrics-service", ns)
+	controllerTLS := serviceMonitorTLSConfig(r.IsOpenshift, "bpfman-controller-manager-metrics-service", ns)
+
+	agentSM := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanAgentServiceMonitorName,
+			Namespace: ns,
+			Labels: map[string]string{
+				"app.kubernetes.io/component":  "metrics",
+				"app.kubernetes.io/created-by": "bpfman-operator",
+				"app.kubernetes.io/instance":   "agent-metrics-monitor",
+				"app.kubernetes.io/managed-by": "bpfman-operator",
+				"app.kubernetes.io/name":       "agent-metrics-monitor",
+				"app.kubernetes.io/part-of":    "bpfman-operator",
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Path:            "/agent-metrics",
+					Port:            "https-metrics",
+					Scheme:          &httpsScheme,
+					BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+					HTTPConfigWithProxyAndTLSFiles: monitoringv1.HTTPConfigWithProxyAndTLSFiles{
+						HTTPConfigWithTLSFiles: monitoringv1.HTTPConfigWithTLSFiles{
+							TLSConfig: agentTLS,
+						},
+					},
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/component": "metrics",
+					"app.kubernetes.io/instance":  "agent-metrics-service",
+					"app.kubernetes.io/name":      "agent-metrics-service",
+				},
+			},
+		},
+	}
+
+	controllerSM := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      internal.BpfmanControllerServiceMonitorName,
+			Namespace: ns,
+			Labels: map[string]string{
+				"app.kubernetes.io/component":  "metrics",
+				"app.kubernetes.io/created-by": "bpfman-operator",
+				"app.kubernetes.io/instance":   "controller-manager-metrics-monitor",
+				"app.kubernetes.io/managed-by": "bpfman-operator",
+				"app.kubernetes.io/name":       "servicemonitor",
+				"app.kubernetes.io/part-of":    "bpfman-operator",
+				"control-plane":                "controller-manager",
+			},
+		},
+		Spec: monitoringv1.ServiceMonitorSpec{
+			Endpoints: []monitoringv1.Endpoint{
+				{
+					Path:            "/metrics",
+					Port:            "https-metrics",
+					Scheme:          &httpsScheme,
+					BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+					HTTPConfigWithProxyAndTLSFiles: monitoringv1.HTTPConfigWithProxyAndTLSFiles{
+						HTTPConfigWithTLSFiles: monitoringv1.HTTPConfigWithTLSFiles{
+							TLSConfig: controllerTLS,
+						},
+					},
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"control-plane": "controller-manager",
+				},
+			},
+		},
+	}
+
+	needsUpdateFn := func(existing, desired *monitoringv1.ServiceMonitor) bool {
+		return !equality.Semantic.DeepEqual(existing.Spec.Endpoints, desired.Spec.Endpoints) ||
+			!equality.Semantic.DeepEqual(existing.Spec.Selector, desired.Spec.Selector)
+	}
+
+	if err := assureResource(ctx, r, bpfmanConfig, agentSM, needsUpdateFn); err != nil {
+		return err
+	}
+	return assureResource(ctx, r, bpfmanConfig, controllerSM, needsUpdateFn)
+}
+
+// serviceMonitorTLSConfig returns the TLS configuration for a
+// ServiceMonitor endpoint. On OpenShift, the service-ca operator
+// provisions serving certificates and a trusted CA bundle, so we use
+// strict verification with the CA file and server name. On other
+// platforms we skip verification because no standard certificate
+// infrastructure exists.
+func serviceMonitorTLSConfig(isOpenshift bool, serviceName, namespace string) *monitoringv1.TLSConfig {
+	if isOpenshift {
+		return &monitoringv1.TLSConfig{
+			TLSFilesConfig: monitoringv1.TLSFilesConfig{
+				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
+			},
+			SafeTLSConfig: monitoringv1.SafeTLSConfig{
+				ServerName:         ptr.To(serviceName + "." + namespace + ".svc"),
+				InsecureSkipVerify: ptr.To(false),
+			},
+		}
+	}
+	return &monitoringv1.TLSConfig{
+		SafeTLSConfig: monitoringv1.SafeTLSConfig{
+			InsecureSkipVerify: ptr.To(true),
+		},
+	}
 }
 
 // resourcePredicate creates a predicate that filters events based on resource name.

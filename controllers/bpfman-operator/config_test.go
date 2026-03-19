@@ -25,10 +25,12 @@ import (
 	"testing"
 
 	osv1 "github.com/openshift/api/security/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,11 +51,13 @@ const (
 )
 
 type clusterObjects struct {
-	cm        *corev1.ConfigMap
-	csiDriver *storagev1.CSIDriver
-	ds        *appsv1.DaemonSet
-	metricsDs *appsv1.DaemonSet
-	scc       *osv1.SecurityContextConstraints
+	cm           *corev1.ConfigMap
+	csiDriver    *storagev1.CSIDriver
+	ds           *appsv1.DaemonSet
+	metricsDs    *appsv1.DaemonSet
+	scc          *osv1.SecurityContextConstraints
+	agentSM      *monitoringv1.ServiceMonitor
+	controllerSM *monitoringv1.ServiceMonitor
 }
 
 // TestReconcile tests the BpfmanConfigReconciler's ability to create, update, and restore
@@ -63,14 +67,17 @@ type clusterObjects struct {
 // is sufficient in unit tests.
 func TestReconcile(t *testing.T) {
 	for _, tc := range []struct {
-		isOpenShift bool
+		name          string
+		isOpenShift   bool
+		hasMonitoring bool
 	}{
-		{isOpenShift: false},
-		{isOpenShift: true},
+		{name: "plain-k8s", isOpenShift: false, hasMonitoring: false},
+		{name: "k8s-with-monitoring", isOpenShift: false, hasMonitoring: true},
+		{name: "openshift", isOpenShift: true, hasMonitoring: true},
 	} {
-		t.Run(fmt.Sprintf("isOpenShift: %v", tc.isOpenShift), func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Log("Setting up test environment")
-			r, bpfmanConfig, req, ctx, cl := setupTestEnvironment(tc.isOpenShift)
+			r, bpfmanConfig, req, ctx, cl := setupTestEnvironment(tc.isOpenShift, tc.hasMonitoring)
 
 			t.Log("Checking the restricted SCC name")
 			require.Equal(t, tc.isOpenShift, r.RestrictedSCC != "",
@@ -93,7 +100,7 @@ func TestReconcile(t *testing.T) {
 			}
 
 			t.Log("Making sure that all objects are present")
-			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift)
+			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift, tc.hasMonitoring)
 			if err != nil {
 				t.Fatalf("not all objects present after initial reconcile: %q", err)
 			}
@@ -117,17 +124,31 @@ func TestReconcile(t *testing.T) {
 						Namespace: internal.BpfmanNamespace,
 					},
 				},
-				"metrics-daemonset": &appsv1.DaemonSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      internal.BpfmanMetricsProxyDsName,
-						Namespace: internal.BpfmanNamespace,
-					},
-				},
 			}
 			if tc.isOpenShift {
 				objects["restricted-scc"] = &osv1.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: internal.BpfmanRestrictedSccName,
+					},
+				}
+			}
+			if tc.hasMonitoring {
+				objects["metrics-daemonset"] = &appsv1.DaemonSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      internal.BpfmanMetricsProxyDsName,
+						Namespace: internal.BpfmanNamespace,
+					},
+				}
+				objects["agent-service-monitor"] = &monitoringv1.ServiceMonitor{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      internal.BpfmanAgentServiceMonitorName,
+						Namespace: internal.BpfmanNamespace,
+					},
+				}
+				objects["controller-service-monitor"] = &monitoringv1.ServiceMonitor{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      internal.BpfmanControllerServiceMonitorName,
+						Namespace: internal.BpfmanNamespace,
 					},
 				}
 			}
@@ -143,14 +164,14 @@ func TestReconcile(t *testing.T) {
 				}
 
 				t.Log("Making sure that all objects are present")
-				err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift)
+				err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift, tc.hasMonitoring)
 				if err != nil {
 					t.Fatalf("objects not properly restored after deleting %s: %v", desc, err)
 				}
 			}
 
 			t.Log("Making invalid changes to objects")
-			if _, err := modifyObjects(ctx, cl, tc.isOpenShift); err != nil {
+			if _, err := modifyObjects(ctx, cl, tc.isOpenShift, tc.hasMonitoring); err != nil {
 				t.Fatalf("failed to modify objects for restoration test: %v", err)
 			}
 
@@ -161,7 +182,7 @@ func TestReconcile(t *testing.T) {
 			}
 
 			t.Log("Making sure that all objects are present")
-			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift)
+			err = testAllObjectsPresent(ctx, cl, bpfmanConfig, tc.isOpenShift, tc.hasMonitoring)
 			if err != nil {
 				t.Fatalf("objects not properly restored after modification: %v", err)
 			}
@@ -172,7 +193,7 @@ func TestReconcile(t *testing.T) {
 			}
 
 			t.Log("Making invalid changes to objects")
-			cos, err := modifyObjects(ctx, cl, tc.isOpenShift)
+			cos, err := modifyObjects(ctx, cl, tc.isOpenShift, tc.hasMonitoring)
 			if err != nil {
 				t.Fatalf("failed to modify objects for restoration test: %v", err)
 			}
@@ -184,7 +205,7 @@ func TestReconcile(t *testing.T) {
 			}
 
 			t.Log("Making sure that all objects are unchanged")
-			err = testObjectsUnchanged(ctx, cl, tc.isOpenShift, cos)
+			err = testObjectsUnchanged(ctx, cl, tc.isOpenShift, tc.hasMonitoring, cos)
 			if err != nil {
 				t.Fatalf("objects not as expected (should be unchanged) after reconcile: %v", err)
 			}
@@ -206,7 +227,7 @@ func TestReconcile(t *testing.T) {
 //   - reconcile.Request: Mock reconcile request for testing
 //   - context.Context: Test context
 //   - client.Client: Fake Kubernetes client for API interactions
-func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.Config, reconcile.Request,
+func setupTestEnvironment(isOpenShift, hasMonitoring bool) (*BpfmanConfigReconciler, *v1alpha1.Config, reconcile.Request,
 	context.Context, client.Client) {
 	// A configMap for bpfman with metadata and spec.
 	bpfmanConfig := &v1alpha1.Config{
@@ -239,6 +260,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 	s.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.DaemonSet{})
 	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
 	s.AddKnownTypes(osv1.GroupVersion, &osv1.SecurityContextConstraints{})
+	s.AddKnownTypes(monitoringv1.SchemeGroupVersion, &monitoringv1.ServiceMonitor{}, &monitoringv1.ServiceMonitorList{})
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -263,6 +285,7 @@ func setupTestEnvironment(isOpenShift bool) (*BpfmanConfigReconciler, *v1alpha1.
 		BpfmanMetricsProxyDS:         resolveConfigPath(internal.BpfmanMetricsProxyPath),
 		CsiDriverDS:                  resolveConfigPath(internal.BpfmanCsiDriverPath),
 		IsOpenshift:                  isOpenShift,
+		HasMonitoring:                hasMonitoring,
 	}
 	if isOpenShift {
 		r.RestrictedSCC = resolveConfigPath(internal.BpfmanRestrictedSCCPath)
@@ -355,7 +378,7 @@ func hasOwnerReference(config *v1alpha1.Config, o client.Object) error {
 // testAllObjectsPresent verifies that all expected Kubernetes resources are present and correctly configured
 // after a reconcile operation. Validates ConfigMap, CSIDriver, DaemonSets, and OpenShift SCC if applicable.
 func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *v1alpha1.Config,
-	isOpenShift bool) error {
+	isOpenShift, hasMonitoring bool) error {
 	// Expected configmap.
 	bpfmanCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -429,43 +452,17 @@ func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *
 		return err
 	}
 
-	// Check the metrics proxy daemonset was created successfully.
-	expectedMetricsDs := &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
+	if !hasMonitoring {
+		// Verify the metrics proxy DaemonSet does NOT exist when monitoring is unavailable.
+		absentMetricsDs := &appsv1.DaemonSet{}
+		err = cl.Get(ctx, types.NamespacedName{
 			Name:      internal.BpfmanMetricsProxyDsName,
 			Namespace: internal.BpfmanNamespace,
-		},
-	}
-	actualMetricsDs := &appsv1.DaemonSet{}
-	if err := cl.Get(ctx, types.NamespacedName{Name: expectedMetricsDs.Name, Namespace: expectedMetricsDs.Namespace},
-		actualMetricsDs); err != nil {
-		return err
-	}
-	expectedMetricsDs, err = load(expectedMetricsDs, resolveConfigPath(internal.BpfmanMetricsProxyPath),
-		expectedMetricsDs.Name)
-	if err != nil {
-		return err
-	}
-	configureMetricsProxyDs(expectedMetricsDs, bpfmanConfig, isOpenShift)
-	// Workaround: DeepEqual fails for annotations in non-OpenShift cases due to nil vs empty map differences
-	expectedAnnot := expectedMetricsDs.Spec.Template.ObjectMeta.Annotations
-	actualAnnot := actualMetricsDs.Spec.Template.ObjectMeta.Annotations
-	if len(expectedAnnot) != len(actualAnnot) {
-		return fmt.Errorf("expected annotations != actual annotations, %q != %q", expectedAnnot, actualAnnot)
-	}
-	for k, v := range expectedAnnot {
-		if actualAnnot[k] != v {
-			return fmt.Errorf("expected annotation %q=%q, got %q", k, v, actualAnnot[k])
+		}, absentMetricsDs)
+		if err == nil {
+			return fmt.Errorf("metrics proxy DaemonSet %q should not exist without monitoring",
+				internal.BpfmanMetricsProxyDsName)
 		}
-	}
-	expectedMetricsDs.Spec.Template.ObjectMeta.Annotations = actualMetricsDs.Spec.Template.ObjectMeta.Annotations
-	// End workaround
-	if !reflect.DeepEqual(actualMetricsDs.Spec, expectedMetricsDs.Spec) {
-		return fmt.Errorf("deep equal failed, actualMetricsDs.Spec: %+v, expectedMetricsDs.Spec: %+v",
-			actualMetricsDs.Spec, expectedMetricsDs.Spec)
-	}
-	if err := hasOwnerReference(bpfmanConfig, bpfmanCM); err != nil {
-		return err
 	}
 
 	if isOpenShift {
@@ -497,6 +494,77 @@ func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *
 				actualRestrictedSCC, expectedRestrictedSCC)
 		}
 	}
+
+	if hasMonitoring {
+		// Check the metrics proxy daemonset was created successfully.
+		expectedMetricsDs := &appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanMetricsProxyDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		}
+		actualMetricsDs := &appsv1.DaemonSet{}
+		if err := cl.Get(ctx, types.NamespacedName{Name: expectedMetricsDs.Name, Namespace: expectedMetricsDs.Namespace},
+			actualMetricsDs); err != nil {
+			return err
+		}
+		expectedMetricsDs, err = load(expectedMetricsDs, resolveConfigPath(internal.BpfmanMetricsProxyPath),
+			expectedMetricsDs.Name)
+		if err != nil {
+			return err
+		}
+		configureMetricsProxyDs(expectedMetricsDs, bpfmanConfig, isOpenShift)
+		if !equality.Semantic.DeepEqual(actualMetricsDs.Spec, expectedMetricsDs.Spec) {
+			return fmt.Errorf("deep equal failed, actualMetricsDs.Spec: %+v, expectedMetricsDs.Spec: %+v",
+				actualMetricsDs.Spec, expectedMetricsDs.Spec)
+		}
+		if err := hasOwnerReference(bpfmanConfig, actualMetricsDs); err != nil {
+			return err
+		}
+
+		// Check the agent ServiceMonitor was created.
+		agentSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanAgentServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, agentSM); err != nil {
+			return fmt.Errorf("failed to get agent ServiceMonitor: %w", err)
+		}
+		if err := hasOwnerReference(bpfmanConfig, agentSM); err != nil {
+			return fmt.Errorf("agent ServiceMonitor owner reference: %w", err)
+		}
+		if len(agentSM.Spec.Endpoints) != 1 {
+			return fmt.Errorf("agent ServiceMonitor has %d endpoints, expected 1", len(agentSM.Spec.Endpoints))
+		}
+		if agentSM.Spec.Endpoints[0].Path != "/agent-metrics" {
+			return fmt.Errorf("agent ServiceMonitor endpoint path=%q, expected /agent-metrics",
+				agentSM.Spec.Endpoints[0].Path)
+		}
+		if agentSM.Spec.Endpoints[0].Port != "https-metrics" {
+			return fmt.Errorf("agent ServiceMonitor endpoint port=%q, expected https-metrics",
+				agentSM.Spec.Endpoints[0].Port)
+		}
+
+		// Check the controller ServiceMonitor was created.
+		controllerSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanControllerServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, controllerSM); err != nil {
+			return fmt.Errorf("failed to get controller ServiceMonitor: %w", err)
+		}
+		if err := hasOwnerReference(bpfmanConfig, controllerSM); err != nil {
+			return fmt.Errorf("controller ServiceMonitor owner reference: %w", err)
+		}
+		if len(controllerSM.Spec.Endpoints) != 1 {
+			return fmt.Errorf("controller ServiceMonitor has %d endpoints, expected 1",
+				len(controllerSM.Spec.Endpoints))
+		}
+		if controllerSM.Spec.Endpoints[0].Path != "/metrics" {
+			return fmt.Errorf("controller ServiceMonitor endpoint path=%q, expected /metrics",
+				controllerSM.Spec.Endpoints[0].Path)
+		}
+	}
 	return nil
 }
 
@@ -504,7 +572,7 @@ func testAllObjectsPresent(ctx context.Context, cl client.Client, bpfmanConfig *
 // to test that the reconciler properly restores them to the expected state (or not in the case of overrides).
 // Modifies ConfigMap data, DaemonSet security context, container images, and OpenShift SCC settings.
 // Returns the modified objects.
-func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) (clusterObjects, error) {
+func modifyObjects(ctx context.Context, cl client.Client, isOpenShift, hasMonitoring bool) (clusterObjects, error) {
 	var co clusterObjects
 
 	// ConfigMap.
@@ -563,27 +631,6 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) (clu
 	}
 	co.ds = bpfmanDs
 
-	// Modify the metrics proxy daemonset for restoration testing.
-	metricsDs := &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      internal.BpfmanMetricsProxyDsName,
-			Namespace: internal.BpfmanNamespace,
-		},
-	}
-	if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
-		metricsDs); err != nil {
-		return co, err
-	}
-	if len(metricsDs.Spec.Template.Spec.Containers) == 0 {
-		return co, fmt.Errorf("metrics DaemonSet has no containers configured")
-	}
-	// Set invalid container image to test reconciler restoration
-	metricsDs.Spec.Template.Spec.Containers[0].Image = "invalid image"
-	if err := cl.Update(ctx, metricsDs); err != nil {
-		return co, err
-	}
-	co.metricsDs = metricsDs
-
 	if isOpenShift {
 		// Check the SCC was created with the correct configuration.
 		restrictedSCC := &osv1.SecurityContextConstraints{
@@ -600,6 +647,57 @@ func modifyObjects(ctx context.Context, cl client.Client, isOpenShift bool) (clu
 			return co, err
 		}
 		co.scc = restrictedSCC
+	}
+
+	if hasMonitoring {
+		// Modify the metrics proxy daemonset for restoration testing.
+		metricsDs := &appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanMetricsProxyDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		}
+		if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
+			metricsDs); err != nil {
+			return co, err
+		}
+		if len(metricsDs.Spec.Template.Spec.Containers) == 0 {
+			return co, fmt.Errorf("metrics DaemonSet has no containers configured")
+		}
+		// Set invalid container image to test reconciler restoration
+		metricsDs.Spec.Template.Spec.Containers[0].Image = "invalid image"
+		if err := cl.Update(ctx, metricsDs); err != nil {
+			return co, err
+		}
+		co.metricsDs = metricsDs
+
+		// Modify agent ServiceMonitor.
+		agentSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanAgentServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, agentSM); err != nil {
+			return co, err
+		}
+		agentSM.Spec.Endpoints[0].Path = "/invalid-path"
+		if err := cl.Update(ctx, agentSM); err != nil {
+			return co, err
+		}
+		co.agentSM = agentSM
+
+		// Modify controller ServiceMonitor.
+		controllerSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanControllerServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, controllerSM); err != nil {
+			return co, err
+		}
+		controllerSM.Spec.Endpoints[0].Path = "/invalid-path"
+		if err := cl.Update(ctx, controllerSM); err != nil {
+			return co, err
+		}
+		co.controllerSM = controllerSM
 	}
 	return co, nil
 }
@@ -726,6 +824,20 @@ func setOverrides(ctx context.Context, cl client.Client) error {
 			Name:       "bpfman-restricted",
 			Unmanaged:  true,
 		},
+		{
+			APIVersion: "monitoring.coreos.com/v1",
+			Kind:       "ServiceMonitor",
+			Namespace:  "bpfman",
+			Name:       internal.BpfmanAgentServiceMonitorName,
+			Unmanaged:  true,
+		},
+		{
+			APIVersion: "monitoring.coreos.com/v1",
+			Kind:       "ServiceMonitor",
+			Namespace:  "bpfman",
+			Name:       internal.BpfmanControllerServiceMonitorName,
+			Unmanaged:  true,
+		},
 	}
 
 	if err := cl.Update(ctx, bpfmanConfig); err != nil {
@@ -737,7 +849,7 @@ func setOverrides(ctx context.Context, cl client.Client) error {
 // testObjectsUnchanged verifies that objects marked as unmanaged in overrides
 // remain unchanged after reconciliation by comparing their current state
 // against their previously captured state.
-func testObjectsUnchanged(ctx context.Context, cl client.Client, isOpenShift bool, cos clusterObjects) error {
+func testObjectsUnchanged(ctx context.Context, cl client.Client, isOpenShift, hasMonitoring bool, cos clusterObjects) error {
 	bpfmanCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      internal.BpfmanCmName,
@@ -783,21 +895,6 @@ func testObjectsUnchanged(ctx context.Context, cl client.Client, isOpenShift boo
 		return fmt.Errorf("deep equal failed for Bpfman DS, got: %+v, expected: %+v", bpfmanDs, cos.ds)
 	}
 
-	// Metrics proxy DaemonSet.
-	metricsDs := &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      internal.BpfmanMetricsProxyDsName,
-			Namespace: internal.BpfmanNamespace,
-		},
-	}
-	if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
-		metricsDs); err != nil {
-		return err
-	}
-	if !reflect.DeepEqual(metricsDs, cos.metricsDs) {
-		return fmt.Errorf("deep equal failed for Metrics DS, got: %+v, expected: %+v", metricsDs, cos.metricsDs)
-	}
-
 	if isOpenShift {
 		// SCC.
 		restrictedSCC := &osv1.SecurityContextConstraints{
@@ -811,6 +908,49 @@ func testObjectsUnchanged(ctx context.Context, cl client.Client, isOpenShift boo
 		}
 		if !reflect.DeepEqual(restrictedSCC, cos.scc) {
 			return fmt.Errorf("deep equal failed for SCC, got: %+v, expected: %+v", restrictedSCC, cos.scc)
+		}
+	}
+
+	if hasMonitoring {
+		// Metrics proxy DaemonSet.
+		metricsDs := &appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanMetricsProxyDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		}
+		if err := cl.Get(ctx, types.NamespacedName{Name: metricsDs.Name, Namespace: metricsDs.Namespace},
+			metricsDs); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(metricsDs, cos.metricsDs) {
+			return fmt.Errorf("deep equal failed for Metrics DS, got: %+v, expected: %+v", metricsDs, cos.metricsDs)
+		}
+
+		// Agent ServiceMonitor.
+		agentSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanAgentServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, agentSM); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(agentSM, cos.agentSM) {
+			return fmt.Errorf("deep equal failed for agent ServiceMonitor, got: %+v, expected: %+v",
+				agentSM, cos.agentSM)
+		}
+
+		// Controller ServiceMonitor.
+		controllerSM := &monitoringv1.ServiceMonitor{}
+		if err := cl.Get(ctx, types.NamespacedName{
+			Name:      internal.BpfmanControllerServiceMonitorName,
+			Namespace: internal.BpfmanNamespace,
+		}, controllerSM); err != nil {
+			return err
+		}
+		if !reflect.DeepEqual(controllerSM, cos.controllerSM) {
+			return fmt.Errorf("deep equal failed for controller ServiceMonitor, got: %+v, expected: %+v",
+				controllerSM, cos.controllerSM)
 		}
 	}
 

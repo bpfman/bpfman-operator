@@ -43,6 +43,8 @@ var (
 	keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
 	skipBpfmanDeploy     = func() bool { return os.Getenv("SKIP_BPFMAN_DEPLOY") == "true" }()
 
+	hasMonitoring bool
+
 	cleanup = []func(context.Context) error{}
 
 )
@@ -109,6 +111,17 @@ func TestMain(m *testing.M) {
 
 	fmt.Println("INFO: Get the bpfman client")
 	bpfmanClient = bpfmanHelpers.GetClientOrDie()
+
+	// Detect whether the monitoring.coreos.com API group is present.
+	apiList, err := env.Cluster().Client().Discovery().ServerGroups()
+	exitOnErr(err)
+	for _, g := range apiList.Groups {
+		if g.Name == "monitoring.coreos.com" {
+			hasMonitoring = true
+			break
+		}
+	}
+	fmt.Printf("INFO: hasMonitoring=%v\n", hasMonitoring)
 
 	// deploy the BPFMAN Operator and relevant CRDs.
 	if !skipBpfmanDeploy {
@@ -276,14 +289,19 @@ func waitForBpfmanConfigDelete(ctx context.Context, env environments.Environment
 					},
 					msg: "INFO: bpfman daemon daemonset deleted successfully",
 				},
-				{
+			}
+			if hasMonitoring {
+				checks = append(checks, struct {
+					check func() error
+					msg   string
+				}{
 					check: func() error {
 						_, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfmanNamespace).Get(ctx,
 							internal.BpfmanMetricsProxyDsName, metav1.GetOptions{})
 						return err
 					},
 					msg: "INFO: bpfman metrics proxy daemonset deleted successfully",
-				},
+				})
 			}
 
 			deleteCount := 0
