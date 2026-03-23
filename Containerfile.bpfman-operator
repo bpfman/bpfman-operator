@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG BUILDPLATFORM
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.25 AS bpfman-operator-build
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.25 AS bpfman-operator-build
 
 ARG BUILDPLATFORM
 
@@ -11,8 +11,6 @@ ARG TARGETARCH
 ARG TARGETPLATFORM
 
 RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
-
-WORKDIR /usr/src/bpfman-operator
 
 # Copy everything except what's excluded by the .dockerignore file.
 COPY . .
@@ -36,11 +34,11 @@ FROM --platform=$TARGETPLATFORM quay.io/fedora/fedora-minimal
 ARG TARGETPLATFORM
 
 WORKDIR /
-COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/bpfman-deployment/metrics-proxy-daemonset.yaml ./config/bpfman-deployment/metrics-proxy-daemonset.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman-operator/config/openshift/restricted-scc.yaml ./config/openshift/restricted-scc.yaml
-COPY --from=bpfman-operator-build /usr/src/bpfman-operator/bpfman-operator .
+COPY --from=bpfman-operator-build /opt/app-root/src/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
+COPY --from=bpfman-operator-build /opt/app-root/src/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml
+COPY --from=bpfman-operator-build /opt/app-root/src/config/bpfman-deployment/metrics-proxy-daemonset.yaml ./config/bpfman-deployment/metrics-proxy-daemonset.yaml
+COPY --from=bpfman-operator-build /opt/app-root/src/config/openshift/restricted-scc.yaml ./config/openshift/restricted-scc.yaml
+COPY --from=bpfman-operator-build /opt/app-root/src/bpfman-operator .
 USER 65532:65532
 
 ENTRYPOINT ["/bpfman-operator"]
