@@ -49,14 +49,16 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
 endif
 IMAGE_TAG ?= latest
-# Image URL to use all building/pushing image targets
+# Default upstream image references. Override via environment or .envrc
+# for local development (for example, to point at a private registry).
 BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
-# These environment variable keys need to be exported as the
-# integration tests expect them to be defined.
+# These environment variables must be exported so they are
+# available to subprocesses (integration tests, run-local, etc.).
+export BPFMAN_IMG
 export BPFMAN_AGENT_IMG
 export BPFMAN_OPERATOR_IMG
 
