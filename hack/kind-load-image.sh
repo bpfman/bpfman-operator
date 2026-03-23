@@ -46,6 +46,7 @@ kind_cluster_name="$1"
 shift
 
 : "${OCI_BIN:=docker}"
+: "${KIND:=kind}"
 
 tmp_dir=$(mktemp -d -t bpfman-XXXXXX)
 
@@ -70,9 +71,9 @@ for image_reference in "$@"; do
     "$OCI_BIN" save $save_args --output "$tar_file" "$image_reference"
 
     if [ $verbose -eq 1 ]; then
-        echo "kind load image-archive --name \"$kind_cluster_name\" \"$tar_file\""
+        echo "$KIND load image-archive --name \"$kind_cluster_name\" \"$tar_file\""
     fi
-    kind load image-archive --name "$kind_cluster_name" "$tar_file"
+    "$KIND" load image-archive --name "$kind_cluster_name" "$tar_file"
 
     counter=$((counter + 1))
 done
