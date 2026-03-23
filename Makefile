@@ -452,8 +452,16 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: patch-image-references
 patch-image-references: kustomize ## Update all image references with environment variables
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	$(SED) -i -e 's@value: quay.io/bpfman/bpfman:latest@value: $(BPFMAN_IMG)@' \
-	       -e 's@value: quay.io/bpfman/bpfman-agent:latest@value: $(BPFMAN_AGENT_IMG)@' \
+# Patch the env var values in the deployment manifest by matching
+# on the env var name rather than the current value, so the
+# substitution is idempotent across repeated runs:
+#   1. Match the line containing the env var name (e.g., "name: BPFMAN_IMG")
+#   2. Advance to the next line (the "value:" line)
+#   3. Replace everything after "value:" with the new image reference
+# This means consecutive runs with different image values work
+# without needing to restore deployment.yaml from git first.
+	$(SED) -i -e '/name: BPFMAN_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_IMG)|;}' \
+	       -e '/name: BPFMAN_AGENT_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_AGENT_IMG)|;}' \
 	       config/bpfman-operator-deployment/deployment.yaml
 
 ##@ Vanilla K8s Deployment
