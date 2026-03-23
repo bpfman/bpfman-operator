@@ -19,31 +19,41 @@ package internal
 import "fmt"
 
 const (
-	K8sHostLabel                  = "kubernetes.io/hostname"
-	DiscoveredLabel               = "bpfman.io/discoveredProgram"
-	UuidMetadataKey               = "bpfman.io/uuid"
-	ProgramNameKey                = "bpfman.io/ProgramName"
-	BpfmanNamespace               = "bpfman"
-	BpfmanOperatorName            = "bpfman-operator"
-	BpfmanDsName                  = "bpfman-daemon"
-	BpfmanMetricsProxyDsName      = "bpfman-metrics-proxy"
-	BpfmanConfigName              = "bpfman-config"
-	BpfmanCmName                  = "bpfman-config"
-	BpfmanCsiDriverName           = "csi.bpfman.io"
-	BpfmanRestrictedSccName       = "bpfman-restricted"
-	BpfmanContainerName           = "bpfman"
-	BpfmanAgentContainerName      = "bpfman-agent"
-	BpfmanInitContainerName       = "mount-bpffs"
-	BpfmanCsiDriverRegistrarName  = "node-driver-registrar"
-	BpfmanMetricsProxyContainer   = "metrics-proxy"
-	BpfmanDaemonManifestPath      = "./config/bpfman-deployment/daemonset.yaml"
-	BpfmanMetricsProxyPath        = "./config/bpfman-deployment/metrics-proxy-daemonset.yaml"
-	BpfmanCsiDriverPath           = "./config/bpfman-deployment/csidriverinfo.yaml"
-	BpfmanRestrictedSCCPath       = "./config/openshift/restricted-scc.yaml"
-	DefaultType                   = "tcp"
-	DefaultPath                   = "/run/bpfman-sock/bpfman.sock"
-	DefaultPort                   = 50051
-	DefaultEnabled                = true
+	K8sHostLabel                 = "kubernetes.io/hostname"
+	DiscoveredLabel              = "bpfman.io/discoveredProgram"
+	UuidMetadataKey              = "bpfman.io/uuid"
+	ProgramNameKey               = "bpfman.io/ProgramName"
+	BpfmanNamespace              = "bpfman"
+	BpfmanOperatorName           = "bpfman-operator"
+	BpfmanDsName                 = "bpfman-daemon"
+	BpfmanMetricsProxyDsName     = "bpfman-metrics-proxy"
+	BpfmanConfigName             = "bpfman-config"
+	BpfmanCmName                 = "bpfman-config"
+	BpfmanCsiDriverName          = "csi.bpfman.io"
+	BpfmanRestrictedSccName      = "bpfman-restricted"
+	BpfmanContainerName          = "bpfman"
+	BpfmanAgentContainerName     = "bpfman-agent"
+	BpfmanInitContainerName      = "mount-bpffs"
+	BpfmanCsiDriverRegistrarName = "node-driver-registrar"
+	BpfmanMetricsProxyContainer  = "metrics-proxy"
+	BpfmanDaemonManifestPath     = "./config/bpfman-deployment/daemonset.yaml"
+	BpfmanMetricsProxyPath       = "./config/bpfman-deployment/metrics-proxy-daemonset.yaml"
+	BpfmanCsiDriverPath          = "./config/bpfman-deployment/csidriverinfo.yaml"
+	BpfmanRestrictedSCCPath      = "./config/openshift/restricted-scc.yaml"
+	DefaultType                  = "tcp"
+	DefaultPath                  = "/run/bpfman-sock/bpfman.sock"
+	DefaultPort                  = 50051
+	DefaultEnabled               = true
+	DefaultConfigNamespace       = "bpfman"
+	DefaultLogLevel              = "info"
+	DefaultHealthProbePort       = 8175
+	DefaultConfiguration         = `[database]
+max_retries = 30
+millisec_delay = 10000
+[signing]
+allow_unsigned = true
+verify_enabled = true
+`
 	BpfAppStateOwner              = "bpfman.io/ownedByProgram"
 	NetNsPath                     = "/run/netns"
 	BpfmanTOML                    = "bpfman.toml"

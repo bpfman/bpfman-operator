@@ -11,15 +11,3 @@ metadata:
     openshift.io/description: Openshift bpfman components
     workload.openshift.io/allowed: management
   name: system
----
-apiVersion: bpfman.io/v1alpha1
-kind: Config
-metadata:
-  name: config
-spec:
-  ## Can be configured at runtime
-  namespace: bpfman
-  agent:
-    logLevel: info
-  daemon:
-    logLevel: info

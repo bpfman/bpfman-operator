@@ -989,32 +989,12 @@ metadata:
             ],
             "updateCount": 2
           }
-        },
-        {
-          "apiVersion": "bpfman.io/v1alpha1",
-          "kind": "Config",
-          "metadata": {
-            "name": "bpfman-config",
-            "namespace": "bpfman"
-          },
-          "spec": {
-            "agent": {
-              "image": "quay.io/bpfman/bpfman-agent:latest",
-              "logLevel": "info"
-            },
-            "configuration": "[database]\nmax_retries = 30\nmillisec_delay = 10000\n[signing]\nallow_unsigned = true\nverify_enabled = true\n",
-            "daemon": {
-              "image": "quay.io/bpfman/bpfman:latest",
-              "logLevel": "info"
-            },
-            "namespace": "bpfman"
-          }
         }
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2026-03-11T14:43:51Z"
+    createdAt: "2026-03-18T09:24:33Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1444,6 +1424,7 @@ spec:
           resources:
           - bpfapplications
           - clusterbpfapplications
+          - configs
           verbs:
           - create
           - delete
@@ -1477,17 +1458,6 @@ spec:
           verbs:
           - get
           - list
-          - watch
-        - apiGroups:
-          - bpfman.io
-          resources:
-          - configs
-          verbs:
-          - delete
-          - get
-          - list
-          - patch
-          - update
           - watch
         - apiGroups:
           - security.openshift.io
@@ -1565,6 +1535,10 @@ spec:
                 env:
                 - name: GO_LOG
                   value: info
+                - name: BPFMAN_IMG
+                  value: quay.io/bpfman/bpfman:latest
+                - name: BPFMAN_AGENT_IMG
+                  value: quay.io/bpfman/bpfman-agent:latest
                 image: quay.io/bpfman/bpfman-operator:latest
                 imagePullPolicy: IfNotPresent
                 livenessProbe:

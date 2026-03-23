@@ -49,14 +49,16 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 	BUNDLE_GEN_FLAGS += --use-image-digests
 endif
 IMAGE_TAG ?= latest
-# Image URL to use all building/pushing image targets
+# Default upstream image references. Override via environment or .envrc
+# for local development (for example, to point at a private registry).
 BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
-# These environment variable keys need to be exported as the
-# integration tests expect them to be defined.
+# These environment variables must be exported so they are
+# available to subprocesses (integration tests, run-local, etc.).
+export BPFMAN_IMG
 export BPFMAN_AGENT_IMG
 export BPFMAN_OPERATOR_IMG
 
@@ -341,6 +343,10 @@ bundle: operator-sdk generate kustomize manifests patch-image-references ## Gene
 build-release-yamls: generate kustomize ## Generate the crd install bundle for a specific release version.
 	VERSION=$(VERSION) ./hack/build-release-yamls.sh
 
+.PHONY: default-config
+default-config: ## Print the default Config CR as YAML using current BPFMAN_IMG and BPFMAN_AGENT_IMG.
+	@BPFMAN_IMG=$(BPFMAN_IMG) BPFMAN_AGENT_IMG=$(BPFMAN_AGENT_IMG) go run ./cmd/bpfman-operator default-config
+
 .PHONY: run-local
 run-local: build ## Run the bpfman-operator locally for development purposes.
 	kubectl scale deployment -n bpfman bpfman-operator --replicas=0 || true
@@ -448,10 +454,17 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 .PHONY: patch-image-references
 patch-image-references: kustomize ## Update all image references with environment variables
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
-	cd config/bpfman-deployment && \
-	  $(SED) -e 's@quay.io/bpfman/bpfman:latest@$(BPFMAN_IMG)@g' \
-	      -e 's@quay.io/bpfman/bpfman-agent:latest@$(BPFMAN_AGENT_IMG)@g' \
-		  kustomization.yaml.env > kustomization.yaml
+# Patch the env var values in the deployment manifest by matching
+# on the env var name rather than the current value, so the
+# substitution is idempotent across repeated runs:
+#   1. Match the line containing the env var name (e.g., "name: BPFMAN_IMG")
+#   2. Advance to the next line (the "value:" line)
+#   3. Replace everything after "value:" with the new image reference
+# This means consecutive runs with different image values work
+# without needing to restore deployment.yaml from git first.
+	$(SED) -i -e '/name: BPFMAN_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_IMG)|;}' \
+	       -e '/name: BPFMAN_AGENT_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_AGENT_IMG)|;}' \
+	       config/bpfman-operator-deployment/deployment.yaml
 
 ##@ Vanilla K8s Deployment
 
