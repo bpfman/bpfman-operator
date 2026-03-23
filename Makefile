@@ -140,11 +140,13 @@ CLIENT_GEN ?= $(LOCALBIN)/client-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
+KIND ?= $(LOCALBIN)/kind
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.17.1
 OPERATOR_SDK_VERSION ?= v1.27.0
+KIND_VERSION ?= v0.31.0
 GOLANGCI_LINT_VERSION = v2.0.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -160,6 +162,13 @@ operator-sdk: $(OPERATOR_SDK)
 $(OPERATOR_SDK): $(LOCALBIN)
 	test -s $(LOCALBIN)/operator-sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
 	 mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
+
+KIND_DL_NAME=kind-$(shell go env GOOS)-$(shell go env GOARCH)
+KIND_DL_URL=https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/$(KIND_DL_NAME)
+.PHONY: kind
+kind: $(KIND) ## Download kind locally if necessary.
+$(KIND): $(LOCALBIN)
+	test -s $(LOCALBIN)/kind || { curl -Lo $(LOCALBIN)/kind $(KIND_DL_URL) && chmod +x $(LOCALBIN)/kind; }
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -387,8 +396,8 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 	$(OCI_BIN) push ${BPFMAN_AGENT_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
-	./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
+load-images-kind: kind ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
+	KIND=$(KIND) ./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -447,12 +456,12 @@ patch-image-references: kustomize ## Update all image references with environmen
 ##@ Vanilla K8s Deployment
 
 .PHONY: setup-kind
-setup-kind: ## Setup Kind cluster
-	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
+setup-kind: kind ## Setup Kind cluster
+	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME} && $(KIND) create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
 .PHONY: destroy-kind
-destroy-kind: ## Destroy Kind cluster
-	kind delete cluster --name ${KIND_CLUSTER_NAME}
+destroy-kind: kind ## Destroy Kind cluster
+	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME}
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
