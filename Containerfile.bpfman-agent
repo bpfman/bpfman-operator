@@ -1,7 +1,7 @@
 # Build the manager binary
 ARG BUILDPLATFORM
 
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.25 AS bpfman-agent-build
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.25 AS bpfman-agent-build
 
 # The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
@@ -11,8 +11,6 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
-
-WORKDIR /usr/src/bpfman-operator
 
 # Copy everything except what's excluded by the .dockerignore file.
 COPY . .
@@ -39,8 +37,8 @@ ARG TARGETARCH
 ARG TARGETPLATFORM
 
 WORKDIR /
-COPY --from=bpfman-agent-build /usr/src/bpfman-operator/bpfman-agent .
-COPY --from=bpfman-agent-build /usr/src/bpfman-operator/metrics-proxy .
-COPY --from=bpfman-agent-build /usr/src/bpfman-operator/bpfman-crictl .
+COPY --from=bpfman-agent-build /opt/app-root/src/bpfman-agent .
+COPY --from=bpfman-agent-build /opt/app-root/src/metrics-proxy .
+COPY --from=bpfman-agent-build /opt/app-root/src/bpfman-crictl .
 
 ENTRYPOINT ["/bpfman-agent"]
