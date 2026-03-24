@@ -1,15 +1,14 @@
 name: Kubernetes Integration Tests
 
 on:
-  pull_request:
-    branches: ["*"]
+  workflow_call:
   workflow_dispatch:
   schedule:
     - cron: "0 5 * * *" # Runs every day at 5 AM UTC
 
 jobs:
   kubernetes-integration-tests:
-    name: Kubernetes Integration Tests (Go ${{ matrix.go }} - amd64 - ${{ matrix.oci_bin }} - ${{ matrix.command }})
+    name: Go ${{ matrix.go }} - ${{ matrix.oci_bin }} - ${{ matrix.command }}
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -41,23 +40,32 @@ jobs:
       - name: Check disk space again
         run: df -h
 
-      - name: Install go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go }}
-
-      - name: cache go modules
-        uses: actions/cache@v5
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-build-codegen-
-
       - name: Checkout bpfman-operator
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+
+      - name: Restore Go module cache
+        uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: Restore Go build cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ github.sha }}
+          restore-keys: |
+            go-build-
 
       - name: Install OCI runtime (Docker or Podman)
         run: |
