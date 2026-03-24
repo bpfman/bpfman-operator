@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
@@ -32,12 +32,12 @@ jobs:
             filename: linux-s390x
     steps:
       - name: Install go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
 
       - name: Checkout bpfman-operator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check format
         if: ${{ matrix.arch.arch == 'amd64' }}
@@ -60,7 +60,7 @@ jobs:
 
       - name: Archive Go code coverage results
         if: ${{ matrix.arch.arch == 'amd64' && matrix.go == '1.25' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: coverage-go
           path: cover.out
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download golang coverage artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: coverage-go
 
