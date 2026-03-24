@@ -53,7 +53,7 @@ jobs:
     name: Build Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.5.0
@@ -135,7 +135,7 @@ jobs:
     name: Build Bundle Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.5.0

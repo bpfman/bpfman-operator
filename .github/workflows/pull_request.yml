@@ -10,7 +10,7 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
@@ -37,7 +37,7 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Checkout bpfman-operator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check format
         if: ${{ matrix.arch.arch == 'amd64' }}

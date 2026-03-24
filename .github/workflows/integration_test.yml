@@ -55,7 +55,7 @@ jobs:
             ${{ runner.os }}-build-codegen-
 
       - name: Checkout bpfman-operator
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
