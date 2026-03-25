@@ -211,8 +211,13 @@ jobs:
     uses: ./.github/workflows/integration_test.yml
     secrets: inherit
 
+  olm-bundle-tests:
+    needs: build
+    uses: ./.github/workflows/olm_bundle_test.yml
+    secrets: inherit
+
   build-workflow-complete:
-    needs: [check-license, build, lint, test, verify, cross-build, coverage, integration-tests]
+    needs: [check-license, build, lint, test, verify, cross-build, coverage, integration-tests, olm-bundle-tests]
     runs-on: ubuntu-24.04
     steps:
       - name: Build Complete

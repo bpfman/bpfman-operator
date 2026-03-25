@@ -1,0 +1,132 @@
+name: OLM Bundle Tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  olm-bundle-integration-tests:
+    name: OLM Bundle Integration Tests (Go 1.25 - amd64)
+    runs-on: ubuntu-24.04
+    env:
+      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
+      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+
+      - name: Checkout bpfman-operator
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache: false
+
+      - name: Restore Go module cache
+        uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: Restore Go build cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ github.sha }}
+          restore-keys: |
+            go-build-
+
+      - name: Deploy via OLM bundle on KIND
+        run: make bundle-run-on-kind
+
+      - name: Run integration tests
+        run: make test-integration-local
+
+      - name: Check disk space
+        run: df -h
+
+      - name: Upload diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: olm-bundle-integration-test-diag
+          path: /tmp/ktf-diag*
+          if-no-files-found: ignore
+
+  olm-bundle-lifecycle-tests:
+    name: OLM Bundle Lifecycle Tests (Go 1.25 - amd64)
+    runs-on: ubuntu-24.04
+    env:
+      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
+      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+
+      - name: Checkout bpfman-operator
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache: false
+
+      - name: Restore Go module cache
+        uses: actions/cache@v5
+        with:
+          path: ~/go/pkg/mod
+          key: go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: Restore Go build cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/go-build
+          key: go-build-${{ github.sha }}
+          restore-keys: |
+            go-build-
+
+      - name: Deploy via OLM bundle on KIND
+        run: make bundle-run-on-kind
+
+      - name: Run lifecycle tests
+        run: make test-lifecycle-local
+
+      - name: Check disk space
+        run: df -h
+
+      - name: Upload diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: olm-bundle-lifecycle-test-diag
+          path: /tmp/ktf-diag*
+          if-no-files-found: ignore
