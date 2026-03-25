@@ -501,7 +501,7 @@ run-on-kind: kustomize setup-kind build-images load-images-kind install deploy #
 
 .PHONY: deploy-openshift
 deploy-openshift: install patch-image-references ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy-openshift
 undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -509,7 +509,7 @@ undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift clu
 		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
 	fi
-	-$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	-$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 # Deploy the catalog.
 .PHONY: catalog-deploy

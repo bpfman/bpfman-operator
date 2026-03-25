@@ -19,11 +19,6 @@ namePrefix: bpfman-
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 # - ../prometheus
 
-# Configure the deployment with TLS for metrics endpoint.
-# This uses controller-runtime's built-in TLS capability.
-patchesStrategicMerge:
-  - manager_auth_proxy_patch.yaml
-
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
 # - manager_webhook_patch.yaml
