@@ -55,6 +55,10 @@ BPFMAN_IMG ?= quay.io/bpfman/bpfman:$(IMAGE_TAG)
 BPFMAN_AGENT_IMG ?= quay.io/bpfman/bpfman-agent:$(IMAGE_TAG)
 BPFMAN_OPERATOR_IMG ?= quay.io/bpfman/bpfman-operator:$(IMAGE_TAG)
 KIND_CLUSTER_NAME ?= bpfman-deployment
+KIND_REGISTRY_NAME ?= kind-registry
+KIND_REGISTRY_PORT ?= 5001
+KIND_BUNDLE_IMG ?= localhost:$(KIND_REGISTRY_PORT)/bpfman-operator-bundle:latest
+KIND_BUNDLE_PULL_FLAGS ?= --use-http
 
 # These environment variables must be exported so they are
 # available to subprocesses (integration tests, run-local, etc.).
@@ -472,9 +476,20 @@ patch-image-references: kustomize ## Update all image references with environmen
 setup-kind: kind ## Setup Kind cluster
 	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME} && $(KIND) create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
+.PHONY: setup-kind-registry
+setup-kind-registry: kind ## Start a local registry for KIND and connect it to the KIND network.
+	$(OCI_BIN) inspect $(KIND_REGISTRY_NAME) >/dev/null 2>&1 || \
+	  $(OCI_BIN) run -d --restart=always -p "$(KIND_REGISTRY_PORT):5000" --name $(KIND_REGISTRY_NAME) registry:2
+	$(OCI_BIN) network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
+	for node in $$($(KIND) get nodes --name $(KIND_CLUSTER_NAME)); do \
+	  $(OCI_BIN) exec $$node mkdir -p /etc/containerd/certs.d/localhost:$(KIND_REGISTRY_PORT); \
+	  $(OCI_BIN) exec $$node sh -c "echo '[host.\"http://$(KIND_REGISTRY_NAME):5000\"]' > /etc/containerd/certs.d/localhost:$(KIND_REGISTRY_PORT)/hosts.toml"; \
+	done
+
 .PHONY: destroy-kind
 destroy-kind: kind ## Destroy Kind cluster
 	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME}
+	$(OCI_BIN) rm -f $(KIND_REGISTRY_NAME) 2>/dev/null || true
 
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
@@ -496,6 +511,29 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
+
+##@ OLM Bundle Deployment
+
+.PHONY: bundle-deploy
+bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
+	$(OPERATOR_SDK) olm install 2>/dev/null || true
+	kubectl delete catalogsource operatorhubio-catalog -n olm 2>/dev/null || true
+	kubectl create namespace bpfman 2>/dev/null || true
+	$(OCI_BIN) tag $(BUNDLE_IMG) $(KIND_BUNDLE_IMG)
+	$(OCI_BIN) push $(KIND_BUNDLE_IMG)
+	$(OPERATOR_SDK) run bundle $(KIND_BUNDLE_IMG) $(KIND_BUNDLE_PULL_FLAGS) -n bpfman --timeout 5m
+
+.PHONY: bundle-run-on-kind
+bundle-run-on-kind: kustomize setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
+
+.PHONY: bundle-deploy-openshift
+bundle-deploy-openshift: operator-sdk build-images push-images bundle bundle-build bundle-push ## Deploy bpfman-operator via OLM bundle on OpenShift.
+	kubectl create namespace bpfman 2>/dev/null || true
+	$(OPERATOR_SDK) run bundle $(BUNDLE_IMG) -n bpfman --timeout 5m
+
+.PHONY: bundle-undeploy
+bundle-undeploy: operator-sdk ## Remove the OLM bundle deployment.
+	$(OPERATOR_SDK) cleanup bpfman-operator -n bpfman
 
 ##@ Openshift Deployment
 
