@@ -52,3 +52,4 @@ spec:
         - name: controller-manager-metrics-tls
           secret:
             secretName: controller-manager-metrics-tls
+            optional: true

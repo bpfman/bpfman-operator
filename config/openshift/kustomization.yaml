@@ -14,9 +14,7 @@ namePrefix: bpfman-
 patchesStrategicMerge:
   - manager_auth_proxy_patch.yaml
   - patch.yaml
-  - agent-metrics-monitor-tls-patch.yaml
   - agent-metrics-service-serving-cert-patch.yaml
-  - controller-manager-metrics-service-monitor-tls-patch.yaml
   - controller-manager-metrics-service-serving-cert-patch.yaml
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
