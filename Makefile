@@ -541,6 +541,19 @@ bundle-undeploy: operator-sdk ## Remove the OLM bundle deployment.
 deploy-openshift: install patch-image-references ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
+.PHONY: patch-pull-always
+patch-pull-always: ## Patch all bpfman deployments and daemonsets to use imagePullPolicy=Always.
+	kubectl patch deployment -n bpfman bpfman-operator -p '{"spec":{"template":{"spec":{"containers":[{"name":"bpfman-operator","imagePullPolicy":"Always"}]}}}}'
+	@echo "Operator deployment patched. DaemonSet pods will be patched once they exist."
+	@if kubectl get daemonset -n bpfman bpfman-daemon >/dev/null 2>&1; then \
+		kubectl patch daemonset -n bpfman bpfman-daemon --type=strategic -p '{"spec":{"template":{"spec":{"initContainers":[{"name":"mount-bpffs","imagePullPolicy":"Always"}],"containers":[{"name":"bpfman","imagePullPolicy":"Always"},{"name":"bpfman-agent","imagePullPolicy":"Always"},{"name":"node-driver-registrar","imagePullPolicy":"Always"}]}}}}'; \
+		echo "DaemonSet bpfman-daemon patched."; \
+	fi
+	@if kubectl get daemonset -n bpfman bpfman-metrics-proxy >/dev/null 2>&1; then \
+		kubectl patch daemonset -n bpfman bpfman-metrics-proxy --type=strategic -p '{"spec":{"template":{"spec":{"containers":[{"name":"metrics-proxy","imagePullPolicy":"Always"}]}}}}'; \
+		echo "DaemonSet bpfman-metrics-proxy patched."; \
+	fi
+
 .PHONY: undeploy-openshift
 undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
