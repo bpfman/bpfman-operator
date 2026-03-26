@@ -70,7 +70,6 @@ spec:
             - --leader-elect
             - --cert-dir=/tmp/k8s-webhook-server/serving-certs
           image: quay.io/bpfman/bpfman-operator:latest
-          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8443
               protocol: TCP
@@ -82,6 +81,8 @@ spec:
               value: quay.io/bpfman/bpfman:latest
             - name: BPFMAN_AGENT_IMG
               value: quay.io/bpfman/bpfman-agent:latest
+            - name: BPFMAN_IMAGE_PULL_POLICY
+              value: ""
           name: bpfman-operator
           securityContext:
             allowPrivilegeEscalation: false

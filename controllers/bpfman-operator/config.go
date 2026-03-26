@@ -319,6 +319,7 @@ func (r *BpfmanConfigReconciler) reconcileStandardDS(ctx context.Context, bpfman
 	}
 	configureBpfmanDs(bpfmanDS, bpfmanConfig)
 	return assureResource(ctx, r, bpfmanConfig, bpfmanDS, func(existing, desired *appsv1.DaemonSet) bool {
+		copyImagePullPolicy(&existing.Spec.Template.Spec, &desired.Spec.Template.Spec)
 		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
 	})
 }
@@ -337,6 +338,7 @@ func (r *BpfmanConfigReconciler) reconcileMetricsProxyDS(ctx context.Context, bp
 	}
 	configureMetricsProxyDs(metricsProxyDS, bpfmanConfig, r.IsOpenshift)
 	return assureResource(ctx, r, bpfmanConfig, metricsProxyDS, func(existing, desired *appsv1.DaemonSet) bool {
+		copyImagePullPolicy(&existing.Spec.Template.Spec, &desired.Spec.Template.Spec)
 		return !equality.Semantic.DeepEqual(existing.Spec, desired.Spec)
 	})
 }
@@ -813,6 +815,25 @@ func resourcePredicate(resourceName string) predicate.Funcs {
 	}
 }
 
+// copyImagePullPolicy copies imagePullPolicy from each container in
+// src to the corresponding container in dst (matched by index), but
+// only when the dst container has no policy set. This prevents false
+// diffs caused by server-side defaulting while still allowing an
+// explicitly set policy (e.g., from BPFMAN_IMAGE_PULL_POLICY) to take
+// effect on existing resources.
+func copyImagePullPolicy(src, dst *corev1.PodSpec) {
+	for i := range dst.InitContainers {
+		if i < len(src.InitContainers) && dst.InitContainers[i].ImagePullPolicy == "" {
+			dst.InitContainers[i].ImagePullPolicy = src.InitContainers[i].ImagePullPolicy
+		}
+	}
+	for i := range dst.Containers {
+		if i < len(src.Containers) && dst.Containers[i].ImagePullPolicy == "" {
+			dst.Containers[i].ImagePullPolicy = src.Containers[i].ImagePullPolicy
+		}
+	}
+}
+
 // configureBpfmanDs configures the bpfman DaemonSet with runtime-configurable values from the Config.
 // Updates container images, log levels, health probe addresses.
 func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config) {
@@ -863,6 +884,15 @@ func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config
 			}
 		default:
 			// Do nothing
+		}
+	}
+
+	if p := corev1.PullPolicy(os.Getenv("BPFMAN_IMAGE_PULL_POLICY")); p != "" {
+		for i := range staticBpfmanDS.Spec.Template.Spec.InitContainers {
+			staticBpfmanDS.Spec.Template.Spec.InitContainers[i].ImagePullPolicy = p
+		}
+		for i := range staticBpfmanDS.Spec.Template.Spec.Containers {
+			staticBpfmanDS.Spec.Template.Spec.Containers[i].ImagePullPolicy = p
 		}
 	}
 }
@@ -921,6 +951,12 @@ func configureMetricsProxyDs(staticMetricsProxyDS *appsv1.DaemonSet, config *v1a
 				},
 			},
 		)
+	}
+
+	if p := corev1.PullPolicy(os.Getenv("BPFMAN_IMAGE_PULL_POLICY")); p != "" {
+		for i := range staticMetricsProxyDS.Spec.Template.Spec.Containers {
+			staticMetricsProxyDS.Spec.Template.Spec.Containers[i].ImagePullPolicy = p
+		}
 	}
 }
 

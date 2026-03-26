@@ -38,7 +38,6 @@ spec:
         - name: metrics-proxy
           image: quay.io/bpfman/bpfman-agent:latest
           command: ["/metrics-proxy"]
-          imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
           args:

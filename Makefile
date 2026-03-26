@@ -466,8 +466,13 @@ patch-image-references: kustomize ## Update all image references with environmen
 #   3. Replace everything after "value:" with the new image reference
 # This means consecutive runs with different image values work
 # without needing to restore deployment.yaml from git first.
+#
+# Also reset any imagePullPolicy injection from a previous "make deploy"
+# so that deploy-openshift and bundle always start from clean defaults.
 	$(SED) -i -e '/name: BPFMAN_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_IMG)|;}' \
 	       -e '/name: BPFMAN_AGENT_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_AGENT_IMG)|;}' \
+	       -e '/name: BPFMAN_IMAGE_PULL_POLICY/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1""|;}' \
+	       -e '/imagePullPolicy/d' \
 	       config/bpfman-operator-deployment/deployment.yaml
 
 ##@ Vanilla K8s Deployment
@@ -494,6 +499,12 @@ destroy-kind: kind ## Destroy Kind cluster
 ## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
 deploy: install patch-image-references ## Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
+	$(SED) -i -e '/name: BPFMAN_IMAGE_PULL_POLICY/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1IfNotPresent|;}' \
+	       config/bpfman-operator-deployment/deployment.yaml
+	@if ! grep -q 'imagePullPolicy' config/bpfman-operator-deployment/deployment.yaml; then \
+		$(SED) -i '/^\([[:space:]]*\)image:.*/a\          imagePullPolicy: IfNotPresent' \
+		       config/bpfman-operator-deployment/deployment.yaml; \
+	fi
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -506,8 +517,11 @@ undeploy: kustomize ## Undeploy bpfman-operator from the K8s cluster specified i
 
 .PHONY: kind-reload-images
 kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
-	kubectl rollout restart daemonset bpfman-daemon -n bpfman
 	kubectl rollout restart deployment bpfman-operator -n bpfman
+	kubectl rollout restart daemonset bpfman-daemon -n bpfman
+	@if kubectl get daemonset -n bpfman bpfman-metrics-proxy >/dev/null 2>&1; then \
+		kubectl rollout restart daemonset bpfman-metrics-proxy -n bpfman; \
+	fi
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
@@ -541,18 +555,18 @@ bundle-undeploy: operator-sdk ## Remove the OLM bundle deployment.
 deploy-openshift: install patch-image-references ## Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
+.PHONY: patch-image-pull-policy
+patch-image-pull-policy: ## Patch imagePullPolicy on all bpfman resources. Set IMAGE_PULL_POLICY=Always|IfNotPresent|Never.
+ifndef IMAGE_PULL_POLICY
+	$(error IMAGE_PULL_POLICY is not set. Usage: make patch-image-pull-policy IMAGE_PULL_POLICY=IfNotPresent)
+endif
+	kubectl set env deployment/bpfman-operator -n bpfman BPFMAN_IMAGE_PULL_POLICY=$(IMAGE_PULL_POLICY)
+	kubectl patch deployment -n bpfman bpfman-operator -p '{"spec":{"template":{"spec":{"containers":[{"name":"bpfman-operator","imagePullPolicy":"$(IMAGE_PULL_POLICY)"}]}}}}'
+	@echo "Operator deployment patched to $(IMAGE_PULL_POLICY)."
+
 .PHONY: patch-pull-always
 patch-pull-always: ## Patch all bpfman deployments and daemonsets to use imagePullPolicy=Always.
-	kubectl patch deployment -n bpfman bpfman-operator -p '{"spec":{"template":{"spec":{"containers":[{"name":"bpfman-operator","imagePullPolicy":"Always"}]}}}}'
-	@echo "Operator deployment patched. DaemonSet pods will be patched once they exist."
-	@if kubectl get daemonset -n bpfman bpfman-daemon >/dev/null 2>&1; then \
-		kubectl patch daemonset -n bpfman bpfman-daemon --type=strategic -p '{"spec":{"template":{"spec":{"initContainers":[{"name":"mount-bpffs","imagePullPolicy":"Always"}],"containers":[{"name":"bpfman","imagePullPolicy":"Always"},{"name":"bpfman-agent","imagePullPolicy":"Always"},{"name":"node-driver-registrar","imagePullPolicy":"Always"}]}}}}'; \
-		echo "DaemonSet bpfman-daemon patched."; \
-	fi
-	@if kubectl get daemonset -n bpfman bpfman-metrics-proxy >/dev/null 2>&1; then \
-		kubectl patch daemonset -n bpfman bpfman-metrics-proxy --type=strategic -p '{"spec":{"template":{"spec":{"containers":[{"name":"metrics-proxy","imagePullPolicy":"Always"}]}}}}'; \
-		echo "DaemonSet bpfman-metrics-proxy patched."; \
-	fi
+	$(MAKE) patch-image-pull-policy IMAGE_PULL_POLICY=Always
 
 .PHONY: undeploy-openshift
 undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
