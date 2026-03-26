@@ -14,7 +14,9 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -24,12 +26,14 @@ import (
 	"github.com/bpfman/bpfman-operator/internal"
 	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 	osv1 "github.com/openshift/api/security/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -87,7 +91,97 @@ verify_enabled = true`,
 
 	runtimeClient client.Client
 	isOpenShift   bool
+	hasMonitoring bool
 )
+
+// managedObjects returns the set of resources the operator is expected
+// to own.  Platform-conditional gating (monitoring, OpenShift) appears
+// here and nowhere else.  Each call returns fresh objects suitable for
+// the API client to deserialise into.
+func managedObjects() []client.Object {
+	objects := []client.Object{
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanCmName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		},
+		&storagev1.CSIDriver{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanCsiDriverName,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		},
+	}
+	if hasMonitoring {
+		objects = append(objects, &appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanMetricsProxyDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		})
+		objects = append(objects, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanAgentMetricsServiceName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		})
+		objects = append(objects, &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanControllerMetricsServiceName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		})
+		objects = append(objects, &monitoringv1.ServiceMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanAgentServiceMonitorName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		})
+		objects = append(objects, &monitoringv1.ServiceMonitor{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanControllerServiceMonitorName,
+				Namespace: internal.BpfmanNamespace,
+			},
+		})
+	}
+	if isOpenShift {
+		objects = append(objects, &osv1.SecurityContextConstraints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanRestrictedSccName,
+			},
+		})
+		objects = append(objects, &rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanPrivilegedSccClusterRoleBindingName,
+			},
+		})
+		objects = append(objects, &rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanUserClusterRoleName,
+			},
+		})
+		if hasMonitoring {
+			objects = append(objects, &rbacv1.ClusterRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: internal.BpfmanPrometheusClusterRoleBindingName,
+				},
+			})
+			objects = append(objects, &rbacv1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      internal.BpfmanPrometheusRoleBindingName,
+					Namespace: internal.BpfmanNamespace,
+				},
+			})
+		}
+	}
+	return objects
+}
 
 // TestLifecycle runs the complete integration test suite for the bpfman operator lifecycle.
 // It tests configuration management, resource creation/deletion, modification handling,
@@ -98,6 +192,7 @@ func TestLifecycle(t *testing.T) {
 
 	ctx := context.Background()
 	logger := zap.New()
+	ctrl.SetLogger(logger)
 	scheme := runtime.NewScheme()
 
 	// Get Kubernetes client for OpenShift detection and determine if this is OpenShift
@@ -110,9 +205,16 @@ func TestLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	hasMonitoring, err = internal.HasMonitoringAPI(kubernetesClient.DiscoveryClient, logger)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Add OpenShift scheme if needed.
 	if isOpenShift {
 		utilruntime.Must(osv1.Install(scheme))
+	}
+	if hasMonitoring {
+		utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	}
 
 	// Create controller-runtime client.
@@ -211,47 +313,12 @@ func getCurrentConfig(ctx context.Context) (*v1alpha1.Config, error) {
 
 // testResourceDeletion verifies that the operator can recreate resources after deletion.
 // Deletes each managed resource individually and waits for the operator to recreate them.
-// Tests the operator's reconciliation capabilities and resource recovery.
 func testResourceDeletion(ctx context.Context, t *testing.T) error {
-	objects := []client.Object{
-		&corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      internal.BpfmanCmName,
-				Namespace: internal.BpfmanNamespace,
-			},
-		},
-		&storagev1.CSIDriver{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: internal.BpfmanCsiDriverName,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      internal.BpfmanDsName,
-				Namespace: internal.BpfmanNamespace,
-			},
-		},
-		&appsv1.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      internal.BpfmanMetricsProxyDsName,
-				Namespace: internal.BpfmanNamespace,
-			},
-		},
-	}
-	// Add OpenShift SCC deletion if on OpenShift.
-	if isOpenShift {
-		objects = append(
-			objects,
-			&osv1.SecurityContextConstraints{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: internal.BpfmanRestrictedSccName,
-				},
-			},
-		)
-	}
-	for _, obj := range objects {
+	for _, obj := range managedObjects() {
+		key := client.ObjectKeyFromObject(obj)
+		t.Logf("Deleting %s", key)
 		if err := runtimeClient.Delete(ctx, obj); err != nil {
-			return fmt.Errorf("could not delete obj %v, err: %w", obj, err)
+			return fmt.Errorf("could not delete %s: %w", key, err)
 		}
 		if err := waitForResourceCreation(ctx); err != nil {
 			return err
@@ -403,50 +470,52 @@ func testResourceModification(ctx context.Context, t *testing.T) error {
 		return err
 	}
 
-	// Test metrics proxy DaemonSet modification.
-	metricsDs := &appsv1.DaemonSet{}
-	metricsDsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
-	if err := runtimeClient.Get(ctx, metricsDsKey, metricsDs); err != nil {
-		return err
-	}
-	origServiceAccountName = metricsDs.Spec.Template.Spec.ServiceAccountName
-	// Create a new DaemonSet for server-side apply (this way, no retry needed).
-	applyMetricsDs := &appsv1.DaemonSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "DaemonSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      internal.BpfmanMetricsProxyDsName,
-			Namespace: internal.BpfmanNamespace,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: metricsDs.Spec.Selector,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metricsDs.Spec.Template.ObjectMeta,
-				Spec: corev1.PodSpec{
-					ServiceAccountName: invalidValue,
+	// Test metrics proxy DaemonSet modification if monitoring is available.
+	if hasMonitoring {
+		metricsDs := &appsv1.DaemonSet{}
+		metricsDsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
+		if err := runtimeClient.Get(ctx, metricsDsKey, metricsDs); err != nil {
+			return err
+		}
+		origServiceAccountName = metricsDs.Spec.Template.Spec.ServiceAccountName
+		// Create a new DaemonSet for server-side apply (this way, no retry needed).
+		applyMetricsDs := &appsv1.DaemonSet{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "apps/v1",
+				Kind:       "DaemonSet",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      internal.BpfmanMetricsProxyDsName,
+				Namespace: internal.BpfmanNamespace,
+			},
+			Spec: appsv1.DaemonSetSpec{
+				Selector: metricsDs.Spec.Selector,
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metricsDs.Spec.Template.ObjectMeta,
+					Spec: corev1.PodSpec{
+						ServiceAccountName: invalidValue,
+					},
 				},
 			},
-		},
-	}
-	if err := runtimeClient.Patch(ctx, applyMetricsDs, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
-		return fmt.Errorf("could not apply patch, err: %w", err)
-	}
-	// Wait until reconciliation.
-	if err := waitUntilCondition(
-		ctx,
-		func() (bool, error) {
-			t.Logf("Checking that metrics ds was correctly reconciled")
-			metricsDs := &appsv1.DaemonSet{}
-			metricsDsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
-			if err := runtimeClient.Get(ctx, metricsDsKey, metricsDs); err != nil {
-				return false, err
-			}
-			return metricsDs.Spec.Template.Spec.ServiceAccountName == origServiceAccountName, nil
-		},
-	); err != nil {
-		return err
+		}
+		if err := runtimeClient.Patch(ctx, applyMetricsDs, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+			return fmt.Errorf("could not apply patch, err: %w", err)
+		}
+		// Wait until reconciliation.
+		if err := waitUntilCondition(
+			ctx,
+			func() (bool, error) {
+				t.Logf("Checking that metrics ds was correctly reconciled")
+				metricsDs := &appsv1.DaemonSet{}
+				metricsDsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
+				if err := runtimeClient.Get(ctx, metricsDsKey, metricsDs); err != nil {
+					return false, err
+				}
+				return metricsDs.Spec.Template.Spec.ServiceAccountName == origServiceAccountName, nil
+			},
+		); err != nil {
+			return err
+		}
 	}
 
 	// Test OpenShift SCC modification if on OpenShift.
@@ -476,7 +545,7 @@ func testResourceModification(ctx context.Context, t *testing.T) error {
 		if err := waitUntilCondition(
 			ctx,
 			func() (bool, error) {
-				t.Logf("Checking that standard metrics ds was correctly reconciled")
+				t.Logf("Checking that SCC was correctly reconciled")
 				scc := &osv1.SecurityContextConstraints{}
 				sccKey := types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
 				if err := runtimeClient.Get(ctx, sccKey, scc); err != nil {
@@ -486,6 +555,156 @@ func testResourceModification(ctx context.Context, t *testing.T) error {
 			},
 		); err != nil {
 			return err
+		}
+
+		// Test privileged SCC ClusterRoleBinding drift repair.
+		privCRB := &rbacv1.ClusterRoleBinding{}
+		privCRBKey := types.NamespacedName{Name: internal.BpfmanPrivilegedSccClusterRoleBindingName}
+		if err := runtimeClient.Get(ctx, privCRBKey, privCRB); err != nil {
+			return err
+		}
+		origPrivSubjects := privCRB.Subjects
+		applyPrivCRB := &rbacv1.ClusterRoleBinding{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "rbac.authorization.k8s.io/v1",
+				Kind:       "ClusterRoleBinding",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanPrivilegedSccClusterRoleBindingName,
+			},
+			RoleRef: privCRB.RoleRef,
+			Subjects: []rbacv1.Subject{{
+				Kind:      "ServiceAccount",
+				Name:      invalidValue,
+				Namespace: invalidValue,
+			}},
+		}
+		if err := runtimeClient.Patch(ctx, applyPrivCRB, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+			return fmt.Errorf("could not apply patch: %w", err)
+		}
+		if err := waitUntilCondition(ctx, func() (bool, error) {
+			t.Logf("Checking that privileged SCC CRB was correctly reconciled")
+			crb := &rbacv1.ClusterRoleBinding{}
+			if err := runtimeClient.Get(ctx, privCRBKey, crb); err != nil {
+				return false, err
+			}
+			return equality.Semantic.DeepEqual(crb.Subjects, origPrivSubjects), nil
+		}); err != nil {
+			return err
+		}
+
+		// Test bpfman-user ClusterRole drift repair.
+		userCR := &rbacv1.ClusterRole{}
+		userCRKey := types.NamespacedName{Name: internal.BpfmanUserClusterRoleName}
+		if err := runtimeClient.Get(ctx, userCRKey, userCR); err != nil {
+			return err
+		}
+		origRules := userCR.Rules
+		applyUserCR := &rbacv1.ClusterRole{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "rbac.authorization.k8s.io/v1",
+				Kind:       "ClusterRole",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: internal.BpfmanUserClusterRoleName,
+			},
+			Rules: []rbacv1.PolicyRule{{
+				APIGroups: []string{""},
+				Resources: []string{"pods"},
+				Verbs:     []string{"get"},
+			}},
+		}
+		if err := runtimeClient.Patch(ctx, applyUserCR, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+			return fmt.Errorf("could not apply patch: %w", err)
+		}
+		if err := waitUntilCondition(ctx, func() (bool, error) {
+			t.Logf("Checking that bpfman-user ClusterRole was correctly reconciled")
+			cr := &rbacv1.ClusterRole{}
+			if err := runtimeClient.Get(ctx, userCRKey, cr); err != nil {
+				return false, err
+			}
+			return equality.Semantic.DeepEqual(cr.Rules, origRules), nil
+		}); err != nil {
+			return err
+		}
+
+		// Test Prometheus RBAC drift repair if monitoring is available.
+		if hasMonitoring {
+			// Prometheus metrics reader ClusterRoleBinding.
+			promCRB := &rbacv1.ClusterRoleBinding{}
+			promCRBKey := types.NamespacedName{Name: internal.BpfmanPrometheusClusterRoleBindingName}
+			if err := runtimeClient.Get(ctx, promCRBKey, promCRB); err != nil {
+				return err
+			}
+			origPromCRBSubjects := promCRB.Subjects
+			applyPromCRB := &rbacv1.ClusterRoleBinding{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "rbac.authorization.k8s.io/v1",
+					Kind:       "ClusterRoleBinding",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: internal.BpfmanPrometheusClusterRoleBindingName,
+				},
+				RoleRef: promCRB.RoleRef,
+				Subjects: []rbacv1.Subject{{
+					Kind:      "ServiceAccount",
+					Name:      invalidValue,
+					Namespace: invalidValue,
+				}},
+			}
+			if err := runtimeClient.Patch(ctx, applyPromCRB, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+				return fmt.Errorf("could not apply patch: %w", err)
+			}
+			if err := waitUntilCondition(ctx, func() (bool, error) {
+				t.Logf("Checking that Prometheus CRB was correctly reconciled")
+				crb := &rbacv1.ClusterRoleBinding{}
+				if err := runtimeClient.Get(ctx, promCRBKey, crb); err != nil {
+					return false, err
+				}
+				return equality.Semantic.DeepEqual(crb.Subjects, origPromCRBSubjects), nil
+			}); err != nil {
+				return err
+			}
+
+			// Prometheus RoleBinding.
+			promRB := &rbacv1.RoleBinding{}
+			promRBKey := types.NamespacedName{
+				Name:      internal.BpfmanPrometheusRoleBindingName,
+				Namespace: internal.BpfmanNamespace,
+			}
+			if err := runtimeClient.Get(ctx, promRBKey, promRB); err != nil {
+				return err
+			}
+			origPromRBSubjects := promRB.Subjects
+			applyPromRB := &rbacv1.RoleBinding{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "rbac.authorization.k8s.io/v1",
+					Kind:       "RoleBinding",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      internal.BpfmanPrometheusRoleBindingName,
+					Namespace: internal.BpfmanNamespace,
+				},
+				RoleRef: promRB.RoleRef,
+				Subjects: []rbacv1.Subject{{
+					Kind:      "ServiceAccount",
+					Name:      invalidValue,
+					Namespace: invalidValue,
+				}},
+			}
+			if err := runtimeClient.Patch(ctx, applyPromRB, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+				return fmt.Errorf("could not apply patch: %w", err)
+			}
+			if err := waitUntilCondition(ctx, func() (bool, error) {
+				t.Logf("Checking that Prometheus RoleBinding was correctly reconciled")
+				rb := &rbacv1.RoleBinding{}
+				if err := runtimeClient.Get(ctx, promRBKey, rb); err != nil {
+					return false, err
+				}
+				return equality.Semantic.DeepEqual(rb.Subjects, origPromRBSubjects), nil
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -565,106 +784,31 @@ func testOperatorPodHealthy(ctx context.Context) error {
 	return nil
 }
 
-// waitForResourceCreation polls for all required bpfman resources to be created and ready.
-// Checks for CSI driver, ConfigMap, and both DaemonSets (bpfman and metrics proxy).
-// Returns error if timeout is reached or if context is cancelled.
+// waitForResourceCreation polls for all managed resources to be created and ready.
 func waitForResourceCreation(ctx context.Context) error {
 	return waitUntilCondition(ctx, func() (bool, error) {
-		// Check CSI driver exists.
-		csiDriver := &storagev1.CSIDriver{}
-		if err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName}, csiDriver); err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		// Check ConfigMap exists.
-		configMap := &corev1.ConfigMap{}
-		cmKey := types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, cmKey, configMap); err != nil {
-			if errors.IsNotFound(err) {
-				return false, nil
-			}
-			return false, err
-		}
-		// Check DaemonSet is ready.
-		ds := &appsv1.DaemonSet{}
-		dsKey := types.NamespacedName{Name: internal.BpfmanDsName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, dsKey, ds); err != nil && errors.IsNotFound(err) || ds.Status.NumberAvailable == 0 {
-			return false, nil
-		} else if err != nil {
-			return false, err
-		}
-		// Check Metrics Proxy DaemonSet is ready.
-		mds := &appsv1.DaemonSet{}
-		mdsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, mdsKey, mds); err != nil && errors.IsNotFound(err) || mds.Status.NumberAvailable == 0 {
-			return false, nil
-		} else if err != nil {
-			return false, err
-		}
-		// Check the SCC exists.
-		if isOpenShift {
-			scc := &osv1.SecurityContextConstraints{}
-			sccKey := types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
-			if err := runtimeClient.Get(ctx, sccKey, scc); err != nil {
+		for _, obj := range managedObjects() {
+			if err := runtimeClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 				if errors.IsNotFound(err) {
 					return false, nil
 				}
 				return false, err
+			}
+			if ds, ok := obj.(*appsv1.DaemonSet); ok && ds.Status.NumberAvailable == 0 {
+				return false, nil
 			}
 		}
 		return true, nil
 	})
 }
 
-// waitForResourceDeletion polls for all bpfman managed resources to be deleted.
-// Checks that CSI driver, ConfigMap, and both DaemonSets are no longer present.
-// Returns error if timeout is reached or if context is cancelled.
+// waitForResourceDeletion polls for all managed resources to be deleted.
 func waitForResourceDeletion(ctx context.Context, t *testing.T) error {
 	return waitUntilCondition(ctx, func() (bool, error) {
-		// Check CSI driver.
-		csiDriver := &storagev1.CSIDriver{}
-		if err := runtimeClient.Get(ctx, types.NamespacedName{Name: internal.BpfmanCsiDriverName}, csiDriver); err == nil {
-			t.Logf("csi driver not yet deleted, %v", *csiDriver)
-			return false, nil
-		} else if !errors.IsNotFound(err) {
-			return false, err
-		}
-		// Check ConfigMap.
-		configMap := &corev1.ConfigMap{}
-		cmKey := types.NamespacedName{Name: internal.BpfmanConfigName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, cmKey, configMap); err == nil {
-			t.Logf("config map not yet deleted, %v", *configMap)
-			return false, nil
-		} else if !errors.IsNotFound(err) {
-			return false, err
-		}
-		// Check DaemonSet.
-		ds := &appsv1.DaemonSet{}
-		dsKey := types.NamespacedName{Name: internal.BpfmanDsName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, dsKey, ds); err == nil {
-			t.Logf("daemonset not yet deleted, %v", *ds)
-			return false, nil
-		} else if !errors.IsNotFound(err) {
-			return false, err
-		}
-
-		// Check Metrics Proxy DaemonSet.
-		mds := &appsv1.DaemonSet{}
-		mdsKey := types.NamespacedName{Name: internal.BpfmanMetricsProxyDsName, Namespace: internal.BpfmanNamespace}
-		if err := runtimeClient.Get(ctx, mdsKey, mds); err == nil {
-			t.Logf("daemonset not yet deleted, %v", *mds)
-			return false, nil
-		} else if !errors.IsNotFound(err) {
-			return false, err
-		}
-		// Check OpenShift SCC if on OpenShift.
-		if isOpenShift {
-			scc := &osv1.SecurityContextConstraints{}
-			sccKey := types.NamespacedName{Name: internal.BpfmanRestrictedSccName}
-			if err := runtimeClient.Get(ctx, sccKey, scc); err == nil {
-				t.Logf("scc not yet deleted, %v", *scc)
+		for _, obj := range managedObjects() {
+			key := client.ObjectKeyFromObject(obj)
+			if err := runtimeClient.Get(ctx, key, obj); err == nil {
+				t.Logf("%s not yet deleted", key)
 				return false, nil
 			} else if !errors.IsNotFound(err) {
 				return false, err

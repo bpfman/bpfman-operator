@@ -21,9 +21,6 @@ metadata:
             "pod-security.kubernetes.io/audit": "privileged",
             "pod-security.kubernetes.io/warn": "privileged",
           },
-          "annotations": {
-            "openshift.io/node-selector": ""
-          },
         }
       }
     features.operators.openshift.io/disconnected: "true"

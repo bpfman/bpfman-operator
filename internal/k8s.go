@@ -86,3 +86,22 @@ func IsOpenShift(client discovery.DiscoveryInterface, setupLog logr.Logger) (boo
 	}
 	return false, nil
 }
+
+// HasMonitoringAPI returns true if the monitoring.coreos.com API group
+// is available on the cluster, indicating the Prometheus Operator (or
+// compatible) is installed.
+func HasMonitoringAPI(client discovery.DiscoveryInterface, setupLog logr.Logger) (bool, error) {
+	apiList, err := client.ServerGroups()
+	if err != nil {
+		setupLog.Info("issue occurred while fetching ServerGroups")
+		return false, err
+	}
+
+	for _, v := range apiList.Groups {
+		if v.Name == "monitoring.coreos.com" {
+			setupLog.Info("monitoring.coreos.com found in apis, Prometheus Operator available")
+			return true, nil
+		}
+	}
+	return false, nil
+}

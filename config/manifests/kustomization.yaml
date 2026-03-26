@@ -2,7 +2,7 @@
 # used to generate the 'manifests/' directory in a bundle.
 resources:
   - bases/bpfman-operator.clusterserviceversion.yaml
-  - ../openshift
+  - ../default
   - ../samples
   - ../scorecard
 # [WEBHOOK] To enable webhooks, uncomment all the sections with [WEBHOOK] prefix.
