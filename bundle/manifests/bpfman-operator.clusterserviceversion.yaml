@@ -994,7 +994,7 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2026-03-26T08:17:45Z"
+    createdAt: "2026-03-26T13:54:10Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1590,8 +1590,8 @@ spec:
                   value: quay.io/bpfman/bpfman:latest
                 - name: BPFMAN_AGENT_IMG
                   value: quay.io/bpfman/bpfman-agent:latest
+                - name: BPFMAN_IMAGE_PULL_POLICY
                 image: quay.io/bpfman/bpfman-operator:latest
-                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz

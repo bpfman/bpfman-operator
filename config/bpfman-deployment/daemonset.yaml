@@ -50,7 +50,6 @@ spec:
               add: [CAP_BPF, CAP_NET_ADMIN]
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: FallbackToLogsOnError
-          imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: default-bpf-fs
               mountPath: /sys/fs/bpf
@@ -61,7 +60,6 @@ spec:
           args: [--csi-support]
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-          imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
           env:
@@ -118,7 +116,6 @@ spec:
           image: quay.io/bpfman/bpfman-agent:latest
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-          imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
           env:
@@ -159,7 +156,6 @@ spec:
           image: quay.io/bpfman/csi-node-driver-registrar:v2.13.0
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-          imagePullPolicy: IfNotPresent
           lifecycle:
             preStop:
               exec:

@@ -1575,3 +1575,79 @@ func TestAdoptExistingResources(t *testing.T) {
 			"%s should have been adopted", p.name)
 	}
 }
+
+// TestImagePullPolicyEnvVar verifies that setting
+// BPFMAN_IMAGE_PULL_POLICY after DaemonSets already exist causes the
+// reconciler to update them with the new policy. The test covers both
+// the bpfman-daemon DaemonSet (always present) and the
+// bpfman-metrics-proxy DaemonSet (only when monitoring is enabled).
+func TestImagePullPolicyEnvVar(t *testing.T) {
+	tests := []struct {
+		name          string
+		hasMonitoring bool
+		daemonSets    []string
+	}{
+		{
+			name:          "plain-k8s",
+			hasMonitoring: false,
+			daemonSets:    []string{internal.BpfmanDsName},
+		},
+		{
+			name:          "k8s-with-monitoring",
+			hasMonitoring: true,
+			daemonSets:    []string{internal.BpfmanDsName, internal.BpfmanMetricsProxyDsName},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r, _, req, ctx, cl := setupTestEnvironment(false, tc.hasMonitoring)
+
+			// First reconcile adds the finalizer.
+			_, err := r.Reconcile(ctx, req)
+			require.NoError(t, err)
+
+			// Second reconcile creates resources.
+			_, err = r.Reconcile(ctx, req)
+			require.NoError(t, err)
+
+			// Verify DaemonSets were created without an explicit imagePullPolicy.
+			for _, dsName := range tc.daemonSets {
+				ds := &appsv1.DaemonSet{}
+				require.NoError(t, cl.Get(ctx, types.NamespacedName{
+					Name: dsName, Namespace: internal.BpfmanNamespace,
+				}, ds))
+				for _, c := range ds.Spec.Template.Spec.Containers {
+					require.Empty(t, c.ImagePullPolicy,
+						"%s container %s should have no imagePullPolicy initially", dsName, c.Name)
+				}
+				for _, c := range ds.Spec.Template.Spec.InitContainers {
+					require.Empty(t, c.ImagePullPolicy,
+						"%s init container %s should have no imagePullPolicy initially", dsName, c.Name)
+				}
+			}
+
+			// Now set the env var and reconcile again.
+			t.Setenv("BPFMAN_IMAGE_PULL_POLICY", "IfNotPresent")
+
+			_, err = r.Reconcile(ctx, req)
+			require.NoError(t, err)
+
+			// Verify DaemonSets were updated with the new policy.
+			for _, dsName := range tc.daemonSets {
+				ds := &appsv1.DaemonSet{}
+				require.NoError(t, cl.Get(ctx, types.NamespacedName{
+					Name: dsName, Namespace: internal.BpfmanNamespace,
+				}, ds))
+				for _, c := range ds.Spec.Template.Spec.Containers {
+					require.Equal(t, corev1.PullIfNotPresent, c.ImagePullPolicy,
+						"%s container %s should have IfNotPresent after env var set", dsName, c.Name)
+				}
+				for _, c := range ds.Spec.Template.Spec.InitContainers {
+					require.Equal(t, corev1.PullIfNotPresent, c.ImagePullPolicy,
+						"%s init container %s should have IfNotPresent after env var set", dsName, c.Name)
+				}
+			}
+		})
+	}
+}
