@@ -32,6 +32,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bpfman/bpfman-operator/internal/version"
 	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
 
@@ -54,13 +55,20 @@ func main() {
 		metricsAddr string
 		socketPath  string
 		certDir     string
+		showVersion bool
 	)
 
 	flag.BoolVar(&enableHTTP2, "enable-http2", false, "Enable HTTP/2 on the metrics server")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "Metrics server address")
 	flag.StringVar(&socketPath, "socket", "/var/run/bpfman-agent/metrics.sock", "Path to Unix socket to proxy")
 	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "Directory for TLS certs")
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit.")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version.String())
+		return
+	}
 
 	opts := zap.Options{Development: false}
 	switch os.Getenv("GO_LOG") {
@@ -79,6 +87,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	log := ctrl.Log.WithName("metrics-proxy")
+	log.Info("metrics-proxy", "version", version.Version(), "commit", version.Commit(), "date", version.Date(), "go", version.GoVersion(), "platform", version.Platform())
 	log.Info("starting", "http2", enableHTTP2, "addr", metricsAddr, "socket", socketPath)
 
 	transport := http.Transport{

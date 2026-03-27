@@ -39,16 +39,28 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/bpfman/bpfman-operator/internal/version"
 	"github.com/bpfman/bpfman-operator/pkg/crictl"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
+	var showVersion bool
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit.")
+	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version.String())
+		os.Exit(0)
+	}
+
+	remaining := flag.Args()
+	if len(remaining) < 1 {
+		fmt.Fprintf(os.Stderr, "Usage: %s [--version] <command> [args...]\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Commands:\n")
 		fmt.Fprintf(os.Stderr, "  pods --name <name> -o json     List pods\n")
 		fmt.Fprintf(os.Stderr, "  ps --pod <pod-id> -o json      List containers\n")
@@ -66,8 +78,8 @@ func main() {
 	}
 	defer client.Close()
 
-	command := os.Args[1]
-	args := os.Args[2:]
+	command := remaining[0]
+	args := remaining[1:]
 
 	var output string
 	switch command {

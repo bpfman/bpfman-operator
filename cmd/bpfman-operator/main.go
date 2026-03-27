@@ -28,6 +28,7 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanoperator "github.com/bpfman/bpfman-operator/controllers/bpfman-operator"
 	"github.com/bpfman/bpfman-operator/internal"
+	"github.com/bpfman/bpfman-operator/internal/version"
 
 	osv1 "github.com/openshift/api/security/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -77,6 +78,7 @@ func main() {
 	var opts zap.Options
 	var enableHTTP2 bool
 	var certDir string
+	var showVersion bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metric endpoint binds to. Use \"0\" to disable.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -84,7 +86,13 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
 	flag.StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs", "The directory containing TLS certificates for HTTPS servers.")
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit.")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version.String())
+		return
+	}
 
 	bpfmanImage := os.Getenv("BPFMAN_IMG")
 	if bpfmanImage == "" {
@@ -127,6 +135,8 @@ func main() {
 	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("bpfman-operator", "version", version.Version(), "commit", version.Commit(), "date", version.Date(), "go", version.GoVersion(), "platform", version.Platform())
 
 	metricsOptions := server.Options{
 		BindAddress:    metricsAddr,
