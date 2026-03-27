@@ -14,9 +14,32 @@ jobs:
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
+  build-meta:
+    name: Compute build metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      build_version: ${{ steps.meta.outputs.build_version }}
+      build_commit: ${{ steps.meta.outputs.build_commit }}
+      build_date: ${{ steps.meta.outputs.build_date }}
+    steps:
+      - name: Compute build metadata
+        id: meta
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          echo "build_version=pr-${PR_NUMBER}-${HEAD_REF}" >> "$GITHUB_OUTPUT"
+          echo "build_commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build (Go 1.25 - amd64)
     runs-on: ubuntu-24.04
+    needs: build-meta
+    env:
+      BUILD_VERSION: ${{ needs.build-meta.outputs.build_version }}
+      BUILD_COMMIT: ${{ needs.build-meta.outputs.build_commit }}
+      BUILD_DATE: ${{ needs.build-meta.outputs.build_date }}
     steps:
       - name: Checkout bpfman-operator
         uses: actions/checkout@v6
@@ -37,6 +60,12 @@ jobs:
 
       - name: Build Operator and Agent
         run: make build
+
+      - name: Print version of each binary
+        run: |
+          for bin in bin/bpfman-operator bin/bpfman-agent bin/metrics-proxy bin/bpfman-crictl; do
+            ./"$bin" --version
+          done
 
   lint:
     name: Lint
@@ -158,7 +187,11 @@ jobs:
   cross-build:
     name: Cross-compile (Go 1.25 - arm64, ppc64le, s390x)
     runs-on: ubuntu-24.04
-    needs: build
+    needs: [build, build-meta]
+    env:
+      BUILD_VERSION: ${{ needs.build-meta.outputs.build_version }}
+      BUILD_COMMIT: ${{ needs.build-meta.outputs.build_commit }}
+      BUILD_DATE: ${{ needs.build-meta.outputs.build_date }}
     steps:
       - name: Checkout bpfman-operator
         uses: actions/checkout@v6

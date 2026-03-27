@@ -31,6 +31,7 @@ import (
 	bpfmanagent "github.com/bpfman/bpfman-operator/controllers/bpfman-agent"
 	"github.com/bpfman/bpfman-operator/internal/bpffs"
 	"github.com/bpfman/bpfman-operator/internal/conn"
+	"github.com/bpfman/bpfman-operator/internal/version"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	"github.com/go-logr/logr"
@@ -372,6 +373,7 @@ func main() {
 	var enableHTTP2, enableInterfacesDiscovery bool
 	var pprofAddr string
 	var certDir string
+	var showVersion bool
 
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8175", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", enableHTTP2, "If HTTP/2 should be enabled for the metrics and webhook servers.")
@@ -381,8 +383,14 @@ func main() {
 	mountBPFFS := flag.Bool("mount-bpffs", false, "Ensure bpffs is mounted at the given path, then exit (init-container mode).")
 	mountBPFFSPath := flag.String("mount-bpffs-path", bpffs.DefaultMountPoint, "Path where bpffs should be mounted.")
 	remountBPFFS := flag.Bool("mount-bpffs-remount", false, "Unmount bpffs if mounted, then mount it (testing only).")
+	flag.BoolVar(&showVersion, "version", false, "Print version information and exit.")
 
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println(version.String())
+		os.Exit(0)
+	}
 
 	// Handle --mount-bpffs mode: mount bpffs if needed and exit.
 	// This is used by init containers to ensure bpffs is mounted
@@ -424,6 +432,8 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	setupLog := ctrl.Log.WithName("setup")
+
+	setupLog.Info("bpfman-agent", "version", version.Version(), "commit", version.Commit(), "date", version.Date(), "go", version.GoVersion(), "platform", version.Platform())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,

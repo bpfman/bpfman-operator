@@ -92,6 +92,13 @@ export OCI_BIN
 GOARCH ?= $(shell go env GOHOSTARCH)
 PLATFORM ?= $(shell go env GOHOSTOS)/$(shell go env GOHOSTARCH)
 
+## Version ldflags
+VERSION_PKG := github.com/bpfman/bpfman-operator/internal/version
+BUILD_VERSION ?= $(shell git describe --tags --dirty --always --long 2>/dev/null || echo 0.0.0-unknown)
+BUILD_COMMIT  ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+BUILD_DATE    ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+GO_LDFLAGS := -X '$(VERSION_PKG).buildVersion=$(BUILD_VERSION)' -X '$(VERSION_PKG).buildCommit=$(BUILD_COMMIT)' -X '$(VERSION_PKG).buildDate=$(BUILD_DATE)'
+
 .PHONY: all
 all: build
 
@@ -117,6 +124,9 @@ version: ## Display the current VERSION, IMAGE_TAG, and image paths being used
 	@echo "BPFMAN_AGENT_IMG: $(BPFMAN_AGENT_IMG)"
 	@echo "BPFMAN_IMG: $(BPFMAN_IMG)"
 	@echo "BPFMAN_OPERATOR_IMG: $(BPFMAN_OPERATOR_IMG)"
+	@echo "BUILD_COMMIT: $(BUILD_COMMIT)"
+	@echo "BUILD_DATE: $(BUILD_DATE)"
+	@echo "BUILD_VERSION: $(BUILD_VERSION)"
 	@echo "BUNDLE_IMG: $(BUNDLE_IMG)"
 	@echo "CATALOG_IMG: $(CATALOG_IMG)"
 	@echo "IMAGE_TAG: $(IMAGE_TAG)"
@@ -360,10 +370,10 @@ run-local: build ## Run the bpfman-operator locally for development purposes.
 
 .PHONY: build
 build: fmt ## Build bpfman-operator, bpfman-agent, and bpfman-crictl binaries.
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-operator cmd/bpfman-operator/main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-agent cmd/bpfman-agent/main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/metrics-proxy cmd/metrics-proxy/main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -o bin/bpfman-crictl cmd/bpfman-crictl/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -ldflags "$(GO_LDFLAGS)" -o bin/bpfman-operator cmd/bpfman-operator/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -ldflags "$(GO_LDFLAGS)" -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -ldflags "$(GO_LDFLAGS)" -o bin/metrics-proxy cmd/metrics-proxy/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -mod vendor -ldflags "$(GO_LDFLAGS)" -o bin/bpfman-crictl cmd/bpfman-crictl/main.go
 
 # These paths map the host's GOCACHE location to the container's
 # location. We want to mount the host's Go cache in the container to
@@ -388,6 +398,9 @@ build-operator-image: ## Build bpfman-operator image.
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
 	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  --build-arg BUILD_VERSION=$(BUILD_VERSION) \
+	  --build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+	  --build-arg BUILD_DATE=$(BUILD_DATE) \
 	  $(if $(filter $(OCI_BIN),podman),--volume "$(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH):z") \
 	  -f Containerfile.bpfman-operator .
 
@@ -397,6 +410,9 @@ build-agent-image: ## Build bpfman-agent image.
 	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
 	  --build-arg TARGETARCH=$(GOARCH) \
 	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  --build-arg BUILD_VERSION=$(BUILD_VERSION) \
+	  --build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
+	  --build-arg BUILD_DATE=$(BUILD_DATE) \
 	  $(if $(filter $(OCI_BIN),podman),--volume "$(LOCAL_GOCACHE_PATH):$(CONTAINER_GOCACHE_PATH):z") \
 	  -f Containerfile.bpfman-agent .
 
