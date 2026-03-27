@@ -4,4 +4,5 @@ resources:
   - bpfman.io_v1alpha1_clusterbpfapplication.yaml
   - bpfman.io_v1alpha1_bpfapplicationstate.yaml
   - bpfman.io_v1alpha1_clusterbpfapplicationstate.yaml
+  - bpfman.io_v1alpha1_config.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

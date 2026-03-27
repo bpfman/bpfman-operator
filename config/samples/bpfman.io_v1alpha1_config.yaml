@@ -1,0 +1,20 @@
+apiVersion: bpfman.io/v1alpha1
+kind: Config
+metadata:
+  name: bpfman-config
+spec:
+  agent:
+    healthProbePort: 8175
+    image: quay.io/bpfman/bpfman-agent:latest
+    logLevel: info
+  configuration: |
+    [database]
+    max_retries = 30
+    millisec_delay = 10000
+    [signing]
+    allow_unsigned = true
+    verify_enabled = true
+  daemon:
+    image: quay.io/bpfman/bpfman:latest
+    logLevel: info
+  namespace: bpfman
