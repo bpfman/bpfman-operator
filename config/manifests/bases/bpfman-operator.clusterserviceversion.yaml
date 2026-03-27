@@ -66,6 +66,11 @@ spec:
         kind: BpfApplicationState
         name: bpfapplicationstates.bpfman.io
         version: v1alpha1
+      - description: Config is the Schema for the bpfman operator configuration API
+        displayName: Bpfman Config
+        kind: Config
+        name: configs.bpfman.io
+        version: v1alpha1
   description:
     "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with

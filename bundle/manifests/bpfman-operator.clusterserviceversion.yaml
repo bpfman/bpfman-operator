@@ -989,12 +989,32 @@ metadata:
             ],
             "updateCount": 2
           }
+        },
+        {
+          "apiVersion": "bpfman.io/v1alpha1",
+          "kind": "Config",
+          "metadata": {
+            "name": "bpfman-config"
+          },
+          "spec": {
+            "agent": {
+              "healthProbePort": 8175,
+              "image": "quay.io/bpfman/bpfman-agent:latest",
+              "logLevel": "info"
+            },
+            "configuration": "[database]\nmax_retries = 30\nmillisec_delay = 10000\n[signing]\nallow_unsigned = true\nverify_enabled = true\n",
+            "daemon": {
+              "image": "quay.io/bpfman/bpfman:latest",
+              "logLevel": "info"
+            },
+            "namespace": "bpfman"
+          }
         }
       ]
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/bpfman/bpfman-operator:latest
-    createdAt: "2026-03-26T13:54:10Z"
+    createdAt: "2026-03-27T11:48:36Z"
     description: The bpfman Operator is designed to manage eBPF programs for applications.
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
@@ -1060,7 +1080,9 @@ spec:
       kind: ClusterBpfApplicationState
       name: clusterbpfapplicationstates.bpfman.io
       version: v1alpha1
-    - kind: Config
+    - description: Config is the Schema for the bpfman operator configuration API
+      displayName: Bpfman Config
+      kind: Config
       name: configs.bpfman.io
       version: v1alpha1
   description: "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
