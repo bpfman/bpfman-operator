@@ -10,7 +10,7 @@ github.com/beorn7/perks/quantile
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
-# github.com/bpfman/bpfman v0.5.7-0.20250305151919-a74c631c3643
+# github.com/bpfman/bpfman v0.6.0
 ## explicit; go 1.22.0
 github.com/bpfman/bpfman/clients/gobpfman/v1
 # github.com/cenkalti/backoff/v4 v4.3.0
