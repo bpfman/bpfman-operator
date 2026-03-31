@@ -3,7 +3,7 @@ module github.com/bpfman/bpfman-operator
 go 1.25.0
 
 require (
-	github.com/bpfman/bpfman v0.5.7-0.20250305151919-a74c631c3643
+	github.com/bpfman/bpfman v0.6.0
 	github.com/containers/image/v5 v5.36.2
 	github.com/go-logr/logr v1.4.3
 	github.com/kong/kubernetes-testing-framework v0.48.0
@@ -19,6 +19,7 @@ require (
 	k8s.io/code-generator v0.34.3
 	k8s.io/cri-api v0.35.0
 	sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -90,7 +91,6 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
 require (
