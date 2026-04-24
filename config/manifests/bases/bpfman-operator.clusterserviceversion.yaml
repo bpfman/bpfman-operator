@@ -410,10 +410,10 @@ spec:
     - name: bpfman website
       url: https://bpfman.io/
   maintainers:
+    - email: amcdermo@redhat.com
+      name: Andrew McDermott
     - email: afredette@redhat.com
       name: Andre Fredette
-    - email: mmahmoud@redhat.com
-      name: Mohamed Mahmoud
   maturity: alpha
   minKubeVersion: 1.26.0
   provider:
