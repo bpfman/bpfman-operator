@@ -72,22 +72,23 @@ spec:
         name: configs.bpfman.io
         version: v1alpha1
   description:
-    "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
+    "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.io/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
     CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n##
     Quick Start\n\nTo get bpfman up and running quickly simply click 'install'
     to deploy the bpfman-operator in the bpfman namespace via operator-hub.\n##
-    Configuration\n\nThe `bpfman-config` configmap is automatically created in the `bpfman`
-    namespace and used to configure the bpfman deployment.\n\nTo edit the config simply
-    run\n\n```bash\nkubectl edit cm bpfman-config\n```\n\nThe following fields are adjustable\n\n-
-    `bpfman.agent.image`: The image used for the bpfman-agent`\n- `bpfman.image`: The 
-    image used for bpfman`\n- `bpfman.log.level`: the log level for bpfman, currently 
-    supports `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- 
-    `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports 
-    `info`, `debug`, and `trace` \n\nThe bpfman operator deploys eBPF programs via CRDs. 
-    The following CRDs are currently available, \n\n- BpfApplication\n- ClusterBpfApplication\n
-    - BpfApplicationState\n- ClusterBpfApplicationState\n\n
-    ## More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/) 
+    Configuration\n\nA default `Config` CR is automatically created in the cluster
+    when the operator starts.\nTo edit the configuration run\n\n```bash\nkubectl edit
+    config bpfman-config\n```\n\nThe following fields are adjustable under `spec`\n\n-
+    `agent.image`: The image used for the bpfman-agent\n- `agent.logLevel`: The log
+    level for the bpfman-agent, supports `info`, `debug`, and `trace`\n- `daemon.image`:
+    The image used for bpfman\n- `daemon.logLevel`: The log level for bpfman, supports
+    `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `configuration`:
+    The content of the bpfman.toml configuration file\n- `namespace`: The namespace
+    where bpfman resources are deployed\n\nThe bpfman operator deploys eBPF programs
+    via CRDs. The following CRDs are currently available\n\n- BpfApplication\n-
+    ClusterBpfApplication\n- BpfApplicationState\n- ClusterBpfApplicationState\n\n##
+    More information\n\nPlease checkout the [bpfman community website](https://bpfman.io/)
     for more information."
   displayName: Bpfman Operator
   icon:
