@@ -177,7 +177,15 @@ jobs:
         run: make verify
 
       - name: Check clean vendors
-        run: go mod vendor
+        run: |
+          go mod tidy
+          go mod vendor
+          if [ -n "$(git status --porcelain vendor go.mod go.sum)" ]; then
+            echo "vendor/, go.mod or go.sum is out of sync with 'go mod tidy && go mod vendor':"
+            git status --porcelain vendor go.mod go.sum
+            git diff -- vendor go.mod go.sum
+            exit 1
+          fi
 
       - name: Verify generated bundle manifest
         run: |
