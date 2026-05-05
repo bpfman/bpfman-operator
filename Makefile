@@ -318,7 +318,14 @@ lint: prereqs ## Run linter (golangci-lint).
 
 .PHONY: test
 test: fmt ## Run Unit tests.
-	KUBEBUILDER_ASSETS="$(shell go run sigs.k8s.io/controller-runtime/tools/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+	@set -e ; \
+	KUBEBUILDER_ASSETS="$$(go run sigs.k8s.io/controller-runtime/tools/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" ; \
+	if [ -z "$$KUBEBUILDER_ASSETS" ]; then \
+		echo "setup-envtest produced an empty KUBEBUILDER_ASSETS path" >&2 ; \
+		exit 1 ; \
+	fi ; \
+	echo KUBEBUILDER_ASSETS=\"$$KUBEBUILDER_ASSETS\" go test ./... -coverprofile cover.out ; \
+	KUBEBUILDER_ASSETS="$$KUBEBUILDER_ASSETS" go test ./... -coverprofile cover.out
 
 
 .PHONY: test-integration
