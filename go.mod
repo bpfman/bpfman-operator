@@ -19,6 +19,7 @@ require (
 	k8s.io/code-generator v0.34.3
 	k8s.io/cri-api v0.35.0
 	sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20260125163108-a19ec76a3c5d
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -58,6 +59,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/safchain/ethtool v0.5.10 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/urfave/cli/v2 v2.27.6 // indirect
