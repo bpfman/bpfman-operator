@@ -153,7 +153,6 @@ REGISTER_GEN ?= $(LOCALBIN)/register-gen
 INFORMER_GEN ?= $(LOCALBIN)/informer-gen
 LISTER_GEN ?= $(LOCALBIN)/lister-gen
 CLIENT_GEN ?= $(LOCALBIN)/client-gen
-ENVTEST ?= $(LOCALBIN)/setup-envtest
 CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 KIND ?= $(LOCALBIN)/kind
@@ -210,11 +209,6 @@ $(LISTER_GEN): $(LOCALBIN)
 client-gen: $(CLIENT_GEN) ## Download client-gen locally if necessary.
 $(CLIENT_GEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/client-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/client-gen@$(K8S_CODEGEN_VERSION)
-
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: opm
 OPM = ./bin/opm
@@ -323,8 +317,8 @@ lint: prereqs ## Run linter (golangci-lint).
 # 	./hack/verify-golint.sh
 
 .PHONY: test
-test: fmt envtest ## Run Unit tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+test: fmt ## Run Unit tests.
+	KUBEBUILDER_ASSETS="$(shell go run sigs.k8s.io/controller-runtime/tools/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 
 .PHONY: test-integration
