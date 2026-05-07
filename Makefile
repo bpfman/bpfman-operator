@@ -68,7 +68,6 @@ export BPFMAN_OPERATOR_IMG
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
-K8S_CODEGEN_VERSION = v0.34.3
 
 .DEFAULT_GOAL := help
 
@@ -148,18 +147,16 @@ endif
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-REGISTER_GEN ?= $(LOCALBIN)/register-gen
-INFORMER_GEN ?= $(LOCALBIN)/informer-gen
-LISTER_GEN ?= $(LOCALBIN)/lister-gen
-CLIENT_GEN ?= $(LOCALBIN)/client-gen
-CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
+CONTROLLER_GEN ?= go run sigs.k8s.io/controller-tools/cmd/controller-gen
+REGISTER_GEN ?= go run k8s.io/code-generator/cmd/register-gen
+INFORMER_GEN ?= go run k8s.io/code-generator/cmd/informer-gen
+LISTER_GEN ?= go run k8s.io/code-generator/cmd/lister-gen
+CLIENT_GEN ?= go run k8s.io/code-generator/cmd/client-gen
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 KIND ?= $(LOCALBIN)/kind
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.17.1
 OPERATOR_SDK_VERSION ?= v1.27.0
 KIND_VERSION ?= v0.31.0
 GOLANGCI_LINT_VERSION = v2.0.2
@@ -185,30 +182,6 @@ kind: $(KIND) ## Download kind locally if necessary.
 $(KIND): $(LOCALBIN)
 	test -s $(LOCALBIN)/kind || { curl -Lo $(LOCALBIN)/kind $(KIND_DL_URL) && chmod +x $(LOCALBIN)/kind; }
 
-.PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-
-.PHONY: register-gen
-register-gen: $(REGISTER_GEN) ## Download register-gen locally if necessary.
-$(REGISTER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/register-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/register-gen@$(K8S_CODEGEN_VERSION)
-
-.PHONY: informer-gen
-informer-gen: $(INFORMER_GEN) ## Download informer-gen locally if necessary.
-$(INFORMER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/informer-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/informer-gen@$(K8S_CODEGEN_VERSION)
-
-.PHONY: lister-gen
-lister-gen: $(LISTER_GEN) ## Download lister-gen locally if necessary.
-$(LISTER_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/lister-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/lister-gen@$(K8S_CODEGEN_VERSION)
-
-.PHONY: client-gen
-client-gen: $(CLIENT_GEN) ## Download client-gen locally if necessary.
-$(CLIENT_GEN): $(LOCALBIN)
-	test -s $(LOCALBIN)/client-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/client-gen@$(K8S_CODEGEN_VERSION)
 
 .PHONY: opm
 OPM = ./bin/opm
@@ -238,7 +211,7 @@ PKG ?= github.com/bpfman/bpfman-operator
 COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go.txt
 
 .PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+manifests: ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./controllers/bpfman-agent/..." output:rbac:artifacts:config=config/rbac/bpfman-agent
 	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./controllers/bpfman-operator" output:rbac:artifacts:config=config/rbac/bpfman-operator
@@ -247,7 +220,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: manifests generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate ALL auto-generated code.
 
 .PHONY: generate-register
-generate-register: register-gen ## Generate register code see all `zz_generated.register.go` files.
+generate-register: ## Generate register code see all `zz_generated.register.go` files.
 	$(REGISTER_GEN) \
 		"${PKG}/apis/v1alpha1" \
 		--output-file zz_generated.register.go \
@@ -259,7 +232,7 @@ generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepC
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: generate-typed-clients
-generate-typed-clients: client-gen ## Generate typed client code
+generate-typed-clients: ## Generate typed client code
 	$(CLIENT_GEN) \
 		--clientset-name "clientset" \
 		--input-base "" \
@@ -270,7 +243,7 @@ generate-typed-clients: client-gen ## Generate typed client code
 
 
 .PHONY: generate-typed-listers
-generate-typed-listers: lister-gen ## Generate typed listers code
+generate-typed-listers: ## Generate typed listers code
 	$(LISTER_GEN) \
 		"${PKG}/apis/v1alpha1" \
 		--output-pkg "${PKG}/pkg/client" \
@@ -279,7 +252,7 @@ generate-typed-listers: lister-gen ## Generate typed listers code
 
 
 .PHONY: generate-typed-informers
-generate-typed-informers: informer-gen ## Generate typed informers code
+generate-typed-informers: ## Generate typed informers code
 	$(INFORMER_GEN) \
 		"${PKG}/apis/v1alpha1" \
 		--versioned-clientset-package "${PKG}/pkg/client/clientset" \
