@@ -20,6 +20,7 @@ require (
 	k8s.io/cri-api v0.35.0
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20260125163108-a19ec76a3c5d
+	sigs.k8s.io/controller-tools v0.17.1
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -36,11 +37,13 @@ require (
 	github.com/containers/storage v1.59.1 // indirect
 	github.com/coreos/go-iptables v0.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gavv/monotime v0.0.0-20190418164738-30dba4353424 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/swag/jsonname v0.25.1 // indirect
+	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
@@ -49,6 +52,8 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
@@ -87,6 +92,7 @@ require (
 	gopkg.in/gcfg.v1 v1.2.3 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.34.3 // indirect
 	k8s.io/component-base v0.34.3 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250820003526-c297c0c1eb9d // indirect
