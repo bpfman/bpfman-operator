@@ -484,13 +484,28 @@ patch-image-references: kustomize ## Update all image references with environmen
 # This means consecutive runs with different image values work
 # without needing to restore deployment.yaml from git first.
 #
-# Also reset any imagePullPolicy injection from a previous "make deploy"
-# so that deploy-openshift and bundle always start from clean defaults.
+# Also reset any imagePullPolicy injection from a previous "make
+# deploy" so we always start from a clean baseline before deciding
+# whether BPFMAN_IMAGE_PULL_POLICY needs to be honoured below.
 	$(SED) -i -e '/name: BPFMAN_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_IMG)|;}' \
 	       -e '/name: BPFMAN_AGENT_IMG/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_AGENT_IMG)|;}' \
-	       -e '/name: BPFMAN_IMAGE_PULL_POLICY/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1""|;}' \
 	       -e '/imagePullPolicy/d' \
 	       config/bpfman-operator-deployment/deployment.yaml
+# When BPFMAN_IMAGE_PULL_POLICY is set, propagate it as the env var
+# value the operator reads when stamping out the daemon and agent,
+# and inject imagePullPolicy on the operator container so kubelet
+# honours it when pulling the operator image itself. When unset,
+# leave the env value empty and the imagePullPolicy off the manifest
+# entirely. This is what lets bundle-deploy bake IfNotPresent into
+# the bundle CSV without affecting non-kind paths.
+	@if [ -n "$(BPFMAN_IMAGE_PULL_POLICY)" ]; then \
+	    $(SED) -i -e '/name: BPFMAN_IMAGE_PULL_POLICY/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1$(BPFMAN_IMAGE_PULL_POLICY)|;}' \
+	           -e '/^[[:space:]]*image:[[:space:]].*$$/a\          imagePullPolicy: $(BPFMAN_IMAGE_PULL_POLICY)' \
+	           config/bpfman-operator-deployment/deployment.yaml; \
+	else \
+	    $(SED) -i -e '/name: BPFMAN_IMAGE_PULL_POLICY/{n;s|^\([[:space:]]*value:[[:space:]]*\).*|\1""|;}' \
+	           config/bpfman-operator-deployment/deployment.yaml; \
+	fi
 
 ##@ Vanilla K8s Deployment
 
@@ -546,6 +561,7 @@ run-on-kind: kustomize setup-kind build-images load-images-kind install deploy #
 ##@ OLM Bundle Deployment
 
 .PHONY: bundle-deploy
+bundle-deploy: BPFMAN_IMAGE_PULL_POLICY := IfNotPresent
 bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
 	$(OPERATOR_SDK) olm install 2>/dev/null || true
 	kubectl delete catalogsource operatorhubio-catalog -n olm 2>/dev/null || true
