@@ -22,11 +22,8 @@ thisyear=`date +"%Y"`
 
 mkdir -p release-v${VERSION}/
 
-## Location to install dependencies to
-LOCALBIN=$(pwd)/bin
-
 ## Tool Binaries
-KUSTOMIZE=${LOCALBIN}/kustomize
+KUSTOMIZE="go run sigs.k8s.io/kustomize/kustomize/v5"
 
 # Generate all install yaml's
 
