@@ -67,7 +67,7 @@ export BPFMAN_AGENT_IMG
 export BPFMAN_OPERATOR_IMG
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.25.0
+ENVTEST_K8S_VERSION = 1.35.0
 
 .DEFAULT_GOAL := help
 

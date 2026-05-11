@@ -29,6 +29,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientGoFake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -187,18 +188,19 @@ func runReconciler(t *testing.T, ctx context.Context, r reconcile.Reconciler, re
 
 // registerBpfApplicationScheme is a helper to register bpf application schemes for the mock reconciler.
 func registerBpfApplicationScheme(s *runtime.Scheme, isClusterScoped bool, bpfApp runtime.Object) {
+	gv := schema.GroupVersion{Group: bpfmaniov1alpha1.GroupVersion.Group, Version: bpfmaniov1alpha1.GroupVersion.Version}
 	if isClusterScoped {
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplication{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationList{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationState{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.ClusterBpfApplicationStateList{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.ClusterBpfApplication{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.ClusterBpfApplicationList{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.ClusterBpfApplicationState{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.ClusterBpfApplicationStateList{})
 	} else {
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplication{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplicationList{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplicationState{})
-		s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplicationStateList{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplication{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplicationList{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplicationState{})
+		s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplicationStateList{})
 	}
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, bpfApp)
+	s.AddKnownTypes(gv, bpfApp)
 }
 
 type MockNetNsCache map[string]*uint64

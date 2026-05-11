@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -307,7 +308,7 @@ func setupTestEnvironment(isOpenShift, hasMonitoring bool) (*BpfmanConfigReconci
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Config{})
+	s.AddKnownTypes(schema.GroupVersion{Group: v1alpha1.GroupVersion.Group, Version: v1alpha1.GroupVersion.Version}, &v1alpha1.Config{})
 	s.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ConfigMap{})
 	s.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.DaemonSet{})
 	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
@@ -411,7 +412,7 @@ func hasOwnerReference(config *v1alpha1.Config, o client.Object) error {
 	if or[0].Controller == nil || *or[0].Controller != true {
 		return fmt.Errorf("owner ref of %q has Controller=%v, expected true", name, or[0].Controller)
 	}
-	expectedGVK := v1alpha1.SchemeGroupVersion.WithKind("Config")
+	expectedGVK := schema.GroupVersion{Group: v1alpha1.GroupVersion.Group, Version: v1alpha1.GroupVersion.Version}.WithKind("Config")
 	if or[0].APIVersion != expectedGVK.GroupVersion().String() || or[0].Kind != expectedGVK.Kind {
 		return fmt.Errorf("owner ref of %q has APIVersion=%q Kind=%q, expected APIVersion=%q Kind=%q",
 			name, or[0].APIVersion, or[0].Kind, expectedGVK.GroupVersion().String(), expectedGVK.Kind)
