@@ -146,7 +146,7 @@ SED ?= gsed
 endif
 
 ## Tool Binaries
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
+KUSTOMIZE ?= go run sigs.k8s.io/kustomize/kustomize/v5
 CONTROLLER_GEN ?= go run sigs.k8s.io/controller-tools/cmd/controller-gen
 REGISTER_GEN ?= go run k8s.io/code-generator/cmd/register-gen
 INFORMER_GEN ?= go run k8s.io/code-generator/cmd/informer-gen
@@ -156,16 +156,10 @@ OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 KIND ?= $(LOCALBIN)/kind
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v3.8.7
 OPERATOR_SDK_VERSION ?= v1.27.0
 KIND_VERSION ?= v0.31.0
 GOLANGCI_LINT_VERSION = v2.0.2
 
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
-$(KUSTOMIZE): $(LOCALBIN)
-	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
 OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/$(OPERATOR_SDK_DL_NAME)
@@ -320,7 +314,7 @@ test-lifecycle-local: ## Run lifecycle tests against existing deployment.
 ## as part of a pull request.
 ## See https://github.com/operator-framework/operator-sdk/issues/6285.
 .PHONY: bundle
-bundle: operator-sdk generate kustomize manifests patch-image-references ## Generate bundle manifests and metadata, then validate generated files.
+bundle: operator-sdk generate manifests patch-image-references ## Generate bundle manifests and metadata, then validate generated files.
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	# Dependency on security-profiles-operator removed (file renamed to dependencies.yaml.disabled)
 	# https://github.com/kubernetes-sigs/security-profiles-operator/issues/2699
@@ -328,7 +322,7 @@ bundle: operator-sdk generate kustomize manifests patch-image-references ## Gene
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: build-release-yamls
-build-release-yamls: generate kustomize ## Generate the crd install bundle for a specific release version.
+build-release-yamls: generate ## Generate the crd install bundle for a specific release version.
 	VERSION=$(VERSION) ./hack/build-release-yamls.sh
 
 .PHONY: default-config
@@ -436,17 +430,17 @@ catalog-push: ## Push a catalog image.
 ignore-not-found ?= true
 
 .PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+install: manifests ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 .PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Image Patching
 
 .PHONY: patch-image-references
-patch-image-references: kustomize ## Update all image references with environment variables
+patch-image-references: ## Update all image references with environment variables
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 # Patch the env var values in the deployment manifest by matching
 # on the env var name rather than the current value, so the
@@ -513,7 +507,7 @@ deploy: install patch-image-references ## Deploy bpfman-operator to the K8s clus
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
-undeploy: kustomize ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
 		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
@@ -529,7 +523,7 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	fi
 
 .PHONY: run-on-kind
-run-on-kind: kustomize setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
+run-on-kind: setup-kind build-images load-images-kind install deploy ## Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
 
 ##@ OLM Bundle Deployment
 
@@ -544,7 +538,7 @@ bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind se
 	$(OPERATOR_SDK) run bundle $(KIND_BUNDLE_IMG) $(KIND_BUNDLE_PULL_FLAGS) -n bpfman --timeout 5m
 
 .PHONY: bundle-run-on-kind
-bundle-run-on-kind: kustomize setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
+bundle-run-on-kind: setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
 
 .PHONY: bundle-deploy-openshift
 bundle-deploy-openshift: operator-sdk build-images push-images bundle bundle-build bundle-push ## Deploy bpfman-operator via OLM bundle on OpenShift.
@@ -575,7 +569,7 @@ patch-pull-always: ## Patch all bpfman deployments and daemonsets to use imagePu
 	$(MAKE) patch-image-pull-policy IMAGE_PULL_POLICY=Always
 
 .PHONY: undeploy-openshift
-undeploy-openshift: kustomize ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	@if kubectl get crd configs.bpfman.io >/dev/null 2>&1; then \
 		kubectl delete --ignore-not-found=$(ignore-not-found) configs.bpfman.io bpfman-config; \
 		kubectl wait --for=delete configs.bpfman.io/bpfman-config --timeout=60s; \
