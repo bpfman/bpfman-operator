@@ -156,9 +156,9 @@ OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 KIND ?= $(LOCALBIN)/kind
 
 ## Tool Versions
-OPERATOR_SDK_VERSION ?= v1.27.0
+OPERATOR_SDK_VERSION ?= v1.37.0
 KIND_VERSION ?= v0.31.0
-GOLANGCI_LINT_VERSION = v2.0.2
+GOLANGCI_LINT_VERSION = v2.12.2
 
 
 OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
