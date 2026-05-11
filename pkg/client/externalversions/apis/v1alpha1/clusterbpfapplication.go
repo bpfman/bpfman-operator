@@ -56,7 +56,7 @@ func NewClusterBpfApplicationInformer(client clientset.Interface, resyncPeriod t
 // one. This reduces memory footprint and number of connections to the server.
 func NewFilteredClusterBpfApplicationInformer(client clientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		cache.ToListWatcherWithWatchListSemantics(&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
@@ -81,7 +81,7 @@ func NewFilteredClusterBpfApplicationInformer(client clientset.Interface, resync
 				}
 				return client.BpfmanV1alpha1().ClusterBpfApplications().Watch(ctx, options)
 			},
-		},
+		}, client),
 		&bpfmanoperatorapisv1alpha1.ClusterBpfApplication{},
 		resyncPeriod,
 		indexers,

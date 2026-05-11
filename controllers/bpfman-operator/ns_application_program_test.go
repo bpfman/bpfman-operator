@@ -29,6 +29,7 @@ import (
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -131,9 +132,10 @@ func appNsProgramReconcile(t *testing.T, multiCondition bool) {
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, App)
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplicationState{})
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfApplicationStateList{})
+	gv := schema.GroupVersion{Group: bpfmaniov1alpha1.GroupVersion.Group, Version: bpfmaniov1alpha1.GroupVersion.Version}
+	s.AddKnownTypes(gv, App)
+	s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplicationState{})
+	s.AddKnownTypes(gv, &bpfmaniov1alpha1.BpfApplicationStateList{})
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithStatusSubresource(App).WithRuntimeObjects(objs...).Build()
