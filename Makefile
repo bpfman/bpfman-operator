@@ -134,7 +134,7 @@ version: ## Display the current VERSION, IMAGE_TAG, and image paths being used
 ##@ Local Dependencies
 
 ## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
+LOCALBIN ?= bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
@@ -163,16 +163,12 @@ GOLANGCI_LINT_VERSION = v2.12.2
 
 OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/$(OPERATOR_SDK_DL_NAME)
-.PHONY: operator-sdk
-operator-sdk: $(OPERATOR_SDK)
 $(OPERATOR_SDK): $(LOCALBIN)
 	test -s $(LOCALBIN)/operator-sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
 	 mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
 
 KIND_DL_NAME=kind-$(shell go env GOOS)-$(shell go env GOARCH)
 KIND_DL_URL=https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/$(KIND_DL_NAME)
-.PHONY: kind
-kind: $(KIND) ## Download kind locally if necessary.
 $(KIND): $(LOCALBIN)
 	test -s $(LOCALBIN)/kind || { curl -Lo $(LOCALBIN)/kind $(KIND_DL_URL) && chmod +x $(LOCALBIN)/kind; }
 
@@ -286,7 +282,7 @@ lint: prereqs ## Run linter (golangci-lint).
 .PHONY: test
 test: fmt ## Run Unit tests.
 	@set -e ; \
-	KUBEBUILDER_ASSETS="$$(go run sigs.k8s.io/controller-runtime/tools/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" ; \
+	KUBEBUILDER_ASSETS="$$(go run sigs.k8s.io/controller-runtime/tools/setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(abspath $(LOCALBIN)) -p path)" ; \
 	if [ -z "$$KUBEBUILDER_ASSETS" ]; then \
 		echo "setup-envtest produced an empty KUBEBUILDER_ASSETS path" >&2 ; \
 		exit 1 ; \
@@ -314,7 +310,7 @@ test-lifecycle-local: ## Run lifecycle tests against existing deployment.
 ## as part of a pull request.
 ## See https://github.com/operator-framework/operator-sdk/issues/6285.
 .PHONY: bundle
-bundle: operator-sdk generate manifests patch-image-references ## Generate bundle manifests and metadata, then validate generated files.
+bundle: $(OPERATOR_SDK) generate manifests patch-image-references ## Generate bundle manifests and metadata, then validate generated files.
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	# Dependency on security-profiles-operator removed (file renamed to dependencies.yaml.disabled)
 	# https://github.com/kubernetes-sigs/security-profiles-operator/issues/2699
@@ -390,7 +386,7 @@ push-images: ## Push bpfman-agent and bpfman-operator images.
 	$(OCI_BIN) push ${BPFMAN_AGENT_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: kind ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
+load-images-kind: $(KIND) ## Load bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
 	KIND=$(KIND) ./hack/kind-load-image.sh ${KIND_CLUSTER_NAME} ${BPFMAN_OPERATOR_IMG} ${BPFMAN_AGENT_IMG}
 
 .PHONY: bundle-build
@@ -477,11 +473,11 @@ patch-image-references: ## Update all image references with environment variable
 ##@ Vanilla K8s Deployment
 
 .PHONY: setup-kind
-setup-kind: kind ## Setup Kind cluster
+setup-kind: $(KIND) ## Setup Kind cluster
 	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME} && $(KIND) create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
 .PHONY: setup-kind-registry
-setup-kind-registry: kind ## Start a local registry for KIND and connect it to the KIND network.
+setup-kind-registry: $(KIND) ## Start a local registry for KIND and connect it to the KIND network.
 	$(OCI_BIN) inspect $(KIND_REGISTRY_NAME) >/dev/null 2>&1 || \
 	  $(OCI_BIN) run -d --restart=always -p "$(KIND_REGISTRY_PORT):5000" --name $(KIND_REGISTRY_NAME) registry:2
 	$(OCI_BIN) network connect kind $(KIND_REGISTRY_NAME) 2>/dev/null || true
@@ -491,7 +487,7 @@ setup-kind-registry: kind ## Start a local registry for KIND and connect it to t
 	done
 
 .PHONY: destroy-kind
-destroy-kind: kind ## Destroy Kind cluster
+destroy-kind: $(KIND) ## Destroy Kind cluster
 	$(KIND) delete cluster --name ${KIND_CLUSTER_NAME}
 	$(OCI_BIN) rm -f $(KIND_REGISTRY_NAME) 2>/dev/null || true
 
@@ -529,7 +525,7 @@ run-on-kind: setup-kind build-images load-images-kind install deploy ## Kind Dep
 
 .PHONY: bundle-deploy
 bundle-deploy: BPFMAN_IMAGE_PULL_POLICY := IfNotPresent
-bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
+bundle-deploy: $(OPERATOR_SDK) build-images bundle bundle-build load-images-kind setup-kind-registry ## Deploy bpfman-operator via OLM bundle on the current cluster.
 	$(OPERATOR_SDK) olm install 2>/dev/null || true
 	kubectl delete catalogsource operatorhubio-catalog -n olm 2>/dev/null || true
 	kubectl create namespace bpfman 2>/dev/null || true
@@ -541,12 +537,12 @@ bundle-deploy: operator-sdk build-images bundle bundle-build load-images-kind se
 bundle-run-on-kind: setup-kind bundle-deploy ## Create a KIND cluster and deploy bpfman-operator via OLM bundle.
 
 .PHONY: bundle-deploy-openshift
-bundle-deploy-openshift: operator-sdk build-images push-images bundle bundle-build bundle-push ## Deploy bpfman-operator via OLM bundle on OpenShift.
+bundle-deploy-openshift: $(OPERATOR_SDK) build-images push-images bundle bundle-build bundle-push ## Deploy bpfman-operator via OLM bundle on OpenShift.
 	kubectl create namespace bpfman 2>/dev/null || true
 	$(OPERATOR_SDK) run bundle $(BUNDLE_IMG) -n bpfman --timeout 5m
 
 .PHONY: bundle-undeploy
-bundle-undeploy: operator-sdk ## Remove the OLM bundle deployment.
+bundle-undeploy: $(OPERATOR_SDK) ## Remove the OLM bundle deployment.
 	$(OPERATOR_SDK) cleanup bpfman-operator -n bpfman
 
 ##@ Openshift Deployment
