@@ -154,10 +154,12 @@ LISTER_GEN ?= go run k8s.io/code-generator/cmd/lister-gen
 CLIENT_GEN ?= go run k8s.io/code-generator/cmd/client-gen
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 KIND ?= $(LOCALBIN)/kind
+OPM ?= $(LOCALBIN)/opm
 
 ## Tool Versions
 OPERATOR_SDK_VERSION ?= v1.37.0
 KIND_VERSION ?= v0.31.0
+OPM_VERSION ?= v1.45.0
 GOLANGCI_LINT_VERSION = v2.12.2
 
 
@@ -175,23 +177,12 @@ $(KIND): | $(LOCALBIN)
 	  chmod +x $@.tmp && \
 	  mv $@.tmp $@
 
-
-.PHONY: opm
-OPM = ./bin/opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.45.0/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
-else
-OPM = $(shell which opm)
-endif
-endif
+OPM_DL_NAME=$(shell go env GOOS)-$(shell go env GOARCH)-opm
+OPM_DL_URL=https://github.com/operator-framework/operator-registry/releases/download/$(OPM_VERSION)/$(OPM_DL_NAME)
+$(OPM): | $(LOCALBIN)
+	curl -fLo $@.tmp $(OPM_DL_URL) && \
+	  chmod +x $@.tmp && \
+	  mv $@.tmp $@
 
 ##@ Development
 
@@ -417,7 +408,7 @@ endif
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
+catalog-build: $(OPM) ## Build a catalog image.
 	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 # Push the catalog image.
 .PHONY: catalog-push
