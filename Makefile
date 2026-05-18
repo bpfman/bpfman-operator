@@ -163,14 +163,17 @@ GOLANGCI_LINT_VERSION = v2.12.2
 
 OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/$(OPERATOR_SDK_DL_NAME)
-$(OPERATOR_SDK): $(LOCALBIN)
-	test -s $(LOCALBIN)/operator-sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} &&\
-	 mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
+$(OPERATOR_SDK): | $(LOCALBIN)
+	curl -fLo $@.tmp $(OPERATOR_SDK_DL_URL) && \
+	  chmod +x $@.tmp && \
+	  mv $@.tmp $@
 
 KIND_DL_NAME=kind-$(shell go env GOOS)-$(shell go env GOARCH)
 KIND_DL_URL=https://github.com/kubernetes-sigs/kind/releases/download/$(KIND_VERSION)/$(KIND_DL_NAME)
-$(KIND): $(LOCALBIN)
-	test -s $(LOCALBIN)/kind || { curl -Lo $(LOCALBIN)/kind $(KIND_DL_URL) && chmod +x $(LOCALBIN)/kind; }
+$(KIND): | $(LOCALBIN)
+	curl -fLo $@.tmp $(KIND_DL_URL) && \
+	  chmod +x $@.tmp && \
+	  mv $@.tmp $@
 
 
 .PHONY: opm
