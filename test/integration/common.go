@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"regexp"
 	"slices"
@@ -14,8 +15,13 @@ import (
 
 	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 const (
@@ -367,4 +373,47 @@ func verifyLinkOrder(links []link) bool {
 		oldI = i
 	}
 	return true
+}
+
+// podExec runs a command in a pod and captures stdout/stderr.
+func podExec(ctx context.Context, t *testing.T, pod corev1.Pod, container string, stdout, stderr *bytes.Buffer, cmd []string) error {
+	t.Helper()
+	kubeConfig, err := config.GetConfig()
+	if err != nil {
+		t.Fatalf("failed to get kube config: %v", err)
+	}
+
+	cl, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		t.Fatalf("failed to create kube client: %v", err)
+	}
+
+	req := cl.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(pod.Name).
+		Namespace(pod.Namespace).
+		SubResource("exec")
+
+	execOptions := &corev1.PodExecOptions{
+		Command: cmd,
+		Stdin:   false,
+		Stdout:  true,
+		Stderr:  true,
+		TTY:     false,
+	}
+	if container != "" {
+		execOptions.Container = container
+	}
+
+	req.VersionedParams(execOptions, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(kubeConfig, "POST", req.URL())
+	if err != nil {
+		return err
+	}
+
+	return exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: stdout,
+		Stderr: stderr,
+	})
 }
