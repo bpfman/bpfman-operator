@@ -26,6 +26,10 @@ const (
 func TestApplicationGoCounter(t *testing.T) {
 	t.Log("deploying target required for uprobe counter program if its not already deployed")
 	require.NoError(t, deployWorkload(ctx, env.Cluster(), targetUserspaceNs, targetKustomize))
+	addCleanup(func(context.Context) error {
+		cleanupLog("cleaning up target program")
+		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(targetKustomize))
+	})
 
 	t.Log("waiting for go target userspace daemon to be available")
 	require.Eventually(t, func() bool {
