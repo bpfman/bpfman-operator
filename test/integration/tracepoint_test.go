@@ -25,10 +25,10 @@ const (
 
 func TestTracepointGoCounter(t *testing.T) {
 	t.Log("deploying tracepoint counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tracepointGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), tracepointGoCounterUserspaceNs, tracepointGoCounterKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up tracepoint counter program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tracepointGoCounterKustomize)
+		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tracepointGoCounterKustomize))
 	})
 
 	t.Log("waiting for tracepoint counter BPF program to be loaded")

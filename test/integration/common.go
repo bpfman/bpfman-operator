@@ -12,12 +12,18 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/bpfman/bpfman-operator/apis/v1alpha1"
+	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -416,4 +422,124 @@ func podExec(ctx context.Context, t *testing.T, pod corev1.Pod, container string
 		Stdout: stdout,
 		Stderr: stderr,
 	})
+}
+
+// deployWorkload applies an example kustomization and, on an existing
+// (OpenShift) cluster, reconciles the SELinux type the workload requests with
+// the one the security-profiles-operator actually installed (see
+// alignWorkloadSelinuxType). On kind it is a plain kustomize apply.
+func deployWorkload(ctx context.Context, cluster clusters.Cluster, namespace, kustomizeURL string) error {
+	if err := clusters.KustomizeDeployForCluster(ctx, cluster, workloadKustomize(kustomizeURL)); err != nil {
+		return err
+	}
+	return alignWorkloadSelinuxType(ctx, cluster, namespace)
+}
+
+// workloadKustomize selects the example kustomize overlay for the current
+// cluster. On an existing (OpenShift) cluster it swaps the default overlay for
+// the selinux one, which labels the namespace privileged, binds the workload
+// serviceaccount to the bpfman-restricted SCC, and installs a SelinuxProfile
+// granting the userspace consumer bpf map access -- the combination the
+// example workloads need under enforcing SELinux. That overlay relies on the
+// security-profiles-operator being installed (see the SelinuxProfile check in
+// TestMain). On kind the default overlay is used unchanged.
+func workloadKustomize(defaultURL string) string {
+	if !useExistingCluster {
+		return defaultURL
+	}
+	return strings.Replace(defaultURL, "/config/default/", "/config/selinux/", 1)
+}
+
+// selinuxProfileGVR is the security-profiles-operator SelinuxProfile resource.
+var selinuxProfileGVR = schema.GroupVersionResource{
+	Group:    "security-profiles-operator.x-k8s.io",
+	Version:  "v1alpha2",
+	Resource: "selinuxprofiles",
+}
+
+// alignWorkloadSelinuxType points each workload daemonset at the SELinux type
+// the security-profiles-operator actually installed. The selinux example
+// overlay hardcodes the older <profile>_<namespace>.process naming, but newer
+// SPO names the type <profile>.process and records the real value in the
+// SelinuxProfile's status.usage. When the two disagree the container runtime
+// rejects the unknown label ("write to /proc/self/attr/keycreate: Invalid
+// argument") and no pods start, so we rewrite the daemonsets' seLinuxOptions
+// type to the installed one. It is a no-op on kind and whenever the requested
+// type already matches.
+func alignWorkloadSelinuxType(ctx context.Context, cluster clusters.Cluster, namespace string) error {
+	if !useExistingCluster {
+		return nil
+	}
+
+	// Find the daemonset containers whose SELinux type the overlay pinned.
+	// Some workloads (e.g. go-target) ship no SelinuxProfile and set no
+	// type, so there is nothing to reconcile and no profile to wait for.
+	daemonsets, err := cluster.Client().AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("listing daemonsets in %s: %w", namespace, err)
+	}
+	type target struct{ daemonset, container, current string }
+	var targets []target
+	for i := range daemonsets.Items {
+		ds := &daemonsets.Items[i]
+		for _, c := range ds.Spec.Template.Spec.Containers {
+			if sc := c.SecurityContext; sc != nil && sc.SELinuxOptions != nil && sc.SELinuxOptions.Type != "" {
+				targets = append(targets, target{ds.Name, c.Name, sc.SELinuxOptions.Type})
+			}
+		}
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	dyn, err := dynamic.NewForConfig(cluster.Config())
+	if err != nil {
+		return fmt.Errorf("building dynamic client: %w", err)
+	}
+
+	for _, t := range targets {
+		// The overlay pins the type to <profile>_<namespace>.process. If it
+		// is not in that form it is already aligned (or doesn't reference a
+		// profile), so leave it.
+		suffix := "_" + namespace + ".process"
+		if !strings.HasSuffix(t.current, suffix) {
+			continue
+		}
+		profileName := strings.TrimSuffix(t.current, suffix)
+
+		// SelinuxProfile is cluster-scoped in current SPO; wait for it to
+		// report the type it actually installed, which appears soon after
+		// the overlay creates it and before it reaches the Installed state.
+		var usage string
+		for i := 0; i < 24 && usage == ""; i++ {
+			profiles, err := dyn.Resource(selinuxProfileGVR).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				return fmt.Errorf("listing selinuxprofiles: %w", err)
+			}
+			for _, p := range profiles.Items {
+				if p.GetName() == profileName {
+					usage, _, _ = unstructured.NestedString(p.Object, "status", "usage")
+					break
+				}
+			}
+			if usage == "" {
+				time.Sleep(5 * time.Second)
+			}
+		}
+		if usage == "" {
+			return fmt.Errorf("SelinuxProfile %s reported no usage type", profileName)
+		}
+		if usage == t.current {
+			continue
+		}
+
+		patch := fmt.Sprintf(
+			`{"spec":{"template":{"spec":{"containers":[{"name":%q,"securityContext":{"seLinuxOptions":{"type":%q}}}]}}}}`,
+			t.container, usage)
+		if _, err := cluster.Client().AppsV1().DaemonSets(namespace).Patch(ctx, t.daemonset, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}); err != nil {
+			return fmt.Errorf("aligning SELinux type on daemonset %s/%s: %w", namespace, t.daemonset, err)
+		}
+	}
+
+	return nil
 }

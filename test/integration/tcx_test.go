@@ -27,10 +27,10 @@ const (
 
 func TestTcxGoCounter(t *testing.T) {
 	t.Log("deploying tcx counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tcxGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcxGoCounterUserspaceNs, tcxGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tcx counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tcxGoCounterKustomize)
+		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tcxGoCounterKustomize))
 	})
 
 	t.Log("waiting for tcx counter BPF program to be loaded")
@@ -74,10 +74,10 @@ func TestTcxGoCounterLinkPriority(t *testing.T) {
 	}
 
 	t.Log("deploying tcx counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tcxGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcxGoCounterUserspaceNs, tcxGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tcx counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tcxGoCounterKustomize)
+		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tcxGoCounterKustomize))
 
 		cleanupLog("cleaning up tcx counter bytecode")
 		bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().DeleteCollection(ctx, metav1.DeleteOptions{},

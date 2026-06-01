@@ -25,10 +25,10 @@ const (
 
 func TestKprobeGoCounter(t *testing.T) {
 	t.Log("deploying kprobe counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), kprobeGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), kprobeGoCounterUserspaceNs, kprobeGoCounterKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up kprobe counter program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), kprobeGoCounterKustomize)
+		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(kprobeGoCounterKustomize))
 	})
 
 	t.Log("waiting for kprobe counter BPF program to be loaded")

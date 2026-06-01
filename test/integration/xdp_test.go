@@ -27,10 +27,10 @@ const (
 
 func TestXdpGoCounter(t *testing.T) {
 	t.Log("deploying xdp counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), xdpGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), xdpGoCounterUserspaceNs, xdpGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up xdp counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
+		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(xdpGoCounterKustomize))
 	})
 
 	t.Log("waiting for xdp counter BPF program to be loaded")
@@ -74,10 +74,10 @@ func TestXdpGoCounterLinkPriority(t *testing.T) {
 	}
 
 	t.Log("deploying xdp counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), xdpGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), xdpGoCounterUserspaceNs, xdpGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up xdp counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
+		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(xdpGoCounterKustomize))
 
 		cleanupLog("cleaning up xdp counter bytecode")
 		bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().DeleteCollection(ctx, metav1.DeleteOptions{},
