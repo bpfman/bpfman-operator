@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +29,7 @@ func TestTcGoCounter(t *testing.T) {
 	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcGoCounterUserspaceNs, tcGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tc counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tcGoCounterKustomize))
+		deleteWorkload(ctx, env.Cluster(), tcGoCounterKustomize)
 	})
 
 	t.Log("waiting for tc counter BPF program to be loaded")
@@ -77,7 +76,7 @@ func TestTcGoCounterLinkPriority(t *testing.T) {
 	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcGoCounterUserspaceNs, tcGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tc counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tcGoCounterKustomize))
+		deleteWorkload(ctx, env.Cluster(), tcGoCounterKustomize)
 
 		cleanupLog("cleaning up tc counter bytecode")
 		bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().DeleteCollection(ctx, metav1.DeleteOptions{},

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +27,7 @@ func TestTracepointGoCounter(t *testing.T) {
 	require.NoError(t, deployWorkload(ctx, env.Cluster(), tracepointGoCounterUserspaceNs, tracepointGoCounterKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up tracepoint counter program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), workloadKustomize(tracepointGoCounterKustomize))
+		return deleteWorkload(ctx, env.Cluster(), tracepointGoCounterKustomize)
 	})
 
 	t.Log("waiting for tracepoint counter BPF program to be loaded")

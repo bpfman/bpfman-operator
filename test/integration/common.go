@@ -435,6 +435,14 @@ func deployWorkload(ctx context.Context, cluster clusters.Cluster, namespace, ku
 	return alignWorkloadSelinuxType(ctx, cluster, namespace)
 }
 
+// deleteWorkload removes an example kustomization. It passes --ignore-not-found
+// so teardown is idempotent: the selinux overlays share one cluster-scoped
+// SelinuxProfile (bpfman-secure), and go-target is deployed by more than one
+// test, so a resource may already have been removed by an earlier cleanup.
+func deleteWorkload(ctx context.Context, cluster clusters.Cluster, kustomizeURL string) error {
+	return clusters.KustomizeDeleteForCluster(ctx, cluster, workloadKustomize(kustomizeURL), "--ignore-not-found")
+}
+
 // workloadKustomize selects the example kustomize overlay for the current
 // cluster. On an existing (OpenShift) cluster it swaps the default overlay for
 // the selinux one, which labels the namespace privileged, binds the workload
