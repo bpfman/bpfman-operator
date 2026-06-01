@@ -38,8 +38,11 @@ var (
 	bpfmanAgentImage    = os.Getenv("BPFMAN_AGENT_IMG")
 	bpfmanOperatorImage = os.Getenv("BPFMAN_OPERATOR_IMG")
 
-	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
-	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
+	existingKindCluster = os.Getenv("USE_EXISTING_KIND_CLUSTER")
+	useExistingCluster  = os.Getenv("USE_EXISTING_CLUSTER") == "true"
+	keepTestCluster     = func() bool {
+		return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingKindCluster != "" || useExistingCluster
+	}()
 	keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
 	skipBpfmanDeploy     = func() bool { return os.Getenv("SKIP_BPFMAN_DEPLOY") == "true" }()
 
@@ -60,46 +63,58 @@ const (
 func TestMain(m *testing.M) {
 	logf.SetLogger(zap.New())
 
-	ociBin := os.Getenv("OCI_BIN")
-	if ociBin == "" {
-		ociBin = "docker" // default if OCI_BIN is not set.
-	}
-
-	// check that we have the bpfman-agent, and bpfman-operator images to use for the tests.
-	// generally the runner of the tests should have built these from the latest
-	// changes prior to the tests and fed them to the test suite.
-	if bpfmanAgentImage == "" || bpfmanOperatorImage == "" {
-		exitOnErr(fmt.Errorf("BPFMAN_AGENT_IMG, and BPFMAN_OPERATOR_IMG must be provided"))
-	} else {
-		fmt.Printf("INFO: using bpfmanAgentImage=%s and bpfmanOperatorImage=%s\n", bpfmanAgentImage, bpfmanOperatorImage)
-	}
-
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
-	// to use the provided bpfman-agent, and bpfman-operator images we will need to add
-	// them as images to load in the test cluster via an addon.
-	fmt.Println("INFO: Loading images")
-	loadImages, err := loadimagearchive.NewBuilder(ociBin).WithImage(bpfmanAgentImage)
-	exitOnErr(err)
-	loadImages, err = loadImages.WithImage(bpfmanOperatorImage)
-	exitOnErr(err)
-
-	if existingCluster != "" {
-		fmt.Printf("INFO: existing kind cluster %s was provided\n", existingCluster)
-
-		// if an existing cluster was provided, build a test env out of that instead
-		cluster, err := kind.NewFromExisting(existingCluster)
+	if useExistingCluster {
+		// An existing, non-kind cluster -- e.g. OpenShift reached via
+		// `oc login`. Its images come from a registry the cluster can
+		// already pull from, so the kind image-load addon does not
+		// apply and the operator/agent image env vars are not needed.
+		fmt.Println("INFO: using the existing cluster from the current kubeconfig context")
+		cluster, err := newExistingCluster()
 		exitOnErr(err)
-		env, err = environments.NewBuilder().WithAddons(loadImages.Build()).WithExistingCluster(cluster).Build(ctx)
+		fmt.Printf("INFO: attached to existing cluster (context %q)\n", cluster.Name())
+		env, err = environments.NewBuilder().WithExistingCluster(cluster).Build(ctx)
 		exitOnErr(err)
 	} else {
-		fmt.Println("INFO: creating a new kind cluster")
-		// create the testing environment and cluster
-		env, err = environments.NewBuilder().WithAddons(loadImages.Build()).Build(ctx)
+		// check that we have the bpfman-agent, and bpfman-operator images to use for the tests.
+		// generally the runner of the tests should have built these from the latest
+		// changes prior to the tests and fed them to the test suite.
+		if bpfmanAgentImage == "" || bpfmanOperatorImage == "" {
+			exitOnErr(fmt.Errorf("BPFMAN_AGENT_IMG, and BPFMAN_OPERATOR_IMG must be provided"))
+		}
+		fmt.Printf("INFO: using bpfmanAgentImage=%s and bpfmanOperatorImage=%s\n", bpfmanAgentImage, bpfmanOperatorImage)
+
+		ociBin := os.Getenv("OCI_BIN")
+		if ociBin == "" {
+			ociBin = "docker" // default if OCI_BIN is not set.
+		}
+
+		// to use the provided bpfman-agent, and bpfman-operator images we will need to add
+		// them as images to load in the test cluster via an addon.
+		fmt.Println("INFO: Loading images")
+		loadImages, err := loadimagearchive.NewBuilder(ociBin).WithImage(bpfmanAgentImage)
+		exitOnErr(err)
+		loadImages, err = loadImages.WithImage(bpfmanOperatorImage)
 		exitOnErr(err)
 
-		fmt.Printf("INFO: new kind cluster %s was created\n", env.Cluster().Name())
+		if existingKindCluster != "" {
+			fmt.Printf("INFO: existing kind cluster %s was provided\n", existingKindCluster)
+
+			// if an existing cluster was provided, build a test env out of that instead
+			cluster, err := kind.NewFromExisting(existingKindCluster)
+			exitOnErr(err)
+			env, err = environments.NewBuilder().WithAddons(loadImages.Build()).WithExistingCluster(cluster).Build(ctx)
+			exitOnErr(err)
+		} else {
+			fmt.Println("INFO: creating a new kind cluster")
+			// create the testing environment and cluster
+			env, err = environments.NewBuilder().WithAddons(loadImages.Build()).Build(ctx)
+			exitOnErr(err)
+
+			fmt.Printf("INFO: new kind cluster %s was created\n", env.Cluster().Name())
+		}
 	}
 
 	if !keepTestCluster {
@@ -112,16 +127,28 @@ func TestMain(m *testing.M) {
 	fmt.Println("INFO: Get the bpfman client")
 	bpfmanClient = bpfmanHelpers.GetClientOrDie()
 
-	// Detect whether the monitoring.coreos.com API group is present.
+	// Detect optional API groups: monitoring.coreos.com (metrics-proxy) and
+	// security-profiles-operator.x-k8s.io (needed on an existing OpenShift
+	// cluster for the example workloads' SELinux profiles).
 	apiList, err := env.Cluster().Client().Discovery().ServerGroups()
 	exitOnErr(err)
+	var hasSelinuxProfiles bool
 	for _, g := range apiList.Groups {
-		if g.Name == "monitoring.coreos.com" {
+		switch g.Name {
+		case "monitoring.coreos.com":
 			hasMonitoring = true
-			break
+		case "security-profiles-operator.x-k8s.io":
+			hasSelinuxProfiles = true
 		}
 	}
 	fmt.Printf("INFO: hasMonitoring=%v\n", hasMonitoring)
+
+	// On an existing cluster the workloads use the selinux example overlay,
+	// which ships SelinuxProfile resources; the security-profiles-operator
+	// must therefore be installed.
+	if useExistingCluster && !hasSelinuxProfiles {
+		exitOnErr(fmt.Errorf("the security-profiles-operator is required to run these tests against an existing cluster, but its API group security-profiles-operator.x-k8s.io was not found; install it first"))
+	}
 
 	// deploy the BPFMAN Operator and relevant CRDs.
 	if !skipBpfmanDeploy {

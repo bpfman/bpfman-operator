@@ -295,6 +295,12 @@ test-integration-local: ## Run Integration tests against existing deployment. Us
 	SKIP_BPFMAN_DEPLOY=true \
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
 
+.PHONY: test-integration-openshift
+test-integration-openshift: ## Run Integration tests against the OpenShift cluster in the current kubeconfig context (assumes bpfman is already deployed). Use TEST= to specify test pattern.
+	USE_EXISTING_CLUSTER=true \
+	SKIP_BPFMAN_DEPLOY=true \
+	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
+
 .PHONY: test-lifecycle-local
 test-lifecycle-local: ## Run lifecycle tests against existing deployment.
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/lifecycle
