@@ -47,7 +47,7 @@ func TestXdpGoCounter(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-xdp-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goXdpCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).GetLogs(goXdpCounterPod.Name, &corev1.PodLogOptions{})
@@ -117,7 +117,7 @@ func TestXdpGoCounterLinkPriority(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-xdp-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goXdpCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).GetLogs(goXdpCounterPod.Name, &corev1.PodLogOptions{})

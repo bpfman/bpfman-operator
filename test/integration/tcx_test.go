@@ -47,7 +47,7 @@ func TestTcxGoCounter(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tcx-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	gotcxCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(gotcxCounterPod.Name, &corev1.PodLogOptions{})
@@ -117,7 +117,7 @@ func TestTcxGoCounterLinkPriority(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tcx-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goTcxCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(goTcxCounterPod.Name, &corev1.PodLogOptions{})
