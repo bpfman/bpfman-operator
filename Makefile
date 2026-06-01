@@ -301,7 +301,7 @@ test-integration-local: ## Run Integration tests against existing deployment. Us
 TEST_TIMEOUT ?= 60m
 
 .PHONY: test-integration-openshift
-test-integration-openshift: ## Run Integration tests against the OpenShift cluster in the current kubeconfig context (assumes bpfman is already deployed). Use TEST= for a pattern and TEST_TIMEOUT= to override the go test timeout.
+test-integration-openshift: ## Run Integration tests against the OpenShift cluster in the current kubeconfig context (assumes bpfman and the security-profiles-operator are already deployed). Use TEST= for a pattern and TEST_TIMEOUT= to override the go test timeout.
 	USE_EXISTING_CLUSTER=true \
 	SKIP_BPFMAN_DEPLOY=true \
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v -timeout $(TEST_TIMEOUT) ./test/integration $(if $(TEST),-run $(TEST),)
