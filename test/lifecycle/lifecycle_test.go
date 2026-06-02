@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"testing"
 	"time"
@@ -50,45 +49,7 @@ const (
 	fieldOwner   = "lifecycle-test"
 )
 
-// Image defaults - overridden by environment variables in CI.
 var (
-	bpfmanImage      = getEnvOrDefault("BPFMAN_IMG", "quay.io/bpfman/bpfman:latest")
-	bpfmanAgentImage = getEnvOrDefault("BPFMAN_AGENT_IMG", "quay.io/bpfman/bpfman-agent:latest")
-)
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return defaultValue
-}
-
-// Create new Config with modified settings
-var (
-	newConfig = &v1alpha1.Config{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: internal.BpfmanConfigName,
-		},
-		Spec: v1alpha1.ConfigSpec{
-			Namespace: "bpfman",
-			Configuration: `[database]
-max_retries = 35
-millisec_delay = 10000
-[signing]
-allow_unsigned = true
-verify_enabled = true`,
-			Agent: v1alpha1.AgentSpec{
-				Image:           bpfmanAgentImage,
-				LogLevel:        "debug", // Changed from info to debug
-				HealthProbePort: 8175,
-			},
-			Daemon: v1alpha1.DaemonSpec{
-				Image:    bpfmanImage,
-				LogLevel: "bpfman=info",
-			},
-		},
-	}
-
 	runtimeClient client.Client
 	isOpenShift   bool
 	hasMonitoring bool
@@ -282,8 +243,25 @@ func TestLifecycle(t *testing.T) {
 		t.Fatalf("Failed default-config recovery: %q", err)
 	}
 
-	// Test config recreation with modified settings.
+	// Test config recreation with modified settings. Derive the new Config
+	// from the one already running so it keeps the images that deployment
+	// actually uses, changing only the settings under test. Building it from
+	// fixed image values would tell the operator to roll the daemonset to
+	// images this cluster may not be able to pull.
 	t.Logf("Running: TestConfigRecreationWithModifiedSettings")
+	if originalConfig == nil {
+		t.Fatal("no existing Config to base the modified Config on")
+	}
+	newConfig := originalConfig.DeepCopy()
+	newConfig.ObjectMeta = metav1.ObjectMeta{Name: internal.BpfmanConfigName}
+	newConfig.Spec.Configuration = `[database]
+max_retries = 35
+millisec_delay = 10000
+[signing]
+allow_unsigned = true
+verify_enabled = true`
+	newConfig.Spec.Agent.LogLevel = "debug"
+	newConfig.Spec.Daemon.LogLevel = "bpfman=info"
 	if err := testConfigCreation(ctx, t, newConfig); err != nil {
 		t.Fatalf("Failed config recreation: %q", err)
 	}
