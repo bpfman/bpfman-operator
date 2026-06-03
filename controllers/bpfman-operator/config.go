@@ -834,6 +834,25 @@ func copyImagePullPolicy(src, dst *corev1.PodSpec) {
 	}
 }
 
+// applyDaemonNodePlacement overrides the pod scheduling fields
+// (nodeSelector, tolerations, affinity) on a node DaemonSet's pod
+// template with the values configured in the Config daemon spec. Each
+// field is applied independently and only when set, so an unset field
+// preserves the value baked into the static manifest (replace
+// semantics per field). These settings govern both the bpfman daemon
+// and the metrics-proxy DaemonSet so the two stay co-scheduled.
+func applyDaemonNodePlacement(podSpec *corev1.PodSpec, config *v1alpha1.Config) {
+	if config.Spec.Daemon.NodeSelector != nil {
+		podSpec.NodeSelector = config.Spec.Daemon.NodeSelector
+	}
+	if config.Spec.Daemon.Tolerations != nil {
+		podSpec.Tolerations = config.Spec.Daemon.Tolerations
+	}
+	if config.Spec.Daemon.Affinity != nil {
+		podSpec.Affinity = config.Spec.Daemon.Affinity
+	}
+}
+
 // configureBpfmanDs configures the bpfman DaemonSet with runtime-configurable values from the Config.
 // Updates container images, log levels, health probe addresses.
 func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config) {
@@ -856,6 +875,8 @@ func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config
 	staticBpfmanDS.Name = internal.BpfmanDsName
 	staticBpfmanDS.Namespace = config.Spec.Namespace
 	staticBpfmanDS.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	applyDaemonNodePlacement(&staticBpfmanDS.Spec.Template.Spec, config)
 
 	// Update init container images
 	for cindex, container := range staticBpfmanDS.Spec.Template.Spec.InitContainers {
@@ -907,6 +928,8 @@ func configureMetricsProxyDs(staticMetricsProxyDS *appsv1.DaemonSet, config *v1a
 	staticMetricsProxyDS.Name = internal.BpfmanMetricsProxyDsName
 	staticMetricsProxyDS.Namespace = config.Spec.Namespace
 	staticMetricsProxyDS.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	applyDaemonNodePlacement(&staticMetricsProxyDS.Spec.Template.Spec, config)
 
 	// Configure the metrics-proxy container image
 	for cindex, container := range staticMetricsProxyDS.Spec.Template.Spec.Containers {

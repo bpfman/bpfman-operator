@@ -1097,6 +1097,87 @@ func TestConfigureBpfmanDsCsiRegistrarImageOverride(t *testing.T) {
 	}
 }
 
+func TestConfigureDaemonNodePlacement(t *testing.T) {
+	nodeSelector := map[string]string{"kubernetes.io/os": "linux", "bpfman": "enabled"}
+	tolerations := []corev1.Toleration{{Operator: corev1.TolerationOpExists}}
+	affinity := &corev1.Affinity{
+		NodeAffinity: &corev1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+				NodeSelectorTerms: []corev1.NodeSelectorTerm{{
+					MatchExpressions: []corev1.NodeSelectorRequirement{{
+						Key:      "bpfman",
+						Operator: corev1.NodeSelectorOpExists,
+					}},
+				}},
+			},
+		},
+	}
+
+	newConfig := func(d v1alpha1.DaemonSpec) *v1alpha1.Config {
+		d.Image = "quay.io/bpfman/bpfman:latest"
+		return &v1alpha1.Config{
+			Spec: v1alpha1.ConfigSpec{
+				Agent: v1alpha1.AgentSpec{
+					Image:           "quay.io/bpfman/bpfman-agent:latest",
+					LogLevel:        "info",
+					HealthProbePort: 8175,
+				},
+				Daemon: d,
+			},
+		}
+	}
+
+	t.Run("placement applied to bpfman daemon DaemonSet", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanDaemonManifestPath), ds.Name)
+		require.NoError(t, err)
+
+		configureBpfmanDs(ds, newConfig(v1alpha1.DaemonSpec{
+			NodeSelector: nodeSelector,
+			Tolerations:  tolerations,
+			Affinity:     affinity,
+		}))
+
+		require.Equal(t, nodeSelector, ds.Spec.Template.Spec.NodeSelector)
+		require.Equal(t, tolerations, ds.Spec.Template.Spec.Tolerations,
+			"CR tolerations should replace the static control-plane/master defaults")
+		require.Equal(t, affinity, ds.Spec.Template.Spec.Affinity)
+	})
+
+	t.Run("placement applied to metrics-proxy DaemonSet", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanMetricsProxyDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanMetricsProxyPath), ds.Name)
+		require.NoError(t, err)
+
+		configureMetricsProxyDs(ds, newConfig(v1alpha1.DaemonSpec{
+			NodeSelector: nodeSelector,
+			Tolerations:  tolerations,
+			Affinity:     affinity,
+		}), false)
+
+		require.Equal(t, nodeSelector, ds.Spec.Template.Spec.NodeSelector)
+		require.Equal(t, tolerations, ds.Spec.Template.Spec.Tolerations)
+		require.Equal(t, affinity, ds.Spec.Template.Spec.Affinity)
+	})
+
+	t.Run("static defaults preserved when fields unset", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanDaemonManifestPath), ds.Name)
+		require.NoError(t, err)
+
+		// Capture the tolerations baked into the static manifest.
+		staticTolerations := ds.Spec.Template.Spec.Tolerations
+		require.NotEmpty(t, staticTolerations, "static manifest should define control-plane tolerations")
+
+		configureBpfmanDs(ds, newConfig(v1alpha1.DaemonSpec{}))
+
+		require.Equal(t, staticTolerations, ds.Spec.Template.Spec.Tolerations,
+			"unset CR tolerations must preserve the static manifest defaults")
+		require.Nil(t, ds.Spec.Template.Spec.NodeSelector)
+		require.Nil(t, ds.Spec.Template.Spec.Affinity)
+	})
+}
+
 func setOverrides(ctx context.Context, cl client.Client) error {
 	bpfmanConfig := &v1alpha1.Config{}
 	if err := cl.Get(ctx, types.NamespacedName{Name: internal.BpfmanConfigName}, bpfmanConfig); err != nil {
