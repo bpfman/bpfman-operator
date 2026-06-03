@@ -18,3 +18,12 @@ spec:
     image: quay.io/bpfman/bpfman:latest
     logLevel: info
   namespace: bpfman
+  # tolerations are merged into the bpfman daemon and metrics-proxy
+  # DaemonSet pods, on top of the tolerations baked into the static
+  # manifests.
+  #
+  # tolerations:
+  #   - key: workload
+  #     operator: Equal
+  #     value: gpu
+  #     effect: NoSchedule

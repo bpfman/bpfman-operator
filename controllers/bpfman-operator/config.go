@@ -22,6 +22,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"slices"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -834,6 +835,23 @@ func copyImagePullPolicy(src, dst *corev1.PodSpec) {
 	}
 }
 
+// applyDaemonTolerations appends the Config's tolerations to the ones
+// baked into the static manifest, skipping duplicates. Merging rather
+// than replacing keeps the built-in control-plane/master tolerations
+// in place.
+func applyDaemonTolerations(podSpec *corev1.PodSpec, config *v1alpha1.Config) {
+	for i := range config.Spec.Tolerations {
+		t := config.Spec.Tolerations[i]
+		dup := slices.ContainsFunc(podSpec.Tolerations, func(e corev1.Toleration) bool {
+			return e.MatchToleration(&t)
+		})
+		if dup {
+			continue
+		}
+		podSpec.Tolerations = append(podSpec.Tolerations, t)
+	}
+}
+
 // configureBpfmanDs configures the bpfman DaemonSet with runtime-configurable values from the Config.
 // Updates container images, log levels, health probe addresses.
 func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config) {
@@ -856,6 +874,8 @@ func configureBpfmanDs(staticBpfmanDS *appsv1.DaemonSet, config *v1alpha1.Config
 	staticBpfmanDS.Name = internal.BpfmanDsName
 	staticBpfmanDS.Namespace = config.Spec.Namespace
 	staticBpfmanDS.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	applyDaemonTolerations(&staticBpfmanDS.Spec.Template.Spec, config)
 
 	// Update init container images
 	for cindex, container := range staticBpfmanDS.Spec.Template.Spec.InitContainers {
@@ -907,6 +927,8 @@ func configureMetricsProxyDs(staticMetricsProxyDS *appsv1.DaemonSet, config *v1a
 	staticMetricsProxyDS.Name = internal.BpfmanMetricsProxyDsName
 	staticMetricsProxyDS.Namespace = config.Spec.Namespace
 	staticMetricsProxyDS.Spec.Template.Spec.AutomountServiceAccountToken = ptr.To(true)
+
+	applyDaemonTolerations(&staticMetricsProxyDS.Spec.Template.Spec, config)
 
 	// Configure the metrics-proxy container image
 	for cindex, container := range staticMetricsProxyDS.Spec.Template.Spec.Containers {

@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"testing"
 
 	osv1 "github.com/openshift/api/security/v1"
@@ -1095,6 +1096,83 @@ func TestConfigureBpfmanDsCsiRegistrarImageOverride(t *testing.T) {
 				"CSI registrar container image mismatch")
 		})
 	}
+}
+
+func TestConfigureDaemonTolerations(t *testing.T) {
+	extraToleration := corev1.Toleration{
+		Key:      "workload",
+		Operator: corev1.TolerationOpEqual,
+		Value:    "gpu",
+		Effect:   corev1.TaintEffectNoSchedule,
+	}
+
+	newConfig := func(tolerations []corev1.Toleration) *v1alpha1.Config {
+		return &v1alpha1.Config{
+			Spec: v1alpha1.ConfigSpec{
+				Agent: v1alpha1.AgentSpec{
+					Image:           "quay.io/bpfman/bpfman-agent:latest",
+					LogLevel:        "info",
+					HealthProbePort: 8175,
+				},
+				Daemon:      v1alpha1.DaemonSpec{Image: "quay.io/bpfman/bpfman:latest"},
+				Tolerations: tolerations,
+			},
+		}
+	}
+
+	t.Run("tolerations merged into bpfman daemon DaemonSet", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanDaemonManifestPath), ds.Name)
+		require.NoError(t, err)
+
+		staticTolerations := slices.Clone(ds.Spec.Template.Spec.Tolerations)
+		require.NotEmpty(t, staticTolerations, "static manifest should define control-plane tolerations")
+
+		configureBpfmanDs(ds, newConfig([]corev1.Toleration{extraToleration}))
+
+		require.Equal(t, append(staticTolerations, extraToleration), ds.Spec.Template.Spec.Tolerations,
+			"CR tolerations should be appended to the static defaults")
+	})
+
+	t.Run("tolerations merged into metrics-proxy DaemonSet", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanMetricsProxyDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanMetricsProxyPath), ds.Name)
+		require.NoError(t, err)
+
+		staticTolerations := slices.Clone(ds.Spec.Template.Spec.Tolerations)
+
+		configureMetricsProxyDs(ds, newConfig([]corev1.Toleration{extraToleration}), false)
+
+		require.Equal(t, append(staticTolerations, extraToleration), ds.Spec.Template.Spec.Tolerations)
+	})
+
+	t.Run("static defaults preserved when unset", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanDaemonManifestPath), ds.Name)
+		require.NoError(t, err)
+
+		staticTolerations := slices.Clone(ds.Spec.Template.Spec.Tolerations)
+		require.NotEmpty(t, staticTolerations, "static manifest should define control-plane tolerations")
+
+		configureBpfmanDs(ds, newConfig(nil))
+
+		require.Equal(t, staticTolerations, ds.Spec.Template.Spec.Tolerations,
+			"unset CR tolerations must preserve the static manifest defaults")
+	})
+
+	t.Run("duplicate tolerations are not appended", func(t *testing.T) {
+		ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: internal.BpfmanDsName}}
+		ds, err := load(ds, resolveConfigPath(internal.BpfmanDaemonManifestPath), ds.Name)
+		require.NoError(t, err)
+
+		staticTolerations := slices.Clone(ds.Spec.Template.Spec.Tolerations)
+		require.NotEmpty(t, staticTolerations)
+
+		configureBpfmanDs(ds, newConfig(staticTolerations))
+
+		require.Equal(t, staticTolerations, ds.Spec.Template.Spec.Tolerations,
+			"tolerations already present in the static manifest must not be duplicated")
+	})
 }
 
 func setOverrides(ctx context.Context, cl client.Client) error {
