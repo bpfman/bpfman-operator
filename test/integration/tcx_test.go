@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,10 +26,10 @@ const (
 
 func TestTcxGoCounter(t *testing.T) {
 	t.Log("deploying tcx counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tcxGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcxGoCounterUserspaceNs, tcxGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tcx counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tcxGoCounterKustomize)
+		deleteWorkload(ctx, env.Cluster(), tcxGoCounterKustomize)
 	})
 
 	t.Log("waiting for tcx counter BPF program to be loaded")
@@ -47,7 +46,7 @@ func TestTcxGoCounter(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tcx-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	gotcxCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(gotcxCounterPod.Name, &corev1.PodLogOptions{})
@@ -74,10 +73,10 @@ func TestTcxGoCounterLinkPriority(t *testing.T) {
 	}
 
 	t.Log("deploying tcx counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tcxGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), tcxGoCounterUserspaceNs, tcxGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up tcx counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tcxGoCounterKustomize)
+		deleteWorkload(ctx, env.Cluster(), tcxGoCounterKustomize)
 
 		cleanupLog("cleaning up tcx counter bytecode")
 		bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().DeleteCollection(ctx, metav1.DeleteOptions{},
@@ -117,7 +116,7 @@ func TestTcxGoCounterLinkPriority(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tcx-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goTcxCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(tcxGoCounterUserspaceNs).GetLogs(goTcxCounterPod.Name, &corev1.PodLogOptions{})

@@ -295,6 +295,17 @@ test-integration-local: ## Run Integration tests against existing deployment. Us
 	SKIP_BPFMAN_DEPLOY=true \
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
 
+# Default go test timeout for the OpenShift suite. The full suite is slow on a
+# multi-node cluster (cosign-verified image pulls across every node), so the
+# 10m go test default is not enough. Override with TEST_TIMEOUT=.
+TEST_TIMEOUT ?= 60m
+
+.PHONY: test-integration-openshift
+test-integration-openshift: ## Run Integration tests against the OpenShift cluster in the current kubeconfig context (assumes bpfman and the security-profiles-operator are already deployed). Use TEST= for a pattern and TEST_TIMEOUT= to override the go test timeout.
+	USE_EXISTING_CLUSTER=true \
+	SKIP_BPFMAN_DEPLOY=true \
+	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v -timeout $(TEST_TIMEOUT) ./test/integration $(if $(TEST),-run $(TEST),)
+
 .PHONY: test-lifecycle-local
 test-lifecycle-local: ## Run lifecycle tests against existing deployment.
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/lifecycle

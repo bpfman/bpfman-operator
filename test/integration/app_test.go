@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +24,11 @@ const (
 
 func TestApplicationGoCounter(t *testing.T) {
 	t.Log("deploying target required for uprobe counter program if its not already deployed")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), targetKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), targetUserspaceNs, targetKustomize))
+	addCleanup(func(context.Context) error {
+		cleanupLog("cleaning up target program")
+		return deleteWorkload(ctx, env.Cluster(), targetKustomize)
+	})
 
 	t.Log("waiting for go target userspace daemon to be available")
 	require.Eventually(t, func() bool {
@@ -37,10 +40,10 @@ func TestApplicationGoCounter(t *testing.T) {
 		5*time.Minute, 10*time.Second)
 
 	t.Log("deploying application counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), appGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), appGoCounterUserspaceNs, appGoCounterKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up application counter program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), appGoCounterKustomize)
+		return deleteWorkload(ctx, env.Cluster(), appGoCounterKustomize)
 	})
 
 	t.Log("waiting for application counter BPF program to be loaded")

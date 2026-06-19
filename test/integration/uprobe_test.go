@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,10 +27,10 @@ const (
 
 func TestUprobeGoCounter(t *testing.T) {
 	t.Log("deploying target for uprobe counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), targetKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), targetUserspaceNs, targetKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up target program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), targetKustomize)
+		return deleteWorkload(ctx, env.Cluster(), targetKustomize)
 	})
 
 	t.Log("waiting for go target userspace daemon to be available")
@@ -44,10 +43,10 @@ func TestUprobeGoCounter(t *testing.T) {
 		5*time.Minute, 10*time.Second)
 
 	t.Log("deploying uprobe counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), uprobeGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), uprobeGoCounterUserspaceNs, uprobeGoCounterKustomize))
 	addCleanup(func(context.Context) error {
 		cleanupLog("cleaning up uprobe counter program")
-		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), uprobeGoCounterKustomize)
+		return deleteWorkload(ctx, env.Cluster(), uprobeGoCounterKustomize)
 	})
 
 	t.Log("waiting for uprobe counter BPF program to be loaded")

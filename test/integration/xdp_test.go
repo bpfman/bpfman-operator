@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,10 +26,10 @@ const (
 
 func TestXdpGoCounter(t *testing.T) {
 	t.Log("deploying xdp counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), xdpGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), xdpGoCounterUserspaceNs, xdpGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up xdp counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
+		deleteWorkload(ctx, env.Cluster(), xdpGoCounterKustomize)
 	})
 
 	t.Log("waiting for xdp counter BPF program to be loaded")
@@ -47,7 +46,7 @@ func TestXdpGoCounter(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-xdp-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goXdpCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).GetLogs(goXdpCounterPod.Name, &corev1.PodLogOptions{})
@@ -74,10 +73,10 @@ func TestXdpGoCounterLinkPriority(t *testing.T) {
 	}
 
 	t.Log("deploying xdp counter program")
-	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), xdpGoCounterKustomize))
+	require.NoError(t, deployWorkload(ctx, env.Cluster(), xdpGoCounterUserspaceNs, xdpGoCounterKustomize))
 	t.Cleanup(func() {
 		cleanupLog("cleaning up xdp counter program")
-		clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
+		deleteWorkload(ctx, env.Cluster(), xdpGoCounterKustomize)
 
 		cleanupLog("cleaning up xdp counter bytecode")
 		bpfmanClient.BpfmanV1alpha1().ClusterBpfApplications().DeleteCollection(ctx, metav1.DeleteOptions{},
@@ -117,7 +116,7 @@ func TestXdpGoCounterLinkPriority(t *testing.T) {
 
 	pods, err := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-xdp-counter"})
 	require.NoError(t, err)
-	require.Len(t, pods.Items, 1)
+	require.NotEmpty(t, pods.Items)
 	goXdpCounterPod := pods.Items[0]
 
 	req := env.Cluster().Client().CoreV1().Pods(xdpGoCounterUserspaceNs).GetLogs(goXdpCounterPod.Name, &corev1.PodLogOptions{})
