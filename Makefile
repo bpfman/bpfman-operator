@@ -135,6 +135,7 @@ version: ## Display the current VERSION, IMAGE_TAG, and image paths being used
 
 ## Location to install dependencies to
 LOCALBIN ?= bin
+export PATH := $(abspath $(LOCALBIN)):$(PATH)
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
@@ -286,11 +287,11 @@ test: fmt ## Run Unit tests.
 
 
 .PHONY: test-integration
-test-integration: patch-image-references ## Run Integration tests.
+test-integration: patch-image-references $(KIND) ## Run Integration tests.
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration/...
 
 .PHONY: test-integration-local
-test-integration-local: ## Run Integration tests against existing deployment. Use TEST= to specify test pattern.
+test-integration-local: $(KIND) ## Run Integration tests against existing deployment. Use TEST= to specify test pattern.
 	USE_EXISTING_KIND_CLUSTER=$(shell kubectl config current-context | sed 's/kind-//') \
 	SKIP_BPFMAN_DEPLOY=true \
 	GOFLAGS="-tags=integration_tests" go test -count=1 -race -v ./test/integration $(if $(TEST),-run $(TEST),)
