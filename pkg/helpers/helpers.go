@@ -18,6 +18,7 @@ package helpers
 
 import (
 	"fmt"
+	"os"
 
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanclientset "github.com/bpfman/bpfman-operator/pkg/client/clientset"
@@ -101,8 +102,9 @@ func (t TcProgramDirection) String() string {
 
 var log = ctrl.Log.WithName("bpfman-helpers")
 
-// getk8sConfig gets a kubernetes config automatically detecting if it should
-// be the in or out of cluster config. If this step fails panic.
+// GetK8sConfigOrDie gets a kubernetes config automatically detecting if it should
+// be the in or out of cluster config. When running in-cluster, KUBECONFIG
+// env var takes precedence over the in-cluster config. If this step fails panic.
 func GetK8sConfigOrDie() *rest.Config {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -115,7 +117,16 @@ func GetK8sConfigOrDie() *rest.Config {
 
 		log.Info("Program running from outside of the cluster, picking config from --kubeconfig flag")
 	} else {
-		log.Info("Program running inside the cluster, picking the in-cluster configuration")
+		kubeConfig := os.Getenv("KUBECONFIG")
+		if kubeConfig != "" {
+			config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+			if err != nil {
+				panic(err)
+			}
+			log.Info("Program running inside the cluster, picking config from KUBECONFIG env var")
+		} else {
+			log.Info("Program running inside the cluster, picking the in-cluster configuration")
+		}
 	}
 
 	return config
