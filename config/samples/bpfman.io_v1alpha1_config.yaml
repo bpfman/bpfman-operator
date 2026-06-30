@@ -17,4 +17,20 @@ spec:
   daemon:
     image: quay.io/bpfman/bpfman:latest
     logLevel: info
+    # nodeSelector, tolerations and affinity control where the bpfman
+    # daemon and metrics-proxy DaemonSet pods are scheduled. When set,
+    # each field replaces the value baked into the static manifests.
+    #
+    # nodeSelector:
+    #   kubernetes.io/os: linux
+    # tolerations:
+    #   - operator: Exists
+    # affinity:
+    #   nodeAffinity:
+    #     requiredDuringSchedulingIgnoredDuringExecution:
+    #       nodeSelectorTerms:
+    #         - matchExpressions:
+    #             - key: kubernetes.io/os
+    #               operator: In
+    #               values: [linux]
   namespace: bpfman

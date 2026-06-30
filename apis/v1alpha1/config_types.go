@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -81,6 +82,21 @@ type DaemonSpec struct {
 	// LogLevel holds the log level for the bpfman daemon.
 	// +optional
 	LogLevel string `json:"logLevel,omitempty"`
+	// NodeSelector constrains which nodes the bpfman daemon and
+	// metrics-proxy pods can be scheduled onto. When set, it replaces
+	// the node selector defined in the static daemon manifests.
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// Tolerations allow the bpfman daemon and metrics-proxy pods to
+	// schedule onto nodes with matching taints. When set, it replaces
+	// the tolerations defined in the static daemon manifests.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// Affinity constrains the scheduling of the bpfman daemon and
+	// metrics-proxy pods. When set, it replaces the affinity defined in
+	// the static daemon manifests.
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 }
 
 // AgentSpec defines the desired state of the bpfman agent.
