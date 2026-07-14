@@ -90,10 +90,6 @@ func (r *NsXdpProgramReconciler) getCurrentLinkStatus() bpfmaniov1alpha1.LinkSta
 	return r.currentLink.LinkStatus
 }
 
-func (r *NsXdpProgramReconciler) getNamespace() string {
-	return r.namespace
-}
-
 func (r *NsXdpProgramReconciler) getAttachRequest() *gobpfman.AttachRequest {
 
 	attachInfo := &gobpfman.XDPAttachInfo{

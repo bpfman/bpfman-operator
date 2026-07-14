@@ -57,9 +57,19 @@ type NsBpfApplicationReconciler struct {
 }
 
 type NsProgramReconcilerCommon struct {
+	currentApp          *bpfmaniov1alpha1.BpfApplication
 	currentProgram      *bpfmaniov1alpha1.BpfApplicationProgram
 	currentProgramState *bpfmaniov1alpha1.BpfApplicationProgramState
-	namespace           string
+}
+
+// getNamespace returns the namespace a namespaced program's pod and network
+// namespace selectors are scoped to. That is always the owning
+// BpfApplication's namespace, derived here rather than copied into a field so
+// it cannot be left unset. This is deliberately unlike the cluster-scoped
+// variant, whose selector carries an explicit namespace where empty means all
+// namespaces.
+func (r *NsProgramReconcilerCommon) getNamespace() string {
+	return r.currentApp.Namespace
 }
 
 func (r *NsBpfApplicationReconciler) getAppStateName() string {
@@ -314,6 +324,7 @@ func (r *NsBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 		rec = &NsUprobeProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			NsProgramReconcilerCommon: NsProgramReconcilerCommon{
+				currentApp:          r.currentApp,
 				currentProgram:      prog,
 				currentProgramState: progState,
 			},
@@ -323,6 +334,7 @@ func (r *NsBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 		rec = &NsTcProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			NsProgramReconcilerCommon: NsProgramReconcilerCommon{
+				currentApp:          r.currentApp,
 				currentProgram:      prog,
 				currentProgramState: progState,
 			},
@@ -332,6 +344,7 @@ func (r *NsBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 		rec = &NsTcxProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			NsProgramReconcilerCommon: NsProgramReconcilerCommon{
+				currentApp:          r.currentApp,
 				currentProgram:      prog,
 				currentProgramState: progState,
 			},
@@ -341,6 +354,7 @@ func (r *NsBpfApplicationReconciler) getProgramReconciler(prog *bpfmaniov1alpha1
 		rec = &NsXdpProgramReconciler{
 			ReconcilerCommon: r.ReconcilerCommon,
 			NsProgramReconcilerCommon: NsProgramReconcilerCommon{
+				currentApp:          r.currentApp,
 				currentProgram:      prog,
 				currentProgramState: progState,
 			},

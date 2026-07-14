@@ -275,7 +275,7 @@ func (r *NsUprobeProgramReconciler) getExpectedLinks(ctx context.Context, attach
 	// See if there are any matching containers on this node.
 	containerInfo, err := r.Containers.GetContainers(
 		ctx,
-		r.namespace,
+		r.getNamespace(),
 		attachInfo.Containers.Pods,
 		&attachInfo.Containers.ContainerNames,
 		r.Logger,

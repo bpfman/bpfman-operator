@@ -61,6 +61,10 @@ const (
 
 type FakeContainerGetter struct {
 	containerList *[]ContainerInfo
+	// gotNamespace records the namespace of the most recent GetContainers
+	// call so tests can assert that a namespaced reconciler scopes its lookup
+	// to the owning application's namespace.
+	gotNamespace string
 }
 
 func (f *FakeContainerGetter) GetContainers(
@@ -70,6 +74,7 @@ func (f *FakeContainerGetter) GetContainers(
 	selectorContainerNames *[]string,
 	logger logr.Logger,
 ) (*[]ContainerInfo, error) {
+	f.gotNamespace = selectorNamespace
 	return f.containerList, nil
 }
 
