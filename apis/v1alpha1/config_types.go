@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,6 +53,13 @@ type ConfigSpec struct {
 	// Namespace holds the namespace where bpfman-operator resources shall be
 	// deployed.
 	Namespace string `json:"namespace,omitempty"`
+
+	// Tolerations are merged into the bpfman daemon and metrics-proxy
+	// pods, letting them schedule onto nodes with matching taints. They
+	// are added on top of the tolerations baked into the static
+	// manifests, not replacing them.
+	// +optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
 	// overrides is a list of overrides for components that are managed by
 	// the operator. Marking a component as unmanaged will prevent
